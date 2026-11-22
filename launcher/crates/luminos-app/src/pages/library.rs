@@ -6,7 +6,7 @@ use crate::{
     widgets::{self, Btn},
 };
 use eframe::egui::{
-    self, pos2, vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Rect, Sense, Stroke,
+    self, vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Rect, Sense, Stroke,
     StrokeKind, Ui,
 };
 use luminos_core::{

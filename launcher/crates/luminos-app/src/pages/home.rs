@@ -6,8 +6,7 @@ use crate::{
     widgets::{self, Btn},
 };
 use eframe::egui::{
-    self, pos2, vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Rect, Sense, Stroke,
-    StrokeKind, Ui,
+    self, pos2, vec2, Align2, Color32, CornerRadius, FontId, Rect, Sense, Stroke, StrokeKind, Ui,
 };
 use luminos_core::{modrinth::Project, playtime, store};
 
@@ -28,31 +27,8 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         .map(|a| a.username.clone())
         .unwrap_or_else(|| "player".into());
     let greet = GREETINGS[(store::now_unix() / 86400) as usize % GREETINGS.len()];
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ui.label(
-                egui::RichText::new(format!("{greet}, {name}"))
-                    .font(FontId::new(27.0, theme::bold())),
-            );
-            widgets::muted(ui, "Pick up where you left off.");
-        });
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if widgets::button_sized(
-                ui,
-                accent,
-                "Browse library",
-                Some(Icon::Compass),
-                Btn::Secondary,
-                true,
-                0.0,
-                44.0,
-            )
-            .clicked()
-            {
-                app.goto(Page::Discover);
-            }
-        });
-    });
+    hero(app, ui, accent, &format!("{greet}, {name}"));
+    ui.add_space(10.0);
     ui.add_space(6.0);
 
     // Quick play
@@ -438,5 +414,198 @@ pub fn news_panel(app: &mut App, ui: &mut Ui) {
             "The Skins studio can fetch any player's skin by name.",
         ];
         widgets::muted(ui, tips[(store::now_unix() / 3600) as usize % tips.len()]);
+    });
+}
+
+/// Hero banner: greeting + one-click "Continue" on the left, real Minecraft art on the right that
+/// dissolves into the panel through an ordered-dither edge (the launcher's signature look).
+fn hero(app: &mut App, ui: &mut Ui, accent: Color32, title: &str) {
+    let h = 176.0;
+    let w = ui.available_width();
+    let (rect, _) = ui.allocate_exact_size(vec2(w, h), Sense::hover());
+    let radius = 20u8;
+    let navy = Color32::from_rgb(9, 15, 44);
+    let p = ui.painter().clone();
+    p.rect_filled(rect, CornerRadius::same(radius), navy);
+    // soft accent glow behind the text
+    for i in 0..6 {
+        p.circle_filled(
+            rect.left_center() + vec2(60.0, 10.0),
+            90.0 + i as f32 * 38.0,
+            theme::alpha(accent, 9),
+        );
+    }
+    p.rect_filled(rect, CornerRadius::same(radius), theme::alpha(navy, 150));
+
+    // art panel (right 56%)
+    let art = Rect::from_min_max(
+        pos2(rect.right() - w * 0.42, rect.top()),
+        rect.right_bottom(),
+    );
+    let url = app
+        .featured
+        .ready()
+        .and_then(|f| f.iter().find_map(|p| p.featured_gallery.clone()));
+    let mut have_art = false;
+    if let Some(u) = url.as_deref() {
+        let _ = app.icon_tex(u);
+        if let Some(Some(tex)) = app.icons.get(u) {
+            let tsz = tex.size_vec2();
+            let target = art.width() / art.height();
+            let ia = tsz.x / tsz.y;
+            let (uw, uh) = if ia > target {
+                (target / ia, 1.0)
+            } else {
+                (1.0, ia / target)
+            };
+            let (u0, v0) = ((1.0 - uw) / 2.0, (1.0 - uh) / 2.0);
+            p.add(
+                egui::epaint::RectShape::filled(
+                    art,
+                    CornerRadius {
+                        nw: 0,
+                        sw: 0,
+                        ne: radius,
+                        se: radius,
+                    },
+                    Color32::WHITE,
+                )
+                .with_texture(
+                    tex.id(),
+                    Rect::from_min_max(pos2(u0, v0), pos2(u0 + uw, v0 + uh)),
+                ),
+            );
+            have_art = true;
+        }
+    }
+    if !have_art {
+        p.rect_filled(
+            art,
+            CornerRadius {
+                nw: 0,
+                sw: 0,
+                ne: radius,
+                se: radius,
+            },
+            theme::alpha(accent, 28),
+        );
+    }
+    // ordered-dither dissolve between the dark panel and the art
+    const BAYER: [[f32; 4]; 4] = [
+        [0.0, 8.0, 2.0, 10.0],
+        [12.0, 4.0, 14.0, 6.0],
+        [3.0, 11.0, 1.0, 9.0],
+        [15.0, 7.0, 13.0, 5.0],
+    ];
+    let cell = 7.0;
+    let span = w * 0.16;
+    let cols = (span / cell) as i32;
+    let rows = (h / cell).ceil() as i32;
+    for cy in 0..rows {
+        for cx in 0..cols {
+            let t = cx as f32 / cols as f32; // 0 = dark, 1 = art
+            let thr = (BAYER[(cy % 4) as usize][(cx % 4) as usize] + 0.5) / 16.0;
+            if thr > t {
+                let r = Rect::from_min_size(
+                    pos2(art.left() + cx as f32 * cell, rect.top() + cy as f32 * cell),
+                    vec2(cell, cell),
+                )
+                .intersect(rect);
+                if r.width() > 0.0 && r.height() > 0.0 {
+                    p.rect_filled(r, 0.0, navy);
+                }
+            }
+        }
+    }
+    p.rect_stroke(
+        rect,
+        CornerRadius::same(radius),
+        Stroke::new(1.0, theme::alpha(accent, 60)),
+        StrokeKind::Inside,
+    );
+
+    // text + actions
+    let gal = p.layout(
+        title.to_string(),
+        FontId::new(25.0, theme::bold()),
+        Color32::WHITE,
+        w * 0.54,
+    );
+    let gh = gal.size().y;
+    p.galley(rect.min + vec2(28.0, 26.0), gal, Color32::WHITE);
+    let last = app
+        .instances
+        .iter()
+        .filter(|i| i.last_played.is_some())
+        .max_by_key(|i| i.last_played)
+        .or_else(|| app.instances.first())
+        .cloned();
+    p.text(
+        rect.min + vec2(28.0, 26.0 + gh + 6.0),
+        Align2::LEFT_TOP,
+        match &last {
+            Some(i) => format!(
+                "Jump back into {} — {} · {}",
+                i.name,
+                i.loader.label(),
+                i.mc_version
+            ),
+            None => "Create your first instance to get started.".into(),
+        },
+        FontId::proportional(14.0),
+        theme::MUTED,
+    );
+    let btns = Rect::from_min_size(rect.min + vec2(28.0, h - 62.0), vec2(w * 0.5, 44.0));
+    ui.scope_builder(egui::UiBuilder::new().max_rect(btns), |ui| {
+        ui.horizontal(|ui| {
+            match &last {
+                Some(i) => {
+                    if widgets::button_sized(
+                        ui,
+                        accent,
+                        "Continue",
+                        Some(Icon::Play),
+                        Btn::Primary,
+                        true,
+                        0.0,
+                        44.0,
+                    )
+                    .clicked()
+                    {
+                        app.play(&i.id);
+                    }
+                }
+                None => {
+                    if widgets::button_sized(
+                        ui,
+                        accent,
+                        "New instance",
+                        Some(Icon::Plus),
+                        Btn::Primary,
+                        true,
+                        0.0,
+                        44.0,
+                    )
+                    .clicked()
+                    {
+                        app.open_create();
+                    }
+                }
+            }
+            if widgets::button_sized(
+                ui,
+                accent,
+                "Browse library",
+                Some(Icon::Compass),
+                Btn::Secondary,
+                true,
+                0.0,
+                44.0,
+            )
+            .clicked()
+            {
+                app.goto(Page::Discover);
+            }
+        });
     });
 }

@@ -74,3 +74,34 @@ Working name **Luminos** (Latin *lumen*, "light" — fits a featherweight launch
 
 ## Competitive snapshot — where Luminos wins
 Size (≈11 MB vs. Electron 100 MB+), zero ads/adware, honest status labels, first-party HUD + optimisation bundle, local-only playtime, crash doctor + backups + server hub in the same app.
+
+---
+## Session 3 — naming, positioning and recommendations
+
+### Name
+**Luminos** stays: short, pronounceable, "light" (fast + lit-up blue), and doesn't use "Mine"/"craft" (Mojang's brand guidelines discourage both). Fallbacks if it's ever taken: *Voxlight*, *Pixelume*, *Lumenblock*.
+
+### What the best launchers do that we should copy (study, don't copy code)
+- **Modrinth App / Prism** – instance isolation, `.mrpack` import/export, per-instance Java.
+- **SKLauncher / TLauncher** – one-window simplicity, built-in skins, fast first run.
+- **Lunar / Feather / Badlion** – a client that feels like part of the launcher: HUD editor, cosmetics, perf presets, clean main-menu.
+- **OneLauncher (Polyfrost)** – clusters, Rust/Tauri engine, fast metadata caching. GPL → inspiration only.
+
+### Recommended additions (ordered by value/effort)
+1. **Share links** – `luminos://instance?...` / QR for an instance's mod list so friends join with one click.
+2. **Mod conflict & duplicate detector** (two copies of Sodium, Fabric/Quilt mix-ups) before launch.
+3. **Safe-update with rollback** – snapshot the mods folder before "Update all"; one-click undo.
+4. **Profile benchmarks** – record avg FPS/1% lows per instance (client mod → launcher) to prove the optimisation stack helps.
+5. **Auto-switch Java** per Minecraft version, shown clearly in the UI (already detected, not yet auto-applied everywhere).
+6. **Screenshot gallery** per instance with copy/share + open-folder.
+7. **Discord Rich Presence** and a system-tray "now playing" with playtime.
+8. **Settings sync** through a user-owned git repo or zip export (no cloud server for us to run).
+9. **Shader / resource-pack presets** that apply per instance with live preview thumbnails from Modrinth galleries.
+10. **Server join quick-actions** – `--quickPlayMultiplayer` from the server hub (partly done).
+11. **Offline-first** – every network page degrades to cached data (already true for versions + news).
+12. **Accessibility** – UI scale, high-contrast theme, reduced motion (exists), keyboard navigation.
+
+### Legal / safety notes
+- Offline accounts are supported for people who can't buy the game; the launcher should always nudge towards a Microsoft login once wired and never bundle Mojang assets or bypass servers' authentication.
+- Skins for offline accounts are local-only unless a server-side skin plugin is used — say so in the UI.
+- Never ship third-party art we don't have a licence for; the site hot-credits Modrinth gallery authors and links to each project; remove on request.

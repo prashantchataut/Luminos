@@ -4,8 +4,8 @@ use crate::{
     theme,
 };
 use eframe::egui::{
-    self, epaint::PathShape, pos2, vec2, Align2, Color32, CornerRadius, FontId, Frame, Margin,
-    Rect, Response, Sense, Shape, Stroke, StrokeKind, Ui,
+    self, pos2, vec2, Align2, Color32, CornerRadius, FontId, Frame, Margin, Rect, Response, Sense,
+    Shape, Stroke, StrokeKind, Ui,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -379,61 +379,101 @@ pub fn instance_icon(ui: &Ui, rect: Rect, name: &str, color: u8) {
     );
 }
 
-/// The Luminos mark: an isometric cube with three shaded faces.
+/// The Luminos mark: a pixel-built "L" on a deep-blue tile whose foot dissolves into dither and
+/// throws a spark. Keep the grid in sync with `tools/make_brand.py` (the SVG/ICO source).
 pub fn logo_mark(p: &egui::Painter, c: egui::Pos2, size: f32, accent: Color32, glow: f32) {
-    let s = size / 2.0;
-    let top = vec![
-        c + vec2(0.0, -s),
-        c + vec2(s * 0.87, -s * 0.5),
-        c + vec2(0.0, 0.0),
-        c + vec2(-s * 0.87, -s * 0.5),
+    const L: [(u8, u8, f32); 21] = [
+        (2, 1, 1.0),
+        (2, 2, 1.0),
+        (2, 3, 1.0),
+        (2, 4, 1.0),
+        (2, 5, 1.0),
+        (2, 6, 1.0),
+        (3, 1, 1.0),
+        (3, 2, 1.0),
+        (3, 3, 1.0),
+        (3, 4, 1.0),
+        (3, 5, 1.0),
+        (3, 6, 1.0),
+        (4, 5, 1.0),
+        (4, 6, 1.0),
+        (5, 5, 1.0),
+        (5, 6, 1.0),
+        (6, 6, 0.85),
+        (7, 5, 0.55),
+        (6, 5, 0.3),
+        (7, 6, 0.3),
+        (6, 1, 1.0),
     ];
-    let left = vec![
-        c + vec2(-s * 0.87, -s * 0.5),
-        c + vec2(0.0, 0.0),
-        c + vec2(0.0, s),
-        c + vec2(-s * 0.87, s * 0.5),
+    const TRAIL: [(u8, u8, f32); 5] = [
+        (7, 0, 0.6),
+        (5, 2, 0.5),
+        (7, 2, 0.35),
+        (5, 0, 0.3),
+        (6, 3, 0.2),
     ];
-    let right = vec![
-        c + vec2(s * 0.87, -s * 0.5),
-        c + vec2(s * 0.87, s * 0.5),
-        c + vec2(0.0, s),
-        c + vec2(0.0, 0.0),
-    ];
-    for i in 1..5 {
-        p.circle_filled(
-            c,
-            s * (1.0 + i as f32 * 0.35),
-            theme::alpha(accent, ((6.0 - i as f32) * 5.0 * glow) as u8),
-        );
+    let tile = Rect::from_center_size(c, vec2(size, size));
+    if glow > 0.0 {
+        for i in 1..5 {
+            p.circle_filled(
+                c,
+                size * 0.5 * (1.0 + i as f32 * 0.35),
+                theme::alpha(accent, ((6.0 - i as f32) * 5.0 * glow) as u8),
+            );
+        }
     }
-    p.add(Shape::convex_polygon(
-        top,
-        theme::mix(accent, Color32::WHITE, 0.55),
-        Stroke::NONE,
-    ));
-    p.add(Shape::convex_polygon(
-        left,
-        theme::mix(accent, Color32::BLACK, 0.15),
-        Stroke::NONE,
-    ));
-    p.add(Shape::convex_polygon(
-        right,
-        theme::mix(accent, Color32::BLACK, 0.45),
-        Stroke::NONE,
-    ));
-    let edge = Stroke::new(1.2, Color32::from_white_alpha(70));
-    p.add(Shape::Path(PathShape::closed_line(
-        vec![
-            c + vec2(0.0, -s),
-            c + vec2(s * 0.87, -s * 0.5),
-            c + vec2(s * 0.87, s * 0.5),
-            c + vec2(0.0, s),
-            c + vec2(-s * 0.87, s * 0.5),
-            c + vec2(-s * 0.87, -s * 0.5),
-        ],
-        edge,
-    )));
+    let r = CornerRadius::same((size * 0.23) as u8);
+    let top = theme::mix(accent, Color32::WHITE, 0.35);
+    let bot = theme::mix(accent, Color32::BLACK, 0.45);
+    // two-band vertical gradient (cheap, crisp at any size)
+    p.rect_filled(tile, r, bot);
+    let mut mesh = egui::Mesh::default();
+    let steps = 8;
+    for i in 0..steps {
+        let t0 = i as f32 / steps as f32;
+        let col = theme::mix(top, bot, (t0 + 0.5 / steps as f32).min(1.0));
+        let band = Rect::from_min_max(
+            pos2(
+                tile.left() + size * 0.04,
+                tile.top() + size * (0.06 + 0.88 * t0),
+            ),
+            pos2(
+                tile.right() - size * 0.04,
+                tile.top() + size * (0.06 + 0.88 * (t0 + 1.0 / steps as f32)),
+            ),
+        );
+        mesh.add_colored_rect(band, col);
+    }
+    p.rect_filled(tile, r, theme::mix(top, bot, 0.5));
+    p.add(Shape::mesh(mesh));
+    p.rect_stroke(
+        tile,
+        r,
+        Stroke::new(1.0, Color32::from_white_alpha(46)),
+        egui::StrokeKind::Inside,
+    );
+    let pad = size * 0.12;
+    let u = (size - 2.0 * pad) / 8.0;
+    let cell = |x: u8, y: u8, col: Color32, a: f32| {
+        let o = tile.min + vec2(pad + x as f32 * u, pad + y as f32 * u);
+        p.rect_filled(
+            Rect::from_min_size(o, vec2(u, u)),
+            CornerRadius::ZERO,
+            theme::alpha(col, (a * 255.0) as u8),
+        );
+    };
+    let light = Color32::from_rgb(214, 236, 255);
+    for (x, y, a) in TRAIL {
+        cell(x, y, light, a);
+    }
+    for (x, y, a) in L {
+        let col = if (x, y) == (6, 1) {
+            light
+        } else {
+            Color32::WHITE
+        };
+        cell(x, y, col, a);
+    }
 }
 
 /// Round avatar showing a Minecraft face from a skin texture, or a generated placeholder.

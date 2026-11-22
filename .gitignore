@@ -9,3 +9,6 @@ public/screenshots/
 client/build/
 client/.gradle/
 tsconfig.tsbuildinfo
+site/dist/
+site/public/screenshots/
+dist/
