@@ -27,6 +27,7 @@ jobs:
       - name: Static export (API routes are not part of the marketing site)
         run: |
           rm -rf src/app/api
+          mkdir -p public/screenshots
           cp -r docs/screenshots/. public/screenshots/
           npm run build
         env:
