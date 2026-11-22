@@ -55,13 +55,13 @@ export default function Hero({ release }: { release: ReleaseState }) {
       </section>
 
       <section className="relative z-20 -mt-[17vh] px-4 pb-8 md:px-10" aria-label="Launcher home screen">
-        <Reveal className="mx-auto max-w-[1180px]">
+        <div className="rise mx-auto max-w-[1180px]" style={{ ["--d" as string]: 6 }}>
           <Frame src={home} alt="Luminos home screen: a Continue button for the last played instance, quick-play tiles, Modrinth content cards and Minecraft news." priority />
           <p className="mx-auto mt-5 max-w-2xl text-center text-[0.8125rem] leading-relaxed text-mute">
             Rendered by the launcher’s own screenshot tool from the real interface. The account name,
             instances and playtime are demo data.
           </p>
-        </Reveal>
+        </div>
         <div className="mx-auto mt-14 flex max-w-xl justify-center">
           <Reveal delay={1}>
             <DownloadCTA release={release} />

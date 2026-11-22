@@ -160,7 +160,7 @@ export function Closing({ release }: { release: ReleaseState }) {
         </Reveal>
 
         <footer className="mt-auto w-full pb-8 pt-40">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-3xl bg-white/60 px-6 py-6 text-[#06143a] backdrop-blur-md">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-3xl bg-white/85 px-6 py-6 text-[#06143a] backdrop-blur-md">
             <span className="text-[#06143a]">
               <Wordmark />
             </span>
@@ -176,7 +176,7 @@ export function Closing({ release }: { release: ReleaseState }) {
                 </a>
               ))}
             </nav>
-            <p className="max-w-md text-xs leading-relaxed text-[#06143a]/75">
+            <p className="max-w-md text-xs leading-relaxed text-[#06143a]">
               Luminos is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang AB.
             </p>
           </div>

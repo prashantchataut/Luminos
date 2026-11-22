@@ -38,6 +38,7 @@ Java, display or Windows**, so only the website could be built and checked. Noth
     error states are all designed. Verified live: it found v0.3.0, 4.8 MB.
 - ✅ Verified in **headless Chromium** at 1440x900 and 390x844: no console errors, no horizontal overflow. Screenshots in `docs/screenshots/site/`.
 - ✅ `tsc --noEmit` and `npm run build` pass. JS 73 KB gzipped, whole `dist` 1.3 MB.
+- ✅ Perf work that mattered: first Lighthouse run scored **60** (TBT 1.6 s) because the sky recomputed noise per pixel per frame. Now the layers are built once in 8 ms slices, only when near the viewport, and animation is a slide of a precomputed cloud layer (about 2 ms/frame, 10 fps). Fonts are self-hosted Latin-only and preloaded. Test server must gzip, or Lighthouse overstates JS by 3x.
 - ✅ Docs: `docs/research/` (Lunar features mapped, Prism notes), `docs/SKILLS.md` (what was really applied).
 - ✅ Privacy page claims checked against code: grep for telemetry/analytics/sentry/posthog in `launcher/` = nothing;
   host list taken from every URL literal in `launcher/crates`.
@@ -50,7 +51,7 @@ Java, display or Windows**, so only the website could be built and checked. Noth
 - ⬜ Cinematic onboarding, Microsoft sign-in wiring, cosmetics service + in-game skin switcher, utility wheel, instances/library rework,
   Discord RPC, Ctrl+K palette: not started. The site does not advertise any of them.
 - ⬜ `cargo-deny`/`cargo-about` licence audit: no cargo here. Run it in CI before release.
-- ⬜ Lighthouse 95+: **not measured** (no Lighthouse run). Built for it (73 KB JS, no render-blocking font CDN, reduced motion), but unproven.
+- 🟡 **Lighthouse (mobile profile, local gzip server, 2 runs): performance 90 and 97, accessibility 100, best practices 100, SEO 100, CLS 0, TBT ~10 ms.** Target was 95+: met on one run, not the other (run-to-run spread). Not measured on the real GitHub Pages deploy. Desktop profile not run.
 - ⬜ In-game screenshots of the client (HUD, mod menu): none exist, so the site shows none.
 - ⬜ Brand redesign: the site still uses the session-4 "lumen orb". Not redesigned.
 - ⬜ Teardowns of OneLauncher/OneClient, Feather, SK, TLauncher, OpenLauncher: not done.
