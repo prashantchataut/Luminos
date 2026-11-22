@@ -372,9 +372,56 @@ fn loader_profile(mc: &str, loader: Loader, wanted: Option<&str>) -> Result<Vers
     serde_json::from_value(raw).context("parsing loader profile")
 }
 
+/// Split `group:artifact:version[:classifier]` into (`group:artifact[:classifier]`, version).
+fn lib_key(name: &str) -> (String, String) {
+    let base = name.split('@').next().unwrap_or(name);
+    let p: Vec<&str> = base.split(':').collect();
+    if p.len() < 3 {
+        return (base.to_string(), String::new());
+    }
+    let mut key = format!("{}:{}", p[0], p[1]);
+    if let Some(c) = p.get(3) {
+        key.push(':');
+        key.push_str(c);
+    }
+    (key, p[2].to_string())
+}
+
+fn version_parts(v: &str) -> Vec<u64> {
+    v.split(|c: char| !c.is_ascii_digit())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.parse().unwrap_or(0))
+        .collect()
+}
+
+/// Keep one version of every library (the highest), like the official launcher does.
+/// Fabric/Quilt ship their own ASM; two ASM jars on the classpath make Fabric Loader refuse to start
+/// ("duplicate ASM classes found on classpath"), which is how Fabric instances used to fail to open.
+pub fn dedupe_libraries(libs: Vec<Library>) -> Vec<Library> {
+    let mut out: Vec<Library> = vec![];
+    let mut at: HashMap<String, usize> = HashMap::new();
+    for l in libs {
+        let (key, ver) = lib_key(&l.name);
+        match at.get(&key) {
+            Some(&i) => {
+                let (_, old) = lib_key(&out[i].name);
+                if version_parts(&ver) > version_parts(&old) {
+                    out[i] = l;
+                }
+            }
+            None => {
+                at.insert(key, out.len());
+                out.push(l);
+            }
+        }
+    }
+    out
+}
+
 fn merge(parent: VersionJson, child: VersionJson) -> VersionJson {
     let mut libs = child.libraries.clone();
     libs.extend(parent.libraries.clone());
+    let libs = dedupe_libraries(libs);
     let arguments = match (parent.arguments.clone(), child.arguments.clone()) {
         (Some(mut p), Some(c)) => {
             p.game.extend(c.game);
@@ -435,6 +482,29 @@ pub fn loader_versions(mc: &str, loader: Loader) -> Result<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn duplicate_asm_keeps_newest() {
+        let mk = |n: &str| Library {
+            name: n.into(),
+            downloads: None,
+            url: None,
+            rules: None,
+            natives: None,
+        };
+        let out = dedupe_libraries(vec![
+            mk("org.ow2.asm:asm:9.6"),
+            mk("net.fabricmc:fabric-loader:0.16.9"),
+            mk("org.ow2.asm:asm:9.10.1"),
+            mk("org.lwjgl:lwjgl:3.3.3"),
+            mk("org.lwjgl:lwjgl:3.3.3:natives-windows"),
+        ]);
+        let names: Vec<&str> = out.iter().map(|l| l.name.as_str()).collect();
+        assert_eq!(out.len(), 4);
+        assert!(names.contains(&"org.ow2.asm:asm:9.10.1"));
+        assert!(!names.contains(&"org.ow2.asm:asm:9.6"));
+        assert!(names.contains(&"org.lwjgl:lwjgl:3.3.3:natives-windows"));
+    }
 
     #[test]
     fn maven_paths() {

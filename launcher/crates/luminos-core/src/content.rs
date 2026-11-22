@@ -367,7 +367,8 @@ pub fn check_updates(inst: &Instance) -> Result<Vec<Update>> {
         } else {
             vec![]
         };
-        let latest = modrinth::latest_for_hashes(&hashes, &loaders, &[inst.mc_version.clone()])?;
+        let latest =
+            modrinth::latest_for_hashes(&hashes, &loaders, std::slice::from_ref(&inst.mc_version))?;
         for (hash, newest) in latest {
             if let Some((file, l)) = by_hash.get(&hash) {
                 if newest.id != l.version_id {

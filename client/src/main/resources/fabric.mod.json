@@ -9,7 +9,8 @@
     "homepage": "https://prashantchataut.github.io/Luminos/",
     "sources": "https://github.com/prashantchataut/Luminos"
   },
-  "license": "GPL-3.0-or-later",
+  "license": "All-Rights-Reserved",
+  "icon": "assets/luminos_client/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": ["dev.luminos.client.LuminosClient"],

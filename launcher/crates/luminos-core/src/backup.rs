@@ -113,7 +113,7 @@ pub fn list_backups(inst: &Instance) -> Vec<Backup> {
             })
         })
         .collect();
-    v.sort_by(|a, b| b.created.cmp(&a.created));
+    v.sort_by_key(|e| std::cmp::Reverse(e.created));
     v
 }
 

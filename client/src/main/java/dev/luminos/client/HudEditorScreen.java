@@ -68,7 +68,12 @@ public final class HudEditorScreen extends Screen {
 	public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
 		super.render(g, mouseX, mouseY, partial);
 		Minecraft mc = Minecraft.getInstance();
-		g.drawCenteredString(font, "Drag to move · Right-click to toggle · Scroll to resize", width / 2, 12, 0xFFE8EEFF);
+		// branded header strip
+		g.fill(0, 0, width, 34, 0xCC060A1A);
+		g.fill(0, 34, width, 35, 0xFF1C2A58);
+		Logo.draw(g, 8, 7, 1);
+		g.drawString(font, "LUMINOS CLIENT", 36, 8, 0xFFE8EEFF, false);
+		g.drawString(font, "Drag to move · Right-click to toggle · Scroll to resize", 36, 20, 0xFF7C8CBE, false);
 		for (HudModule m : Modules.ALL) {
 			Config.ModuleCfg c = Config.get().of(m);
 			int w = (int) (m.width(mc) * c.scale);

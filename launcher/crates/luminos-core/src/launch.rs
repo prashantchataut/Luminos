@@ -245,7 +245,9 @@ pub fn build_command(
     );
 
     let mem = inst.memory_mb.unwrap_or(settings.memory_mb).max(512);
+    let _ = fs::create_dir_all(&game_dir);
     let mut cmd = Command::new(&prep.java);
+    crate::sys::quiet(&mut cmd);
     cmd.current_dir(&game_dir);
     cmd.arg(format!("-Xmx{mem}M"))
         .arg(format!("-Xms{}M", (mem / 4).max(256)));

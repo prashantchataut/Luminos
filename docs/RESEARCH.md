@@ -105,3 +105,7 @@ Size (≈11 MB vs. Electron 100 MB+), zero ads/adware, honest status labels, fir
 - Offline accounts are supported for people who can't buy the game; the launcher should always nudge towards a Microsoft login once wired and never bundle Mojang assets or bypass servers' authentication.
 - Skins for offline accounts are local-only unless a server-side skin plugin is used — say so in the UI.
 - Never ship third-party art we don't have a licence for; the site hot-credits Modrinth gallery authors and links to each project; remove on request.
+
+
+## Naming (session 4 recommendation)
+Keep **Luminos**: unique in the Minecraft space, says "light", and the new logo (a lit, dithered orb) *is* the name. Client = **Luminos Client** (orb + HUD brackets). Alternatives considered and rejected: Lumen (taken by many products), Pixelume (hard to say), Dithr (cute, not searchable).
