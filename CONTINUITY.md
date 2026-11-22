@@ -14,11 +14,27 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 | `launcher/crates/luminos-core` | Headless engine (no UI): instances, Mojang/Fabric/Quilt metadata, downloader, Java, launch, Modrinth, content manager, `.mrpack` import, playtime, skins, preset, news |
 | `launcher/crates/luminos-app` | egui desktop UI (`luminos` binary) + headless screenshot renderer (`luminos-shots`) |
 | `docs/screenshots/` | PNG renders of every screen, produced by `luminos-shots` from the *real* UI |
-| `src/` (Next.js) | GitHub Pages marketing site (`GITHUB_PAGES=true` → static export) |
-| `.github/workflows/` | `ci.yml` (fmt/clippy/test, 3 OSes), `pages.yml` (site deploy) |
+| `site/` (Vite + React + Tailwind) | GitHub Pages website; screenshots are copied in from `docs/screenshots` by the Pages workflow |
+| `client/` | Luminos Client Fabric HUD mod |
+| `installer/` | Inno Setup script for `Luminos-Setup.exe` |
+| `brand/`, `tools/make_brand.py` | Logo (SVG/PNG/ICO) + installer art, generated from one pixel grid |
+| `.github/workflows/` | `ci.yml` (fmt/clippy/test, 3 OSes), `pages.yml` (site deploy), `release.yml` (tag `v*` → Windows installer + Linux tarball), `client.yml` (HUD mod jar) |
 
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
+
+## Session 3 — brand, installer, website, Home hero
+Branch `feat/session-3-brand-installer-site`.
+Owner feedback: "app and site look AI slop", release only showed a `.jar`, wants a real `Setup.exe`, a redesigned logo, real Minecraft imagery, README/continuity updated.
+- ✅ **New logo**: pixel-built "L" whose foot dissolves into ordered dither + a spark pixel on a deep-blue tile. Single source grid in `tools/make_brand.py` (SVG, PNG, multi-size ICO, installer bitmaps) mirrored in `widgets::logo_mark` (Rust painter). Old isometric cube removed.
+- ✅ **Home hero**: greeting + one-click *Continue* (last-played instance) + real Modrinth art that dissolves into the panel via a Bayer dither edge (`pages/home.rs::hero`).
+- ✅ Window/taskbar icon (`main.rs`) and `.exe` icon + version info (`build.rs` via `winresource`, Windows only).
+- ✅ `luminos-shots` now pulls **live Modrinth content** (icons + gallery art) when online, so screenshots show what users see; falls back to the offline demo data.
+- 🟡 **Windows installer**: `installer/luminos.iss` (Inno Setup, per-user, no admin, dithered wizard art) built by `.github/workflows/release.yml` on `windows-latest` → `Luminos-Setup.exe`, `Luminos-Portable.exe`, `SHA256SUMS.txt` (+ Linux tarball). **Compiled on Linux only locally; the Windows build is verified by CI** (see status below).
+- ✅ **Website rebuilt** (`site/`, Vite+React+Tailwind, replaces Next.js): animated dither hero, real Minecraft gallery (Modrinth galleries, credited, resized to ~100 KB JPEGs), bento features, client section, tabbed real screenshots, honest roadmap, live "latest release" lookup. Could not be viewed in a browser in the sandbox (Chromium missing libs) — **eyeball it after deploy**.
+- ✅ README, `docs/RELEASE_NOTES.md`, `docs/RESEARCH.md` (naming + 12 recommendations) rewritten.
+- ⬜ Not done this session: Microsoft sign-in wiring, in-game test of HUD mod, Forge/NeoForge, launcher self-update, custom cosmetics.
+- ⬜ Next-session top 3: (1) run the installer on a real Windows machine and fix anything that breaks; (2) launch vanilla + Fabric + Luminos Client for real; (3) wire Microsoft sign-in.
 
 ## Session 2 — client mod, power features, repo hygiene
 Branch `feat/session-2-client-and-core` → PR. Owner's source zip imported, **renamed Cobalt → Luminos**, zip deleted.
