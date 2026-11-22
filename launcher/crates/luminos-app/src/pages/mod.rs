@@ -1,0 +1,8 @@
+pub mod discover;
+pub mod home;
+pub mod instance;
+pub mod library;
+pub mod settings;
+pub mod setup;
+pub mod skins;
+pub mod stats;

@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["crates/luminos-core", "crates/luminos-app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+authors = ["Luminos Launcher contributors"]
+repository = "https://github.com/prashantchataut/Luminos"
+
+[workspace.dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Release profile tuned for a tiny, fast launcher binary.
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 4
+panic = "abort"
+strip = true
+
+# Dev builds: keep dependencies optimised so the UI stays smooth while iterating.
+[profile.dev.package."*"]
+opt-level = 2
