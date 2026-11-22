@@ -45,7 +45,7 @@ jobs:
           & $iscc "/DAppVersion=${{ steps.v.outputs.version }}" installer\luminos.iss
           Copy-Item launcher\target\release\luminos.exe dist\Luminos-Portable.exe
           Get-FileHash dist\*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content dist\SHA256SUMS.txt
-      - name: Attest build provenance (verifiable: built from this repo by GitHub Actions)
+      - name: Attest build provenance
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
