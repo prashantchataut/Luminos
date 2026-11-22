@@ -1,5 +1,9 @@
 //! Mojang metadata: the version manifest, version JSON, libraries, rules, and loader profiles.
-use crate::{http, instances::{Instance, Loader}, paths, store};
+use crate::{
+    http,
+    instances::{Instance, Loader},
+    paths, store,
+};
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
@@ -248,10 +252,22 @@ pub fn lib_files(lib: &Library) -> Vec<LibFile> {
         }
         if let (Some(n), Some(cls)) = (&lib.natives, &d.classifiers) {
             if let Some(key) = n.get(os_name()) {
-                let key = key.replace("${arch}", if cfg!(target_pointer_width = "32") { "32" } else { "64" });
+                let key = key.replace(
+                    "${arch}",
+                    if cfg!(target_pointer_width = "32") {
+                        "32"
+                    } else {
+                        "64"
+                    },
+                );
                 if let Some(a) = cls.get(&key) {
                     out.push(LibFile {
-                        path: a.path.clone().unwrap_or_else(|| format!("{}-{key}.jar", maven_path(&lib.name).trim_end_matches(".jar"))),
+                        path: a.path.clone().unwrap_or_else(|| {
+                            format!(
+                                "{}-{key}.jar",
+                                maven_path(&lib.name).trim_end_matches(".jar")
+                            )
+                        }),
                         url: a.url.clone(),
                         sha1: a.sha1.clone(),
                         size: a.size,
@@ -261,10 +277,23 @@ pub fn lib_files(lib: &Library) -> Vec<LibFile> {
             }
         }
     } else {
-        let base = lib.url.clone().unwrap_or_else(|| "https://libraries.minecraft.net/".into());
+        let base = lib
+            .url
+            .clone()
+            .unwrap_or_else(|| "https://libraries.minecraft.net/".into());
         let path = maven_path(&lib.name);
-        let base = if base.ends_with('/') { base } else { format!("{base}/") };
-        out.push(LibFile { url: format!("{base}{path}"), path, sha1: None, size: 0, native: false });
+        let base = if base.ends_with('/') {
+            base
+        } else {
+            format!("{base}/")
+        };
+        out.push(LibFile {
+            url: format!("{base}{path}"),
+            path,
+            sha1: None,
+            size: 0,
+            native: false,
+        });
     }
     out
 }
@@ -298,9 +327,20 @@ fn load_vanilla(id: &str) -> Result<VersionJson> {
 
 fn loader_profile(mc: &str, loader: Loader, wanted: Option<&str>) -> Result<VersionJson> {
     let (meta, list_url) = match loader {
-        Loader::Fabric => ("https://meta.fabricmc.net/v2/versions/loader", format!("https://meta.fabricmc.net/v2/versions/loader/{mc}")),
-        Loader::Quilt => ("https://meta.quiltmc.org/v3/versions/loader", format!("https://meta.quiltmc.org/v3/versions/loader/{mc}")),
-        _ => return Err(anyhow!("{} launching is not implemented yet", loader.label())),
+        Loader::Fabric => (
+            "https://meta.fabricmc.net/v2/versions/loader",
+            format!("https://meta.fabricmc.net/v2/versions/loader/{mc}"),
+        ),
+        Loader::Quilt => (
+            "https://meta.quiltmc.org/v3/versions/loader",
+            format!("https://meta.quiltmc.org/v3/versions/loader/{mc}"),
+        ),
+        _ => {
+            return Err(anyhow!(
+                "{} launching is not implemented yet",
+                loader.label()
+            ))
+        }
     };
     let ver = match wanted {
         Some(v) => v.to_string(),
@@ -314,7 +354,10 @@ fn loader_profile(mc: &str, loader: Loader, wanted: Option<&str>) -> Result<Vers
                 .to_string()
         }
     };
-    let id = format!("{}-loader-{ver}-{mc}", loader.modrinth_id().unwrap_or("loader"));
+    let id = format!(
+        "{}-loader-{ver}-{mc}",
+        loader.modrinth_id().unwrap_or("loader")
+    );
     let f = version_file(&id);
     if let Ok(b) = fs::read(&f) {
         if let Ok(v) = serde_json::from_slice::<VersionJson>(&b) {
@@ -342,8 +385,16 @@ fn merge(parent: VersionJson, child: VersionJson) -> VersionJson {
     };
     VersionJson {
         id: child.id,
-        kind: if child.kind.is_empty() { parent.kind } else { child.kind },
-        main_class: if child.main_class.is_empty() { parent.main_class } else { child.main_class },
+        kind: if child.kind.is_empty() {
+            parent.kind
+        } else {
+            child.kind
+        },
+        main_class: if child.main_class.is_empty() {
+            parent.main_class
+        } else {
+            child.main_class
+        },
         minecraft_arguments: child.minecraft_arguments.or(parent.minecraft_arguments),
         arguments,
         libraries: libs,
@@ -387,7 +438,10 @@ mod tests {
 
     #[test]
     fn maven_paths() {
-        assert_eq!(maven_path("org.ow2.asm:asm:9.6"), "org/ow2/asm/asm/9.6/asm-9.6.jar");
+        assert_eq!(
+            maven_path("org.ow2.asm:asm:9.6"),
+            "org/ow2/asm/asm/9.6/asm-9.6.jar"
+        );
         assert_eq!(
             maven_path("org.lwjgl:lwjgl:3.3.3:natives-linux"),
             "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-linux.jar"
@@ -397,8 +451,19 @@ mod tests {
     #[test]
     fn rules() {
         let r = Some(vec![
-            Rule { action: "allow".into(), os: None, features: None },
-            Rule { action: "disallow".into(), os: Some(OsRule { name: Some(os_name().into()), arch: None }), features: None },
+            Rule {
+                action: "allow".into(),
+                os: None,
+                features: None,
+            },
+            Rule {
+                action: "disallow".into(),
+                os: Some(OsRule {
+                    name: Some(os_name().into()),
+                    arch: None,
+                }),
+                features: None,
+            },
         ]);
         assert!(!rules_allow(&r));
         assert!(rules_allow(&None));

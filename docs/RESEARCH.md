@@ -48,3 +48,29 @@ _Session 1. Sources actually consulted: Polyfrost/OneLauncher README (live fetch
 - Mojang EULA/brand: keep the "not affiliated" disclaimer; never ship game files.
 - Modrinth API terms: keep a descriptive User-Agent (done), cache aggressively, don't hammer endpoints.
 - Fonts: Inter and JetBrains Mono are SIL OFL — ship their licence text in release bundles.
+
+---
+# Session 2 additions
+
+## Name
+Working name **Luminos** (Latin *lumen*, "light" — fits a featherweight launcher with a glowing-blue identity and it is already your repo name). Not trademark-searched; do that before a 1.0 release. Alternatives if you want to switch: **Azurite** (blue mineral, very Minecraft-y), **Nimbus** (light/airy), **Ditherlight** (leans into the dither identity), **Halcyon**, **Pixelume**. My recommendation: keep Luminos — rename later is a `sed` away (`LUMINOS_HOME`, crate names, strings).
+
+## Extra references reviewed
+- **OpenLauncher (CesarGarza55)** — read live. Ideas adopted: version-aware GC presets (ZGC on 21+, Aikar G1 on ≤17 — now in `jvmflags.rs`), crash auto-fixer concept (our *Crash doctor*). Ideas queued: **instance migration wizard from `.minecraft`**, **"close launcher while playing" zero-overhead mode** (we are Rust, so even "hide" mode costs little), Fabric incompatibility auto-fix by harmonising versions, per-language UI. Note it's Electron (GPL-2.0) — we stay Rust and write original code.
+- **OneLauncher / OneClient (Polyfrost)** — one-click curated client bundles, signed installers (done conceptually via our bundle + first-party mod).
+- Legacy Launcher source link sits behind a Cloudflare challenge and the open-design.ai catalog is a design-skill index — not reviewed in depth.
+
+## New recommendations (beyond session 1's list)
+1. **Instance import/migration** from `.minecraft`, Prism/MultiMC, CurseForge, Modrinth App (high value, low risk).
+2. **Auto-backup before launch / on exit** using `backup.rs` (+ restore points before *Update all*).
+3. **Per-server profiles** — join a saved server with its own instance & HUD layout (`--quickPlayMultiplayer`).
+4. **Shareable HUD layouts** — export/import `luminos-client.json` as a code; community layout gallery.
+5. **Mod conflict checker** before install using Modrinth `incompatible` dependencies.
+6. **Launcher self-update** with signature verification; reproducible release builds.
+7. **Skin hub**: Mojang skin upload once MS auth is wired; open libraries (NameMC-style) via official APIs only.
+8. **Telemetry-free crash sharing**: one-click redacted upload to mclo.gs.
+9. **Discord Rich Presence** (opt-in) showing instance + server.
+10. **Replay/clip hooks**: detect server join, save last-30-s clip via OS recorder (later).
+
+## Competitive snapshot — where Luminos wins
+Size (≈11 MB vs. Electron 100 MB+), zero ads/adware, honest status labels, first-party HUD + optimisation bundle, local-only playtime, crash doctor + backups + server hub in the same app.

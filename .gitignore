@@ -5,3 +5,7 @@ node_modules/
 .env
 *.zip
 launcher/target/
+public/screenshots/
+client/build/
+client/.gradle/
+tsconfig.tsbuildinfo

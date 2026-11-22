@@ -50,3 +50,15 @@ Reverse-engineering/research tasks: study public behaviour and docs (Mojang laun
 ## Session checklist
 - [ ] Read CONTINUITY.md  - [ ] Plan ≤ 10 bullet tasks  - [ ] Implement  - [ ] Tests  - [ ] Re-render screenshots
 - [ ] Update CONTINUITY.md (status, limitations, next steps)  - [ ] Commit + push  - [ ] PR with screenshots
+
+## Skills to load (see `docs/SKILLS.md` for install commands and when to use each)
+- **UI/UX:** `frontend-design` (commit to a direction before markup), `design-taste-frontend` (anti-slop for the marketing site), `ui-ux-pro-max` (palette/type/pattern lookup), `web-design-guidelines` (pre-ship audit of `src/`), `impeccable` (final polish pass).
+- **Rust:** a Rust best-practices skill (ownership, errors, API design, async, perf, clippy). Our rules above win on conflict (no `unwrap`, blocking work off the UI thread).
+- Use **one creator + one reviewer** skill per task; do not stack overlapping ones.
+- Give yourself eyes: render with `luminos-shots` and *look at the PNGs* before claiming a UI change works.
+
+## Client mod rules (`client/`)
+- Java 21, Fabric, Mojang mappings, client-only. No mixins unless unavoidable (prefer Fabric API events / GLFW hooks) — fewer breakages across MC versions.
+- Every HUD module = one class in `Modules.java` registered in `Modules.ALL`, drawing at (0,0); the host handles position/scale/enable. Add sample data for `preview` mode.
+- Never claim "works in game" until someone launched it; note it 🟡 in CONTINUITY.
+- Release: push tag `client-vX.Y.Z`; CI attaches the jar; the launcher picks the newest `client-v*` release.

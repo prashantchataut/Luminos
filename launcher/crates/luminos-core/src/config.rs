@@ -30,7 +30,7 @@ impl Default for Settings {
             setup_done: false,
             memory_mb: 4096,
             java_path: None,
-            jvm_args: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC".into(),
+            jvm_args: String::new(), // empty = auto (see jvmflags.rs)
             reduce_motion: false,
             dither_background: true,
             close_on_launch: false,

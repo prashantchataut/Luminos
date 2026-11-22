@@ -8,7 +8,11 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use std::{collections::{HashMap, HashSet}, fs, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::PathBuf,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
@@ -120,7 +124,9 @@ pub fn list(inst: &Instance, kind: Kind) -> Vec<Entry> {
             }
             let l = lock.entries.get(&key(kind, &file));
             out.push(Entry {
-                display_name: l.map(|l| l.name.clone()).unwrap_or_else(|| pretty_name(&file)),
+                display_name: l
+                    .map(|l| l.name.clone())
+                    .unwrap_or_else(|| pretty_name(&file)),
                 version: l.map(|l| l.version.clone()).unwrap_or_default(),
                 enabled: !file.ends_with(".disabled"),
                 linked: l.is_some(),
@@ -169,18 +175,34 @@ pub fn unlink(inst: &Instance, kind: Kind, file: &str) {
 }
 
 fn game_filters(inst: &Instance, kind: Kind) -> (Option<&'static str>, Option<String>) {
-    let loader = if kind == Kind::Mod { inst.loader.modrinth_id() } else { None };
+    let loader = if kind == Kind::Mod {
+        inst.loader.modrinth_id()
+    } else {
+        None
+    };
     (loader, Some(inst.mc_version.clone()))
 }
 
 /// Download one version file into the instance and record it.
-pub fn install_version(inst: &Instance, kind: Kind, proj: &modrinth::Project, v: &Version) -> Result<String> {
-    let f = v.primary_file().ok_or_else(|| anyhow!("{} has no downloadable file", proj.title))?;
+pub fn install_version(
+    inst: &Instance,
+    kind: Kind,
+    proj: &modrinth::Project,
+    v: &Version,
+) -> Result<String> {
+    let f = v
+        .primary_file()
+        .ok_or_else(|| anyhow!("{} has no downloadable file", proj.title))?;
     let path = dir(inst, kind).join(&f.filename);
     fs::create_dir_all(dir(inst, kind))?;
     let progress = download::Progress::new();
     download::download_all(
-        vec![Task { url: f.url.clone(), path, sha1: Some(f.hashes.sha1.clone()), size: f.size }],
+        vec![Task {
+            url: f.url.clone(),
+            path,
+            sha1: Some(f.hashes.sha1.clone()),
+            size: f.size,
+        }],
         1,
         &progress,
     )?;
@@ -203,13 +225,31 @@ pub fn install_version(inst: &Instance, kind: Kind, proj: &modrinth::Project, v:
 
 /// Install a project (newest compatible release) plus its required dependencies.
 pub fn install_project(inst: &Instance, project_id: &str, kind: Kind) -> Result<Vec<String>> {
-    let mut installed_projects: HashSet<String> = load_lock(inst).entries.values().map(|e| e.project_id.clone()).collect();
+    let mut installed_projects: HashSet<String> = load_lock(inst)
+        .entries
+        .values()
+        .map(|e| e.project_id.clone())
+        .collect();
     let mut done = vec![];
-    install_rec(inst, project_id, kind, 0, &mut installed_projects, &mut done)?;
+    install_rec(
+        inst,
+        project_id,
+        kind,
+        0,
+        &mut installed_projects,
+        &mut done,
+    )?;
     Ok(done)
 }
 
-fn install_rec(inst: &Instance, id: &str, kind: Kind, depth: u8, seen: &mut HashSet<String>, done: &mut Vec<String>) -> Result<()> {
+fn install_rec(
+    inst: &Instance,
+    id: &str,
+    kind: Kind,
+    depth: u8,
+    seen: &mut HashSet<String>,
+    done: &mut Vec<String>,
+) -> Result<()> {
     let proj = modrinth::project(id)?;
     if seen.contains(&proj.id) {
         return Ok(());
@@ -217,7 +257,14 @@ fn install_rec(inst: &Instance, id: &str, kind: Kind, depth: u8, seen: &mut Hash
     seen.insert(proj.id.clone());
     let (loader, gv) = game_filters(inst, kind);
     let v = modrinth::best_version(modrinth::versions(&proj.id, loader, gv.as_deref())?)
-        .ok_or_else(|| anyhow!("{} has no version for {} {}", proj.title, inst.loader.label(), inst.mc_version))?;
+        .ok_or_else(|| {
+            anyhow!(
+                "{} has no version for {} {}",
+                proj.title,
+                inst.loader.label(),
+                inst.mc_version
+            )
+        })?;
     let file = install_version(inst, kind, &proj, &v)?;
     done.push(format!("{} {}", proj.title, v.version_number));
     let _ = file;
@@ -246,8 +293,16 @@ pub fn identify(inst: &Instance, kind: Kind) -> Result<usize> {
     }
     let hashes: Vec<String> = hash_to_file.keys().cloned().collect();
     let found = modrinth::versions_by_hashes(&hashes)?;
-    let ids: Vec<String> = found.values().map(|v| v.project_id.clone()).collect::<HashSet<_>>().into_iter().collect();
-    let projs: HashMap<String, modrinth::Project> = modrinth::projects(&ids)?.into_iter().map(|p| (p.id.clone(), p)).collect();
+    let ids: Vec<String> = found
+        .values()
+        .map(|v| v.project_id.clone())
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    let projs: HashMap<String, modrinth::Project> = modrinth::projects(&ids)?
+        .into_iter()
+        .map(|p| (p.id.clone(), p))
+        .collect();
     let mut n = 0;
     for (hash, v) in found {
         if let (Some(file), Some(p)) = (hash_to_file.get(&hash), projs.get(&v.project_id)) {
@@ -285,7 +340,10 @@ pub fn check_updates(inst: &Instance) -> Result<Vec<Update>> {
     let lock = load_lock(inst);
     for kind in Kind::ALL {
         let mut by_hash: HashMap<String, (String, LockEntry)> = HashMap::new();
-        for e in list(inst, kind).into_iter().filter(|e| e.linked && e.enabled) {
+        for e in list(inst, kind)
+            .into_iter()
+            .filter(|e| e.linked && e.enabled)
+        {
             if let Some(l) = lock.entries.get(&key(kind, &e.file)) {
                 by_hash.insert(l.sha1.clone(), (e.file.clone(), l.clone()));
             }
@@ -295,7 +353,17 @@ pub fn check_updates(inst: &Instance) -> Result<Vec<Update>> {
         }
         let hashes: Vec<String> = by_hash.keys().cloned().collect();
         let loaders: Vec<String> = if kind == Kind::Mod {
-            inst.loader.modrinth_id().map(|s| vec![s.to_string()]).unwrap_or_else(|| vec!["fabric".into(), "quilt".into(), "forge".into(), "neoforge".into()])
+            inst.loader
+                .modrinth_id()
+                .map(|s| vec![s.to_string()])
+                .unwrap_or_else(|| {
+                    vec![
+                        "fabric".into(),
+                        "quilt".into(),
+                        "forge".into(),
+                        "neoforge".into(),
+                    ]
+                })
         } else {
             vec![]
         };
@@ -303,7 +371,13 @@ pub fn check_updates(inst: &Instance) -> Result<Vec<Update>> {
         for (hash, newest) in latest {
             if let Some((file, l)) = by_hash.get(&hash) {
                 if newest.id != l.version_id {
-                    out.push(Update { kind, file: file.clone(), name: l.name.clone(), from: l.version.clone(), to: newest });
+                    out.push(Update {
+                        kind,
+                        file: file.clone(),
+                        name: l.name.clone(),
+                        from: l.version.clone(),
+                        to: newest,
+                    });
                 }
             }
         }

@@ -23,9 +23,19 @@ fn manifest_has_a_latest_release() {
 fn fabric_profile_resolves_and_has_libraries() {
     sandbox();
     let m = mojang::fetch_manifest().unwrap();
-    let inst = Instance { id: "t".into(), name: "t".into(), mc_version: m.latest.release.clone(), loader: Loader::Fabric, ..Default::default() };
+    let inst = Instance {
+        id: "t".into(),
+        name: "t".into(),
+        mc_version: m.latest.release.clone(),
+        loader: Loader::Fabric,
+        ..Default::default()
+    };
     let v = mojang::resolve(&inst).expect("resolve fabric");
-    assert!(v.main_class.contains("knot") || v.main_class.contains("Knot"), "main class was {}", v.main_class);
+    assert!(
+        v.main_class.contains("knot") || v.main_class.contains("Knot"),
+        "main class was {}",
+        v.main_class
+    );
     assert!(v.libraries.iter().any(|l| l.name.contains("fabric-loader")));
     assert!(v.libraries.iter().any(|l| l.name.contains("lwjgl")));
     assert!(v.asset_index.is_some());
@@ -36,7 +46,14 @@ fn fabric_profile_resolves_and_has_libraries() {
 #[test]
 #[ignore]
 fn modrinth_search_and_versions() {
-    let r = modrinth::search(&modrinth::SearchQuery { text: "sodium".into(), project_type: "mod".into(), sort: "downloads".into(), limit: 5, ..Default::default() }).unwrap();
+    let r = modrinth::search(&modrinth::SearchQuery {
+        text: "sodium".into(),
+        project_type: "mod".into(),
+        sort: "downloads".into(),
+        limit: 5,
+        ..Default::default()
+    })
+    .unwrap();
     assert!(!r.hits.is_empty());
     let v = modrinth::versions("sodium", Some("fabric"), None).unwrap();
     assert!(modrinth::best_version(v).is_some());
@@ -45,7 +62,10 @@ fn modrinth_search_and_versions() {
 #[test]
 #[ignore]
 fn every_luminos_client_slug_exists() {
-    let slugs: Vec<String> = preset::LUMINOS_CLIENT.iter().map(|m| m.slug.to_string()).collect();
+    let slugs: Vec<String> = preset::LUMINOS_CLIENT
+        .iter()
+        .map(|m| m.slug.to_string())
+        .collect();
     let found = modrinth::projects(&slugs).unwrap();
     let have: Vec<String> = found.iter().map(|p| p.slug.clone()).collect();
     let missing: Vec<&String> = slugs.iter().filter(|s| !have.contains(s)).collect();
@@ -58,4 +78,12 @@ fn news_feed_parses() {
     let n = news::fetch(5).unwrap();
     assert!(!n.is_empty());
     assert!(n[0].image_url.is_some());
+}
+
+#[test]
+#[ignore]
+fn server_ping_live() {
+    let s = luminos_core::servers::ping("mc.hypixel.net").expect("ping");
+    println!("{s:?}");
+    assert!(s.max > 0);
 }
