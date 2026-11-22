@@ -12,8 +12,8 @@ use luminos_app::{
     app::{App, CreateState, DTab, Launching, Page},
     demo,
 };
-use luminos_core::{download::Progress, instances::Loader};
 use luminos_core::modrinth::{Project, SearchQuery};
+use luminos_core::{download::Progress, instances::Loader};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -268,10 +268,11 @@ fn enrich(app: &mut App, ctx: &egui::Context) {
         urls.extend(p.featured_gallery.clone());
     }
     app.featured = luminos_app::app::Loadable::Ready(packs.iter().take(3).cloned().collect());
-    app.discover.results = luminos_app::app::Loadable::Ready(luminos_core::modrinth::SearchResult {
-        hits: mods.clone(),
-        total_hits: 9000,
-    });
+    app.discover.results =
+        luminos_app::app::Loadable::Ready(luminos_core::modrinth::SearchResult {
+            hits: mods.clone(),
+            total_hits: 9000,
+        });
     for u in urls {
         if app.icons.contains_key(&u) {
             continue;

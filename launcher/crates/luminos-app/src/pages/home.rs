@@ -6,8 +6,7 @@ use crate::{
     widgets::{self, Btn},
 };
 use eframe::egui::{
-    self, pos2, vec2, Align2, Color32, CornerRadius, FontId, Rect, Sense, Stroke,
-    StrokeKind, Ui,
+    self, pos2, vec2, Align2, Color32, CornerRadius, FontId, Rect, Sense, Stroke, StrokeKind, Ui,
 };
 use luminos_core::{modrinth::Project, playtime, store};
 
@@ -439,7 +438,10 @@ fn hero(app: &mut App, ui: &mut Ui, accent: Color32, title: &str) {
     p.rect_filled(rect, CornerRadius::same(radius), theme::alpha(navy, 150));
 
     // art panel (right 56%)
-    let art = Rect::from_min_max(pos2(rect.right() - w * 0.42, rect.top()), rect.right_bottom());
+    let art = Rect::from_min_max(
+        pos2(rect.right() - w * 0.42, rect.top()),
+        rect.right_bottom(),
+    );
     let url = app
         .featured
         .ready()
@@ -451,15 +453,27 @@ fn hero(app: &mut App, ui: &mut Ui, accent: Color32, title: &str) {
             let tsz = tex.size_vec2();
             let target = art.width() / art.height();
             let ia = tsz.x / tsz.y;
-            let (uw, uh) = if ia > target { (target / ia, 1.0) } else { (1.0, ia / target) };
+            let (uw, uh) = if ia > target {
+                (target / ia, 1.0)
+            } else {
+                (1.0, ia / target)
+            };
             let (u0, v0) = ((1.0 - uw) / 2.0, (1.0 - uh) / 2.0);
             p.add(
                 egui::epaint::RectShape::filled(
                     art,
-                    CornerRadius { nw: 0, sw: 0, ne: radius, se: radius },
+                    CornerRadius {
+                        nw: 0,
+                        sw: 0,
+                        ne: radius,
+                        se: radius,
+                    },
                     Color32::WHITE,
                 )
-                .with_texture(tex.id(), Rect::from_min_max(pos2(u0, v0), pos2(u0 + uw, v0 + uh))),
+                .with_texture(
+                    tex.id(),
+                    Rect::from_min_max(pos2(u0, v0), pos2(u0 + uw, v0 + uh)),
+                ),
             );
             have_art = true;
         }
@@ -467,7 +481,12 @@ fn hero(app: &mut App, ui: &mut Ui, accent: Color32, title: &str) {
     if !have_art {
         p.rect_filled(
             art,
-            CornerRadius { nw: 0, sw: 0, ne: radius, se: radius },
+            CornerRadius {
+                nw: 0,
+                sw: 0,
+                ne: radius,
+                se: radius,
+            },
             theme::alpha(accent, 28),
         );
     }
@@ -525,7 +544,12 @@ fn hero(app: &mut App, ui: &mut Ui, accent: Color32, title: &str) {
         rect.min + vec2(28.0, 26.0 + gh + 6.0),
         Align2::LEFT_TOP,
         match &last {
-            Some(i) => format!("Jump back into {} — {} · {}", i.name, i.loader.label(), i.mc_version),
+            Some(i) => format!(
+                "Jump back into {} — {} · {}",
+                i.name,
+                i.loader.label(),
+                i.mc_version
+            ),
             None => "Create your first instance to get started.".into(),
         },
         FontId::proportional(14.0),
