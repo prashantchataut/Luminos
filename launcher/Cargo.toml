@@ -3,11 +3,11 @@ resolver = "2"
 members = ["crates/luminos-core", "crates/luminos-app"]
 
 [workspace.package]
-version = "0.2.0"
+publish = false
+version = "0.3.0"
 edition = "2021"
-license = "GPL-3.0-or-later"
-authors = ["Luminos Launcher contributors"]
-repository = "https://github.com/prashantchataut/Luminos"
+license = "LicenseRef-Luminos-Proprietary"
+
 
 [workspace.dependencies]
 anyhow = "1"

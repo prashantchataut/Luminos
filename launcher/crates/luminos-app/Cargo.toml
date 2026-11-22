@@ -4,11 +4,16 @@ description = "Luminos Launcher desktop UI (egui)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 default-run = "luminos"
 
 [[bin]]
 name = "luminos"
 path = "src/main.rs"
+
+[[bin]]
+name = "luminos-brand"
+path = "src/bin/brand.rs"
 
 [[bin]]
 name = "luminos-shots"

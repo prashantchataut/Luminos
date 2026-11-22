@@ -207,7 +207,7 @@ fn card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
         .ctx()
         .animate_bool_with_time(resp.id, resp.hovered(), 0.15);
     ui.painter()
-        .rect_filled(r, CornerRadius::same(16), theme::BG2);
+        .rect_filled(r, CornerRadius::same(4), theme::BG2);
     let banner = Rect::from_min_size(r.min, vec2(w, 96.0));
     let seed = p.title.bytes().fold(7u8, |a, b| a.wrapping_add(b));
     let gallery = p.featured_gallery.clone();
@@ -225,7 +225,7 @@ fn card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
     });
     ui.painter().rect_stroke(
         icon,
-        CornerRadius::same(12),
+        CornerRadius::same(3),
         Stroke::new(2.0, theme::BG2),
         StrokeKind::Outside,
     );
@@ -289,7 +289,7 @@ fn card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
     });
     ui.painter().rect_stroke(
         r,
-        CornerRadius::same(16),
+        CornerRadius::same(4),
         Stroke::new(1.0, theme::mix(theme::LINE, accent, hv)),
         StrokeKind::Inside,
     );
@@ -385,7 +385,7 @@ pub fn filters(app: &mut App, ui: &mut Ui) {
         let a = ui.ctx().animate_bool_with_time(resp.id, sel, 0.15);
         ui.painter().rect_filled(
             r,
-            CornerRadius::same(12),
+            CornerRadius::same(3),
             theme::mix(
                 theme::BG2,
                 theme::alpha(accent, 255).linear_multiply(0.3),
@@ -394,7 +394,7 @@ pub fn filters(app: &mut App, ui: &mut Ui) {
         );
         ui.painter().rect_stroke(
             r,
-            CornerRadius::same(12),
+            CornerRadius::same(3),
             Stroke::new(1.0, theme::mix(theme::LINE, accent, a)),
             StrokeKind::Inside,
         );

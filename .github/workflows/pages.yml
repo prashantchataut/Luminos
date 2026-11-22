@@ -32,7 +32,6 @@ jobs:
         run: |
           mkdir -p public/screenshots
           cp ../docs/screenshots/*.png public/screenshots/
-          cp ../brand/luminos.svg public/logo.svg
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

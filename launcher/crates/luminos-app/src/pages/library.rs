@@ -109,12 +109,12 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
                 let p = ui.painter();
                 p.rect_filled(
                     rr,
-                    CornerRadius::same(16),
+                    CornerRadius::same(4),
                     theme::mix(theme::BG2, theme::BG3, h),
                 );
                 p.rect_stroke(
                     rr,
-                    CornerRadius::same(16),
+                    CornerRadius::same(4),
                     Stroke::new(1.0, theme::mix(theme::LINE, accent, h)),
                     StrokeKind::Inside,
                 );

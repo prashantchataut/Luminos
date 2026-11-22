@@ -4,25 +4,25 @@ use eframe::egui::{
 };
 use std::sync::Arc;
 
-pub const BG0: Color32 = Color32::from_rgb(5, 8, 22);
-pub const BG1: Color32 = Color32::from_rgb(9, 14, 34);
-pub const BG2: Color32 = Color32::from_rgb(15, 23, 52);
-pub const BG3: Color32 = Color32::from_rgb(24, 35, 74);
-pub const LINE: Color32 = Color32::from_rgb(33, 47, 94);
-pub const TEXT: Color32 = Color32::from_rgb(230, 236, 255);
-pub const MUTED: Color32 = Color32::from_rgb(133, 150, 197);
-pub const GOOD: Color32 = Color32::from_rgb(52, 211, 153);
-pub const WARN: Color32 = Color32::from_rgb(251, 191, 36);
-pub const BAD: Color32 = Color32::from_rgb(248, 113, 113);
+pub const BG0: Color32 = Color32::from_rgb(4, 7, 18);
+pub const BG1: Color32 = Color32::from_rgb(8, 13, 30);
+pub const BG2: Color32 = Color32::from_rgb(13, 21, 46);
+pub const BG3: Color32 = Color32::from_rgb(21, 33, 70);
+pub const LINE: Color32 = Color32::from_rgb(28, 42, 88);
+pub const TEXT: Color32 = Color32::from_rgb(232, 238, 255);
+pub const MUTED: Color32 = Color32::from_rgb(124, 140, 190);
+pub const GOOD: Color32 = Color32::from_rgb(72, 214, 160);
+pub const WARN: Color32 = Color32::from_rgb(255, 196, 66);
+pub const BAD: Color32 = Color32::from_rgb(255, 104, 112);
 
 /// Selectable accent colours – all in the blue family to keep the brand intact.
 pub const ACCENTS: [(&str, Color32); 6] = [
-    ("Luminos", Color32::from_rgb(79, 140, 255)),
-    ("Cyan", Color32::from_rgb(34, 211, 238)),
-    ("Indigo", Color32::from_rgb(99, 102, 241)),
-    ("Azure", Color32::from_rgb(14, 165, 233)),
-    ("Ice", Color32::from_rgb(147, 197, 253)),
-    ("Periwinkle", Color32::from_rgb(129, 140, 248)),
+    ("Lumen", Color32::from_rgb(76, 125, 255)),
+    ("Cyan", Color32::from_rgb(53, 200, 240)),
+    ("Indigo", Color32::from_rgb(101, 116, 245)),
+    ("Sky", Color32::from_rgb(24, 160, 251)),
+    ("Ice", Color32::from_rgb(156, 196, 255)),
+    ("Cobalt", Color32::from_rgb(47, 91, 255)),
 ];
 
 pub fn accent(idx: u8) -> Color32 {
@@ -86,9 +86,9 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
         v.extreme_bg_color = BG0;
         v.faint_bg_color = BG2;
         v.override_text_color = Some(TEXT);
-        v.window_corner_radius = CornerRadius::same(16);
+        v.window_corner_radius = CornerRadius::same(4);
         v.window_stroke = Stroke::new(1.0, LINE);
-        v.menu_corner_radius = CornerRadius::same(12);
+        v.menu_corner_radius = CornerRadius::same(4);
         v.selection.bg_fill = alpha(accent, 90);
         v.selection.stroke = Stroke::new(1.0, accent);
         v.hyperlink_color = accent;
@@ -99,7 +99,7 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
             &mut v.widgets.active,
             &mut v.widgets.open,
         ] {
-            w.corner_radius = CornerRadius::same(10);
+            w.corner_radius = CornerRadius::same(4);
         }
         v.widgets.noninteractive.bg_fill = BG2;
         v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, LINE);
@@ -119,7 +119,7 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
         s.spacing.scroll.bar_width = 6.0;
         s.spacing.scroll.floating = true;
         s.text_styles = [
-            (TextStyle::Heading, FontId::new(26.0, bold())),
+            (TextStyle::Heading, FontId::new(24.0, bold())),
             (TextStyle::Body, FontId::new(14.5, FontFamily::Proportional)),
             (
                 TextStyle::Button,
@@ -131,7 +131,7 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
             ),
             (
                 TextStyle::Monospace,
-                FontId::new(12.5, FontFamily::Monospace),
+                FontId::new(12.0, FontFamily::Monospace),
             ),
         ]
         .into();

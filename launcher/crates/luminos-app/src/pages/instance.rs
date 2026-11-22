@@ -414,12 +414,12 @@ fn content_tab(app: &mut App, ui: &mut Ui, inst: &Instance) {
         let p = ui.painter();
         p.rect_filled(
             r,
-            CornerRadius::same(14),
+            CornerRadius::same(4),
             theme::mix(theme::BG2, theme::BG3, if hovered { 1.0 } else { 0.0 }),
         );
         p.rect_stroke(
             r,
-            CornerRadius::same(14),
+            CornerRadius::same(4),
             Stroke::new(1.0, theme::LINE),
             StrokeKind::Inside,
         );
@@ -452,7 +452,7 @@ fn content_tab(app: &mut App, ui: &mut Ui, inst: &Instance) {
             );
             let vr = Rect::from_min_size(pos2(x, r.top() + 13.0), vec2(vg.size().x + 14.0, 20.0));
             ui.painter()
-                .rect_filled(vr, CornerRadius::same(7), theme::BG0);
+                .rect_filled(vr, CornerRadius::same(2), theme::BG0);
             ui.painter().galley(
                 pos2(vr.left() + 7.0, vr.center().y - vg.size().y / 2.0),
                 vg,
@@ -871,7 +871,7 @@ fn logs_tab(app: &mut App, ui: &mut Ui, inst: &Instance) {
     });
     egui::Frame::new()
         .fill(theme::BG0)
-        .corner_radius(CornerRadius::same(12))
+        .corner_radius(CornerRadius::same(3))
         .inner_margin(egui::Margin::same(12))
         .stroke(Stroke::new(1.0, theme::LINE))
         .show(ui, |ui| {

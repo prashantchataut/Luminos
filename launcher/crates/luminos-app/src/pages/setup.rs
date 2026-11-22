@@ -1,6 +1,8 @@
-//! First-run experience: animated welcome, profile, performance, client choice, install.
+//! First-run experience: a live dithered orb, a boot log made of real machine facts,
+//! then a left-rail stepper (player → system → client → install).
 use crate::{
     app::{App, Msg},
+    brand,
     icons::Icon,
     theme,
     widgets::{self, Btn},
@@ -17,7 +19,8 @@ use luminos_core::{
 };
 use std::sync::atomic::Ordering;
 
-const STEPS: usize = 5;
+const RAIL_W: f32 = 272.0;
+const STEP_NAMES: [&str; 4] = ["Player", "System", "Client", "Install"];
 
 fn go(app: &mut App, step: usize) {
     app.wizard.step = step;
@@ -26,212 +29,339 @@ fn go(app: &mut App, step: usize) {
 
 pub fn wizard_ui(app: &mut App, ui: &mut Ui, body: Rect) {
     let step = app.wizard.step;
-    let t = (((app.time - app.wizard.step_t0) / 0.55) as f32).clamp(0.0, 1.0);
+    let t = (((app.time - app.wizard.step_t0) / 0.45) as f32).clamp(0.0, 1.0);
     let ease = 1.0 - (1.0 - t).powi(3);
     if t < 1.0 || step == 0 {
         ui.ctx()
-            .request_repaint_after(std::time::Duration::from_millis(16));
+            .request_repaint_after(std::time::Duration::from_millis(if step == 0 {
+                33
+            } else {
+                16
+            }));
     }
     if step == 0 {
         welcome(app, ui, body);
-    } else {
-        let w = 740.0f32.min(body.width() - 40.0);
-        let h = 590.0f32.min(body.height() - 40.0);
-        let card = Rect::from_center_size(
-            body.center() + vec2(0.0, 6.0 + (1.0 - ease) * 16.0),
-            vec2(w, h),
-        );
-        let p = ui.painter();
-        p.rect_filled(
-            card.translate(vec2(0.0, 10.0)).expand(4.0),
-            CornerRadius::same(28),
-            Color32::from_black_alpha((100.0 * ease) as u8),
-        );
-        p.rect_filled(
-            card,
-            CornerRadius::same(24),
-            theme::alpha(theme::BG1, (238.0 * ease) as u8),
-        );
-        p.rect_stroke(
-            card,
-            CornerRadius::same(24),
-            Stroke::new(1.0, theme::alpha(theme::LINE, (255.0 * ease) as u8)),
-            StrokeKind::Inside,
-        );
-        ui.scope_builder(
-            UiBuilder::new().max_rect(card.shrink2(vec2(44.0, 36.0))),
-            |ui| {
-                ui.set_opacity(ease);
-                match step {
-                    1 => profile(app, ui),
-                    2 => performance(app, ui),
-                    3 => choice(app, ui),
-                    _ => finish(app, ui),
-                }
-            },
+        return;
+    }
+    let accent = app.accent();
+    let rail = Rect::from_min_size(body.min, vec2(RAIL_W, body.height()));
+    rail_ui(app, ui, rail, step, accent);
+    let left = rail.right() + 64.0;
+    let area = Rect::from_min_max(
+        pos2(left + (1.0 - ease) * 22.0, body.top() + 48.0),
+        pos2(
+            (left + 640.0).min(body.right() - 40.0),
+            body.bottom() - 36.0,
+        ),
+    );
+    ui.scope_builder(UiBuilder::new().max_rect(area), |ui| {
+        ui.set_opacity(ease);
+        match step {
+            1 => profile(app, ui),
+            2 => performance(app, ui),
+            3 => choice(app, ui),
+            _ => finish(app, ui),
+        }
+    });
+}
+
+/// Left rail: brand, vertical stepper, a dithered fade rising from the bottom and a small orb.
+fn rail_ui(app: &mut App, ui: &mut Ui, rail: Rect, step: usize, accent: Color32) {
+    let p = ui.painter().clone();
+    p.rect_filled(rail, 0.0, theme::BG1);
+    // dither rising from the bottom edge
+    let (w, h) = ((rail.width() / 4.0) as usize, 70usize);
+    if app.rail_tex.is_none() {
+        app.rail_tex = Some(app.ctx.load_texture(
+            "luminos-rail",
+            crate::dither::band(w, h, accent),
+            egui::TextureOptions::NEAREST,
+        ));
+    }
+    if let Some(tex) = &app.rail_tex {
+        p.image(
+            tex.id(),
+            Rect::from_min_max(
+                pos2(rail.left(), rail.bottom() - 280.0),
+                rail.right_bottom(),
+            ),
+            Rect::from_min_max(pos2(0.0, 1.0), pos2(1.0, 0.0)),
+            Color32::WHITE,
         );
     }
-    // progress dots
-    let accent = app.accent();
-    let total_w = (STEPS as f32 - 1.0) * 22.0 + 34.0;
-    let mut x = body.center().x - total_w / 2.0;
-    let y = body.bottom() - 26.0;
-    for i in 0..STEPS {
+    p.line_segment(
+        [rail.right_top(), rail.right_bottom()],
+        Stroke::new(1.0, theme::LINE),
+    );
+    widgets::logo_mark(
+        &p,
+        pos2(rail.left() + 44.0, rail.top() + 48.0),
+        32.0,
+        accent,
+        0.0,
+    );
+    p.text(
+        pos2(rail.left() + 68.0, rail.top() + 48.0),
+        Align2::LEFT_CENTER,
+        "LUMINOS",
+        FontId::new(14.0, theme::bold()),
+        theme::TEXT,
+    );
+    let y0 = rail.top() + 128.0;
+    for (i, name) in STEP_NAMES.iter().enumerate() {
+        let n = i + 1;
+        let y = y0 + i as f32 * 62.0;
+        let done = n < step;
+        let active = n == step;
         let a = ui
             .ctx()
-            .animate_bool_with_time(egui::Id::new(("dot", i)), i == step, 0.3);
-        let w = 10.0 + 24.0 * a;
-        let r = Rect::from_min_size(pos2(x, y - 4.0), vec2(w, 8.0));
-        ui.painter().rect_filled(
-            r,
-            CornerRadius::same(4),
-            theme::mix(
-                theme::BG3,
-                accent,
-                (if i <= step { 1.0f32 } else { 0.0 }).max(a),
-            ),
+            .animate_bool_with_time(egui::Id::new(("rail", i)), active, 0.25);
+        let bx = Rect::from_min_size(pos2(rail.left() + 32.0, y), vec2(26.0, 26.0));
+        let fill = if done {
+            accent
+        } else {
+            theme::mix(theme::BG1, theme::alpha(accent, 255), a * 0.22)
+        };
+        p.rect_filled(bx, CornerRadius::same(3), fill);
+        p.rect_stroke(
+            bx,
+            CornerRadius::same(3),
+            Stroke::new(1.0, if done || active { accent } else { theme::LINE }),
+            StrokeKind::Inside,
         );
-        x += w + 12.0;
+        if done {
+            crate::icons::paint(&p, Icon::Check, bx.center(), 13.0, Color32::WHITE);
+        } else {
+            p.text(
+                bx.center(),
+                Align2::CENTER_CENTER,
+                format!("{n:02}"),
+                FontId::new(11.0, egui::FontFamily::Monospace),
+                if active { theme::TEXT } else { theme::MUTED },
+            );
+        }
+        if i + 1 < STEP_NAMES.len() {
+            p.line_segment(
+                [
+                    pos2(bx.center().x, bx.bottom() + 4.0),
+                    pos2(bx.center().x, bx.bottom() + 32.0),
+                ],
+                Stroke::new(1.0, if done { accent } else { theme::LINE }),
+            );
+        }
+        p.text(
+            pos2(bx.right() + 16.0, bx.center().y),
+            Align2::LEFT_CENTER,
+            name.to_uppercase(),
+            FontId::new(12.0, egui::FontFamily::Monospace),
+            theme::mix(theme::MUTED, theme::TEXT, if done { 0.6 } else { a }),
+        );
     }
+    let t = app.time as f32;
+    let angle = if app.settings.reduce_motion {
+        -2.36
+    } else {
+        -2.36 + (t * 0.6).sin() * 0.9
+    };
+    widgets::orb(
+        &p,
+        pos2(rail.left() + 32.0 + 44.0, rail.bottom() - 100.0),
+        88.0,
+        22,
+        angle,
+    );
+    p.text(
+        pos2(rail.left() + 32.0, rail.bottom() - 36.0),
+        Align2::LEFT_CENTER,
+        format!("v{}  ·  offline-friendly", luminos_core::VERSION),
+        FontId::new(10.0, egui::FontFamily::Monospace),
+        theme::MUTED,
+    );
+    let _ = brand::INK;
 }
 
 fn welcome(app: &mut App, ui: &mut Ui, body: Rect) {
     let accent = app.accent();
     let t = (app.time - app.wizard.step_t0) as f32;
-    let c = body.center() + vec2(0.0, -70.0);
-    let pulse = 0.6 + 0.4 * (app.time as f32 * 1.6).sin();
-    let rise = (1.0 - (1.0 - (t / 0.9).clamp(0.0, 1.0)).powi(3)).clamp(0.0, 1.0);
-    ui.set_opacity(1.0);
-    widgets::logo_mark(
-        ui.painter(),
-        c + vec2(0.0, (1.0 - rise) * 30.0),
-        120.0 * (0.7 + 0.3 * rise),
-        accent,
-        pulse * rise,
-    );
-    // letter-by-letter wordmark
-    let word = "LUMINOS";
-    let font = FontId::new(64.0, theme::bold());
-    let letters: Vec<_> = word
-        .chars()
-        .map(|ch| {
-            ui.painter()
-                .layout_no_wrap(ch.to_string(), font.clone(), Color32::WHITE)
-        })
-        .collect();
-    let spacing = 10.0;
-    let total: f32 =
-        letters.iter().map(|g| g.size().x).sum::<f32>() + spacing * (letters.len() as f32 - 1.0);
-    let mut x = body.center().x - total / 2.0;
-    let base_y = c.y + 100.0;
-    for (i, g) in letters.into_iter().enumerate() {
-        let a = ((t - 0.5 - i as f32 * 0.09) / 0.4).clamp(0.0, 1.0);
-        let e = 1.0 - (1.0 - a).powi(3);
-        let w = g.size().x;
-        let col = theme::alpha(theme::mix(Color32::WHITE, accent, 0.0), (255.0 * e) as u8);
-        ui.painter()
-            .galley(pos2(x, base_y + (1.0 - e) * 26.0), g, col);
-        x += w + spacing;
-    }
-    // typewriter tagline
-    let tag = "The launcher that respects your RAM — and your time.";
-    let n = (((t - 1.5) * 38.0).max(0.0) as usize).min(tag.chars().count());
-    let shown: String = tag.chars().take(n).collect();
-    let cursor = if n < tag.chars().count() || (app.time * 2.0) as i64 % 2 == 0 {
-        "▌"
-    } else {
-        " "
-    };
-    ui.painter().text(
-        pos2(body.center().x, base_y + 96.0),
-        Align2::CENTER_CENTER,
-        format!("{shown}{cursor}"),
-        FontId::new(17.0, egui::FontFamily::Proportional),
-        theme::MUTED,
-    );
-    // feature pills
-    let feats = [
-        "Mod library",
-        "Auto-updates",
-        "Skin studio",
-        "Playtime stats",
-        "Luminos Client",
-    ];
-    let widths: Vec<f32> = feats
-        .iter()
-        .map(|f| {
-            ui.painter()
-                .layout_no_wrap(
-                    f.to_string(),
-                    FontId::new(13.0, theme::bold()),
-                    Color32::WHITE,
-                )
-                .size()
-                .x
-                + 30.0
-        })
-        .collect();
-    let total: f32 = widths.iter().sum::<f32>() + 10.0 * (feats.len() as f32 - 1.0);
-    let mut x = body.center().x - total / 2.0;
-    for (i, f) in feats.iter().enumerate() {
-        let a = ((t - 3.0 - i as f32 * 0.12) / 0.5).clamp(0.0, 1.0);
-        let r = Rect::from_min_size(
-            pos2(
-                x,
-                base_y
-                    + 140.0
-                    + (1.0 - a) * 12.0
-                    + 3.0 * (app.time as f32 * 1.3 + i as f32).sin() * a,
-            ),
-            vec2(widths[i], 30.0),
-        );
-        ui.painter().rect_filled(
-            r,
-            CornerRadius::same(15),
-            theme::alpha(theme::BG2, (210.0 * a) as u8),
-        );
-        ui.painter().rect_stroke(
-            r,
-            CornerRadius::same(15),
-            Stroke::new(1.0, theme::alpha(accent, (110.0 * a) as u8)),
-            StrokeKind::Inside,
-        );
-        ui.painter().text(
-            r.center(),
-            Align2::CENTER_CENTER,
-            *f,
-            FontId::new(13.0, theme::bold()),
-            theme::alpha(theme::TEXT, (255.0 * a) as u8),
-        );
-        x += widths[i] + 10.0;
-    }
-    let a = ((t - 3.6) / 0.6).clamp(0.0, 1.0);
-    let btn_rect = Rect::from_center_size(pos2(body.center().x, base_y + 215.0), vec2(240.0, 50.0));
-    ui.scope_builder(UiBuilder::new().max_rect(btn_rect), |ui| {
-        ui.set_opacity(a);
-        if widgets::button_sized(
-            ui,
-            accent,
-            "Get started",
-            Some(Icon::Bolt),
-            Btn::Primary,
-            a > 0.9,
-            240.0,
-            50.0,
-        )
-        .clicked()
-        {
-            go(app, 1);
+    let p = ui.painter().clone();
+    // instrument-panel dot grid
+    let mut y = body.top() + 20.0;
+    while y < body.bottom() {
+        let mut x = body.left() + 20.0;
+        while x < body.right() {
+            p.rect_filled(
+                Rect::from_min_size(pos2(x, y), vec2(2.0, 2.0)),
+                0.0,
+                theme::alpha(theme::LINE, 150),
+            );
+            x += 28.0;
         }
-    });
+        y += 28.0;
+    }
+    // orb: left, vertically centred
+    let d = (body.height() - 150.0).clamp(280.0, 460.0);
+    let oc = pos2(body.left() + body.width() * 0.29, body.center().y);
+    let reveal = ((t / 1.1).clamp(0.0, 1.0) * 100.0) as usize; // cells appear in a sweep
+    let n = 44usize;
+    let u = d / n as f32;
+    let angle = if app.settings.reduce_motion {
+        -2.36
+    } else {
+        -2.36 + t * 0.55
+    };
+    let light = (angle.cos(), angle.sin());
+    let o = oc - vec2(d / 2.0, d / 2.0);
+    for gy in 0..n {
+        for gx in 0..n {
+            let ring = (((gx as f32 - 21.5).powi(2) + (gy as f32 - 21.5).powi(2)).sqrt() / 22.0
+                * 100.0) as usize;
+            if ring > reveal {
+                continue;
+            }
+            if let Some(tn) = brand::orb_cell(n, gx, gy, light) {
+                let min = pos2((o.x + gx as f32 * u).round(), (o.y + gy as f32 * u).round());
+                let max = pos2(
+                    (o.x + (gx + 1) as f32 * u).round(),
+                    (o.y + (gy + 1) as f32 * u).round(),
+                );
+                p.rect_filled(Rect::from_min_max(min, max), 0.0, brand::TONES[tn]);
+            }
+        }
+    }
+    // text column
+    let x = body.left() + body.width() * 0.52;
+    let fade = |at: f32| ((t - at) / 0.5).clamp(0.0, 1.0);
+    let mut y = body.center().y - 190.0;
+    let a = fade(0.25);
+    p.text(
+        pos2(x, y),
+        Align2::LEFT_TOP,
+        format!("LUMINOS LAUNCHER  /  {}", luminos_core::VERSION),
+        FontId::new(11.0, egui::FontFamily::Monospace),
+        theme::alpha(accent, (a * 255.0) as u8),
+    );
+    y += 30.0;
+    for (i, line) in ["Every version.", "Every mod.", "No nonsense."]
+        .iter()
+        .enumerate()
+    {
+        let a = fade(0.45 + i as f32 * 0.18);
+        p.text(
+            pos2(x + (1.0 - a) * 18.0, y),
+            Align2::LEFT_TOP,
+            *line,
+            FontId::new(46.0, theme::bold()),
+            theme::alpha(
+                if i == 2 {
+                    theme::mix(accent, Color32::WHITE, 0.55)
+                } else {
+                    theme::TEXT
+                },
+                (a * 255.0) as u8,
+            ),
+        );
+        y += 56.0;
+    }
+    y += 18.0;
+    // boot log with real data
+    let mem = config::system_memory_mb();
+    let java_line = match &app.java_list {
+        crate::app::Loadable::Ready(l) if !l.is_empty() => {
+            let mut v: Vec<u32> = l.iter().map(|j| j.major).collect();
+            v.sort_unstable();
+            v.dedup();
+            format!(
+                "Java {} found on this PC",
+                v.iter()
+                    .map(|m| m.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+        crate::app::Loadable::Ready(_) => {
+            "none installed — Luminos fetches the right one".to_string()
+        }
+        _ => format!("scanning{}", ".".repeat((app.time * 3.0) as usize % 4)),
+    };
+    let root = luminos_core::paths::root().to_string_lossy().to_string();
+    let root = if root.chars().count() > 46 {
+        format!(
+            "…{}",
+            root.chars()
+                .skip(root.chars().count() - 45)
+                .collect::<String>()
+        )
+    } else {
+        root
+    };
+    let lines = [
+        ("data", root),
+        ("java", java_line),
+        ("memory", format!("{:.1} GB installed", mem as f32 / 1024.0)),
+        ("content", "Modrinth official API · nothing else".into()),
+    ];
+    for (i, (k, v)) in lines.iter().enumerate() {
+        let a = fade(1.3 + i as f32 * 0.35);
+        if a <= 0.0 {
+            continue;
+        }
+        let col = theme::alpha(theme::MUTED, (a * 255.0) as u8);
+        p.text(
+            pos2(x, y),
+            Align2::LEFT_TOP,
+            format!("{k:<8}"),
+            FontId::new(12.0, egui::FontFamily::Monospace),
+            theme::alpha(accent, (a * 255.0) as u8),
+        );
+        p.text(
+            pos2(x + 74.0, y),
+            Align2::LEFT_TOP,
+            v,
+            FontId::new(12.0, egui::FontFamily::Monospace),
+            col,
+        );
+        y += 21.0;
+    }
+    y += 22.0;
+    let a = fade(2.9);
+    if a > 0.0 {
+        ui.scope_builder(
+            UiBuilder::new().max_rect(Rect::from_min_size(pos2(x, y), vec2(320.0, 52.0))),
+            |ui| {
+                ui.set_opacity(a);
+                if widgets::button_sized(
+                    ui,
+                    accent,
+                    "Set up Luminos",
+                    Some(Icon::Bolt),
+                    Btn::Primary,
+                    true,
+                    220.0,
+                    44.0,
+                )
+                .clicked()
+                {
+                    go(app, 1);
+                }
+            },
+        );
+    }
+    if (t * 2.0) as i32 % 2 == 0 && fade(2.9) < 1.0 {
+        p.rect_filled(
+            Rect::from_min_size(pos2(x, y + 6.0), vec2(8.0, 14.0)),
+            0.0,
+            accent,
+        );
+    }
 }
 
 fn title(ui: &mut Ui, eyebrow: &str, heading: &str, sub: &str) {
     widgets::eyebrow(ui, eyebrow);
+    ui.add_space(6.0);
+    ui.label(egui::RichText::new(heading).font(FontId::new(32.0, theme::bold())));
     ui.add_space(2.0);
-    widgets::heading(ui, heading);
     widgets::muted(ui, sub);
-    ui.add_space(14.0);
+    ui.add_space(20.0);
 }
 
 fn nav(app: &mut App, ui: &mut Ui, next_label: &str, next_ok: bool, back_to: usize) -> bool {
@@ -246,7 +376,7 @@ fn nav(app: &mut App, ui: &mut Ui, next_label: &str, next_ok: bool, back_to: usi
                 Some(Icon::Back),
                 Btn::Ghost,
                 true,
-                110.0,
+                100.0,
                 42.0,
             )
             .clicked()
@@ -275,7 +405,7 @@ fn profile(app: &mut App, ui: &mut Ui) {
     let accent = app.accent();
     title(
         ui,
-        "Step 1 of 4",
+        "01 — Player",
         "Who's playing?",
         "Pick the name you'll use in-game. You can add more accounts later.",
     );
@@ -340,7 +470,7 @@ fn performance(app: &mut App, ui: &mut Ui) {
     let accent = app.accent();
     title(
         ui,
-        "Step 2 of 4",
+        "02 — System",
         "Tune for your machine",
         "Luminos picks sensible defaults — tweak them if you like.",
     );
@@ -440,7 +570,7 @@ fn choice(app: &mut App, ui: &mut Ui) {
     let accent = app.accent();
     title(
         ui,
-        "Step 3 of 4",
+        "03 — Client",
         "Create your first instance",
         "Start with the optimised Luminos Client or a clean vanilla game.",
     );
@@ -461,7 +591,7 @@ fn choice(app: &mut App, ui: &mut Ui) {
             .animate_bool_with_time(resp.id.with("h"), resp.hovered(), 0.12);
         ui.painter().rect_filled(
             r,
-            CornerRadius::same(16),
+            CornerRadius::same(4),
             theme::mix(
                 theme::mix(theme::BG2, theme::BG3, h),
                 theme::alpha(accent, 255).linear_multiply(0.3),
@@ -470,7 +600,7 @@ fn choice(app: &mut App, ui: &mut Ui) {
         );
         ui.painter().rect_stroke(
             r,
-            CornerRadius::same(16),
+            CornerRadius::same(4),
             Stroke::new(1.0 + a, theme::mix(theme::LINE, accent, a.max(h * 0.5))),
             StrokeKind::Inside,
         );
@@ -486,7 +616,7 @@ fn choice(app: &mut App, ui: &mut Ui) {
         if !tag.is_empty() {
             let pr = Rect::from_min_size(r.min + vec2(72.0 + 130.0, 17.0), vec2(96.0, 20.0));
             ui.painter()
-                .rect_filled(pr, CornerRadius::same(10), theme::alpha(theme::GOOD, 36));
+                .rect_filled(pr, CornerRadius::same(3), theme::alpha(theme::GOOD, 36));
             ui.painter().text(
                 pr.center(),
                 Align2::CENTER_CENTER,
@@ -624,7 +754,7 @@ fn finish(app: &mut App, ui: &mut Ui) {
     if app.wizard.finished {
         title(
             ui,
-            "Step 4 of 4",
+            "04 — Install",
             "You're all set",
             "Everything is ready. Your first launch will download the game files once.",
         );
@@ -681,7 +811,7 @@ fn finish(app: &mut App, ui: &mut Ui) {
     } else if let Some(e) = app.wizard.error.clone() {
         title(
             ui,
-            "Step 4 of 4",
+            "04 — Install",
             "Something went wrong",
             "The instance couldn't be created. You can retry or skip.",
         );
@@ -700,7 +830,7 @@ fn finish(app: &mut App, ui: &mut Ui) {
     } else {
         title(
             ui,
-            "Step 4 of 4",
+            "04 — Install",
             "Building your client…",
             "Downloading and wiring up your mods. This only happens once.",
         );

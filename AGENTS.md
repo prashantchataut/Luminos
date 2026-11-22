@@ -10,7 +10,7 @@ You are continuing a multi-session project. **Before doing anything: read `CONTI
 4. **Honesty over hype.** Mark anything not run on real hardware as 🟡 in CONTINUITY. Never claim a feature works if it was only compiled.
 5. **Commit and push often** (small commits, imperative messages). Never commit tokens or secrets. If a user pastes a token in chat, tell them to revoke it and use a scoped fine-grained token / `gh auth login` instead.
 6. **Legal/safety line:** Luminos supports offline accounts (a normal, lawful launcher feature) and will support Microsoft login. It never bundles or redistributes Mojang assets or game jars — everything is downloaded from Mojang's official endpoints at runtime. Don't add anything that bypasses server authentication or license checks.
-7. Don't copy GPL code from other launchers. Study features, write original code.
+7. Don't copy GPL code from other launchers. Study features, write original code. Luminos itself is proprietary (see LICENSE) — never add GPL/AGPL dependencies or paste code from such projects.
 
 ## Architecture rules
 - `luminos-core` has **no UI types**. `luminos-app` has **no business logic** beyond glue.
@@ -62,3 +62,12 @@ Reverse-engineering/research tasks: study public behaviour and docs (Mojang laun
 - Every HUD module = one class in `Modules.java` registered in `Modules.ALL`, drawing at (0,0); the host handles position/scale/enable. Add sample data for `preview` mode.
 - Never claim "works in game" until someone launched it; note it 🟡 in CONTINUITY.
 - Release: push tag `client-vX.Y.Z`; CI attaches the jar; the launcher picks the newest `client-v*` release.
+
+
+## Rules added in session 4 (hard-won)
+- **Never spawn a child process without `luminos_core::sys::quiet(&mut cmd)`** — on Windows a GUI app otherwise flashes a console per child.
+- **Never commit build output** (`client/build`, `client/.gradle`, `launcher/target`, `site/dist`). `client/.gradle/loom-cache` contains Mojang's jar — redistributing it is not allowed.
+- **Launch changes must pass the smoke test** with real Java for vanilla *and* Fabric *and* the full preset (`launch_smoke.rs`, see README). Unit tests alone missed the duplicate-ASM bug.
+- **Brand assets come from one place**: edit `brand.rs`, run `luminos-brand`; don't hand-edit SVG/ICO/BMP/`Logo.java`.
+- **Design language**: flat ink panels, 1px hairlines, 2–6 px radii, mono uppercase micro-labels, Bayer dither used as *texture at edges* (never full-screen noise, no glow rings, no gradient buttons, no pill chips, no emoji). Look at `docs/screenshots` after any UI change (`luminos-shots`) and fix what looks generic.
+- Never put tokens in files or git config; push with a one-off auth header.

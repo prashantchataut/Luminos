@@ -5,7 +5,7 @@ use crate::{
 };
 use eframe::egui::{
     self, pos2, vec2, Align2, Color32, CornerRadius, FontId, Frame, Margin, Rect, Response, Sense,
-    Shape, Stroke, StrokeKind, Ui,
+    Stroke, StrokeKind, Ui,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -84,21 +84,18 @@ pub fn button_sized(
         (theme::alpha(fill, 90), theme::alpha(fg, 110))
     };
     let r = rect.shrink(if press { 1.0 } else { 0.0 });
-    ui.painter().rect_filled(r, CornerRadius::same(11), fill);
+    ui.painter().rect_filled(r, CornerRadius::same(3), fill);
     if kind == Btn::Primary && enabled {
-        // soft top highlight gives the button depth
+        // hard 1px top light: reads as a pressed-metal key, not a glossy blob
         ui.painter().rect_filled(
-            Rect::from_min_size(
-                r.min + vec2(2.0, 1.0),
-                vec2(r.width() - 4.0, r.height() * 0.45),
-            ),
-            CornerRadius::same(10),
-            Color32::from_white_alpha(14),
+            Rect::from_min_size(r.min + vec2(1.0, 1.0), vec2(r.width() - 2.0, 1.0)),
+            0.0,
+            Color32::from_white_alpha(70),
         );
     }
     if stroke.width > 0.0 {
         ui.painter()
-            .rect_stroke(r, CornerRadius::same(11), stroke, StrokeKind::Inside);
+            .rect_stroke(r, CornerRadius::same(3), stroke, StrokeKind::Inside);
     }
     let total = galley.size().x + icon_w;
     let x0 = r.center().x - total / 2.0;
@@ -125,7 +122,7 @@ pub fn icon_button(ui: &mut Ui, accent: Color32, icon: Icon, tip: &str, danger: 
     let col = if danger { theme::BAD } else { accent };
     ui.painter().rect_filled(
         rect,
-        CornerRadius::same(9),
+        CornerRadius::same(3),
         theme::alpha(col, (h * 40.0) as u8),
     );
     icons::paint(
@@ -175,10 +172,10 @@ pub fn chip(
         theme::alpha(accent, 255).linear_multiply(0.35),
         sel,
     );
-    ui.painter().rect_filled(rect, CornerRadius::same(16), fill);
+    ui.painter().rect_filled(rect, CornerRadius::same(4), fill);
     ui.painter().rect_stroke(
         rect,
-        CornerRadius::same(16),
+        CornerRadius::same(4),
         Stroke::new(1.0, theme::mix(theme::LINE, accent, sel.max(h * 0.5))),
         StrokeKind::Inside,
     );
@@ -196,20 +193,33 @@ pub fn chip(
 }
 
 pub fn toggle(ui: &mut Ui, accent: Color32, on: &mut bool) -> Response {
-    let (rect, mut resp) = ui.allocate_exact_size(vec2(42.0, 24.0), Sense::click());
+    let (rect, mut resp) = ui.allocate_exact_size(vec2(40.0, 20.0), Sense::click());
     if resp.clicked() {
         *on = !*on;
         resp.mark_changed();
     }
-    let t = ui.ctx().animate_bool_with_time(resp.id, *on, 0.15);
+    let t = ui.ctx().animate_bool_with_time(resp.id, *on, 0.12);
+    let r = CornerRadius::same(3);
     ui.painter().rect_filled(
         rect,
-        CornerRadius::same(12),
-        theme::mix(theme::BG3, accent, t),
+        r,
+        theme::mix(theme::BG0, theme::alpha(accent, 255), t * 0.9),
     );
-    let x = rect.left() + 12.0 + t * 18.0;
-    ui.painter()
-        .circle_filled(pos2(x, rect.center().y), 9.0, Color32::WHITE);
+    ui.painter().rect_stroke(
+        rect,
+        r,
+        Stroke::new(1.0, theme::mix(theme::LINE, accent, t)),
+        StrokeKind::Inside,
+    );
+    let k = Rect::from_min_size(
+        pos2(rect.left() + 3.0 + t * 20.0, rect.top() + 3.0),
+        vec2(14.0, 14.0),
+    );
+    ui.painter().rect_filled(
+        k,
+        CornerRadius::same(2),
+        theme::mix(theme::MUTED, Color32::WHITE, t),
+    );
     resp.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
@@ -228,9 +238,9 @@ pub fn setting_row(ui: &mut Ui, title: &str, desc: &str, right: impl FnOnce(&mut
 
 pub fn card<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> egui::InnerResponse<R> {
     Frame::new()
-        .fill(theme::alpha(theme::BG1, 235))
+        .fill(theme::BG1)
         .stroke(Stroke::new(1.0, theme::LINE))
-        .corner_radius(CornerRadius::same(16))
+        .corner_radius(CornerRadius::same(4))
         .inner_margin(Margin::same(16))
         .show(ui, add)
 }
@@ -250,42 +260,43 @@ pub fn muted(ui: &mut Ui, text: &str) {
 pub fn eyebrow(ui: &mut Ui, text: &str) {
     ui.label(
         egui::RichText::new(text.to_uppercase())
-            .font(FontId::new(11.5, theme::bold()))
+            .font(FontId::new(10.5, egui::FontFamily::Monospace))
+            .extra_letter_spacing(1.2)
             .color(theme::MUTED),
     );
 }
 
+/// Segmented pixel bar: 6-px cells, the leading edge flickers through a dither step.
 pub fn progress_bar(ui: &mut Ui, accent: Color32, frac: f32, width: f32, time: f64) {
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 10.0), Sense::hover());
-    ui.painter()
-        .rect_filled(rect, CornerRadius::same(5), theme::BG0);
-    let w = (rect.width() * frac.clamp(0.0, 1.0)).max(if frac > 0.0 { 10.0 } else { 0.0 });
-    if w > 0.0 {
-        let fill = Rect::from_min_size(rect.min, vec2(w, rect.height()));
-        ui.painter()
-            .rect_filled(fill, CornerRadius::same(5), accent);
-        // moving dither stripes
-        let off = ((time * 24.0) % 12.0) as f32;
-        let mut x = fill.left() - 12.0 + off;
-        while x < fill.right() {
-            let a = x.max(fill.left());
-            let b = (x + 5.0).min(fill.right());
-            if b > a {
-                ui.painter().rect_filled(
-                    Rect::from_min_max(pos2(a, fill.top()), pos2(b, fill.bottom())),
-                    0.0,
-                    Color32::from_white_alpha(28),
-                );
-            }
-            x += 12.0;
-        }
-    }
-    ui.painter().rect_stroke(
+    let (rect, _) = ui.allocate_exact_size(vec2(width, 12.0), Sense::hover());
+    let p = ui.painter();
+    p.rect_filled(rect, CornerRadius::same(2), theme::BG0);
+    p.rect_stroke(
         rect,
-        CornerRadius::same(5),
+        CornerRadius::same(2),
         Stroke::new(1.0, theme::LINE),
         StrokeKind::Inside,
     );
+    let inner = rect.shrink(2.0);
+    let cells = (inner.width() / 6.0).floor() as usize;
+    let lit = frac.clamp(0.0, 1.0) * cells as f32;
+    for i in 0..cells {
+        let x = inner.left() + i as f32 * 6.0;
+        let cr = Rect::from_min_size(pos2(x, inner.top()), vec2(5.0, inner.height()));
+        let col = if (i as f32) + 1.0 <= lit {
+            accent
+        } else if (i as f32) < lit {
+            let on = ((time * 14.0) as usize + i) % 2 == 0;
+            if on {
+                accent
+            } else {
+                theme::alpha(accent, 70)
+            }
+        } else {
+            theme::alpha(theme::BG3, 160)
+        };
+        p.rect_filled(cr, 0.0, col);
+    }
 }
 
 const ICON_PALETTE: [(Color32, Color32); 8] = [
@@ -329,7 +340,7 @@ pub fn instance_icon(ui: &Ui, rect: Rect, name: &str, color: u8) {
     let p = ui.painter();
     let m = rect.width().min(rect.height());
     let banner = rect.width() > rect.height() * 1.6;
-    let r = (m * 0.26).min(16.0) as u8;
+    let r = (m * 0.1).clamp(2.0, 5.0) as u8;
     p.rect_filled(rect, CornerRadius::same(r), a);
     let cell = if banner { 10.0 } else { m / 8.0 };
     let (nx, ny) = (
@@ -379,100 +390,59 @@ pub fn instance_icon(ui: &Ui, rect: Rect, name: &str, color: u8) {
     );
 }
 
-/// The Luminos mark: a pixel-built "L" on a deep-blue tile whose foot dissolves into dither and
-/// throws a spark. Keep the grid in sync with `tools/make_brand.py` (the SVG/ICO source).
-pub fn logo_mark(p: &egui::Painter, c: egui::Pos2, size: f32, accent: Color32, glow: f32) {
-    const L: [(u8, u8, f32); 21] = [
-        (2, 1, 1.0),
-        (2, 2, 1.0),
-        (2, 3, 1.0),
-        (2, 4, 1.0),
-        (2, 5, 1.0),
-        (2, 6, 1.0),
-        (3, 1, 1.0),
-        (3, 2, 1.0),
-        (3, 3, 1.0),
-        (3, 4, 1.0),
-        (3, 5, 1.0),
-        (3, 6, 1.0),
-        (4, 5, 1.0),
-        (4, 6, 1.0),
-        (5, 5, 1.0),
-        (5, 6, 1.0),
-        (6, 6, 0.85),
-        (7, 5, 0.55),
-        (6, 5, 0.3),
-        (7, 6, 0.3),
-        (6, 1, 1.0),
-    ];
-    const TRAIL: [(u8, u8, f32); 5] = [
-        (7, 0, 0.6),
-        (5, 2, 0.5),
-        (7, 2, 0.35),
-        (5, 0, 0.3),
-        (6, 3, 0.2),
-    ];
-    let tile = Rect::from_center_size(c, vec2(size, size));
-    if glow > 0.0 {
-        for i in 1..5 {
-            p.circle_filled(
-                c,
-                size * 0.5 * (1.0 + i as f32 * 0.35),
-                theme::alpha(accent, ((6.0 - i as f32) * 5.0 * glow) as u8),
-            );
+/// The Luminos mark (lumen orb on an ink tile). Source of truth: `brand.rs`.
+pub fn logo_mark(p: &egui::Painter, c: egui::Pos2, size: f32, _accent: Color32, _glow: f32) {
+    paint_tile(p, c, size, false);
+}
+
+/// The Luminos Client mark: the orb inside HUD reticle brackets.
+pub fn client_mark(p: &egui::Painter, c: egui::Pos2, size: f32) {
+    paint_tile(p, c, size, true);
+}
+
+fn paint_tile(p: &egui::Painter, c: egui::Pos2, size: f32, client: bool) {
+    let (n, g) = crate::brand::tile(client);
+    let u = size / n as f32;
+    let o = c - vec2(size / 2.0, size / 2.0);
+    for y in 0..n {
+        let mut x = 0;
+        while x < n {
+            if let Some(col) = g[y * n + x] {
+                let mut run = 1;
+                while x + run < n && g[y * n + x + run] == Some(col) {
+                    run += 1;
+                }
+                // snap to whole pixels so the cells stay razor sharp at any scale
+                let min = pos2((o.x + x as f32 * u).round(), (o.y + y as f32 * u).round());
+                let max = pos2(
+                    (o.x + (x + run) as f32 * u).round(),
+                    (o.y + (y + 1) as f32 * u).round(),
+                );
+                p.rect_filled(Rect::from_min_max(min, max), 0.0, col);
+                x += run;
+            } else {
+                x += 1;
+            }
         }
     }
-    let r = CornerRadius::same((size * 0.23) as u8);
-    let top = theme::mix(accent, Color32::WHITE, 0.35);
-    let bot = theme::mix(accent, Color32::BLACK, 0.45);
-    // two-band vertical gradient (cheap, crisp at any size)
-    p.rect_filled(tile, r, bot);
-    let mut mesh = egui::Mesh::default();
-    let steps = 8;
-    for i in 0..steps {
-        let t0 = i as f32 / steps as f32;
-        let col = theme::mix(top, bot, (t0 + 0.5 / steps as f32).min(1.0));
-        let band = Rect::from_min_max(
-            pos2(
-                tile.left() + size * 0.04,
-                tile.top() + size * (0.06 + 0.88 * t0),
-            ),
-            pos2(
-                tile.right() - size * 0.04,
-                tile.top() + size * (0.06 + 0.88 * (t0 + 1.0 / steps as f32)),
-            ),
-        );
-        mesh.add_colored_rect(band, col);
-    }
-    p.rect_filled(tile, r, theme::mix(top, bot, 0.5));
-    p.add(Shape::mesh(mesh));
-    p.rect_stroke(
-        tile,
-        r,
-        Stroke::new(1.0, Color32::from_white_alpha(46)),
-        egui::StrokeKind::Inside,
-    );
-    let pad = size * 0.12;
-    let u = (size - 2.0 * pad) / 8.0;
-    let cell = |x: u8, y: u8, col: Color32, a: f32| {
-        let o = tile.min + vec2(pad + x as f32 * u, pad + y as f32 * u);
-        p.rect_filled(
-            Rect::from_min_size(o, vec2(u, u)),
-            CornerRadius::ZERO,
-            theme::alpha(col, (a * 255.0) as u8),
-        );
-    };
-    let light = Color32::from_rgb(214, 236, 255);
-    for (x, y, a) in TRAIL {
-        cell(x, y, light, a);
-    }
-    for (x, y, a) in L {
-        let col = if (x, y) == (6, 1) {
-            light
-        } else {
-            Color32::WHITE
-        };
-        cell(x, y, col, a);
+}
+
+/// A big animated orb: the light source orbits, so the Bayer pattern crawls across the sphere.
+pub fn orb(p: &egui::Painter, c: egui::Pos2, diameter: f32, n: usize, angle: f32) {
+    let u = diameter / n as f32;
+    let light = (angle.cos(), angle.sin());
+    let o = c - vec2(diameter / 2.0, diameter / 2.0);
+    for y in 0..n {
+        for x in 0..n {
+            if let Some(t) = crate::brand::orb_cell(n, x, y, light) {
+                let min = pos2((o.x + x as f32 * u).round(), (o.y + y as f32 * u).round());
+                let max = pos2(
+                    (o.x + (x + 1) as f32 * u).round(),
+                    (o.y + (y + 1) as f32 * u).round(),
+                );
+                p.rect_filled(Rect::from_min_max(min, max), 0.0, crate::brand::TONES[t]);
+            }
+        }
     }
 }
 
@@ -481,7 +451,7 @@ pub fn face(ui: &Ui, rect: Rect, tex: Option<&egui::TextureHandle>, name: &str) 
     let p = ui.painter();
     p.rect_filled(
         rect,
-        CornerRadius::same((rect.width() * 0.22) as u8),
+        CornerRadius::same((rect.width() * 0.1).clamp(2.0, 6.0) as u8),
         theme::BG3,
     );
     if let Some(t) = tex {
@@ -513,7 +483,7 @@ pub fn face(ui: &Ui, rect: Rect, tex: Option<&egui::TextureHandle>, name: &str) 
     }
     p.rect_stroke(
         rect,
-        CornerRadius::same((rect.width() * 0.22) as u8),
+        CornerRadius::same((rect.width() * 0.1).clamp(2.0, 6.0) as u8),
         Stroke::new(1.0, theme::LINE),
         StrokeKind::Inside,
     );
@@ -521,15 +491,17 @@ pub fn face(ui: &Ui, rect: Rect, tex: Option<&egui::TextureHandle>, name: &str) 
 
 /// Small pill label (e.g. "Fabric", "1.21.4", "UPDATE").
 pub fn pill(ui: &mut Ui, text: &str, color: Color32) {
-    let galley =
-        ui.painter()
-            .layout_no_wrap(text.to_string(), FontId::new(11.5, theme::bold()), color);
-    let (rect, _) = ui.allocate_exact_size(vec2(galley.size().x + 16.0, 20.0), Sense::hover());
+    let galley = ui.painter().layout_no_wrap(
+        text.to_string(),
+        FontId::new(10.5, egui::FontFamily::Monospace),
+        color,
+    );
+    let (rect, _) = ui.allocate_exact_size(vec2(galley.size().x + 14.0, 20.0), Sense::hover());
     ui.painter()
-        .rect_filled(rect, CornerRadius::same(10), theme::alpha(color, 28));
+        .rect_filled(rect, CornerRadius::same(3), theme::alpha(color, 28));
     ui.painter().rect_stroke(
         rect,
-        CornerRadius::same(10),
+        CornerRadius::same(3),
         Stroke::new(1.0, theme::alpha(color, 90)),
         StrokeKind::Inside,
     );

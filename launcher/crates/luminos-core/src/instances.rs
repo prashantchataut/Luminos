@@ -219,6 +219,6 @@ pub fn worlds(inst: &Instance) -> Vec<World> {
             }
         }
     }
-    v.sort_by(|a, b| b.modified.cmp(&a.modified));
+    v.sort_by_key(|e| std::cmp::Reverse(e.modified));
     v
 }

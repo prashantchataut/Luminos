@@ -63,10 +63,10 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         let color = app.instance(id).map(|i| i.color).unwrap_or(0);
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 52.0), Sense::hover());
         ui.painter()
-            .rect_filled(r, CornerRadius::same(14), theme::BG2);
+            .rect_filled(r, CornerRadius::same(4), theme::BG2);
         ui.painter().rect_stroke(
             r,
-            CornerRadius::same(14),
+            CornerRadius::same(4),
             Stroke::new(1.0, theme::LINE),
             StrokeKind::Inside,
         );
@@ -86,10 +86,10 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         let track =
             egui::Rect::from_min_size(r.min + vec2(56.0, 33.0), vec2(r.width() - 160.0, 8.0));
         ui.painter()
-            .rect_filled(track, CornerRadius::same(4), theme::BG0);
+            .rect_filled(track, CornerRadius::same(2), theme::BG0);
         ui.painter().rect_filled(
             egui::Rect::from_min_size(track.min, vec2(track.width() * (*secs as f32 / max), 8.0)),
-            CornerRadius::same(4),
+            CornerRadius::same(2),
             accent,
         );
         ui.painter().text(

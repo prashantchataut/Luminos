@@ -32,6 +32,9 @@ use std::{
     time::Duration,
 };
 
+pub const SIDEBAR_W: f32 = 212.0;
+pub const TITLE_H: f32 = 40.0;
+
 pub enum Loadable<T> {
     Idle,
     Loading,
@@ -222,6 +225,7 @@ pub struct App {
     pub new_account: String,
     backdrop: Option<TextureHandle>,
     backdrop_key: (usize, usize, i64),
+    pub rail_tex: Option<TextureHandle>,
     pub manifest: Loadable<Manifest>,
     pub news: Loadable<Vec<NewsItem>>,
     pub featured: Loadable<Vec<Project>>,
@@ -278,6 +282,7 @@ impl App {
             new_account: String::new(),
             backdrop: None,
             backdrop_key: (0, 0, -1),
+            rail_tex: None,
             manifest: Loadable::Idle,
             news: Loadable::Idle,
             featured: Loadable::Idle,
@@ -692,51 +697,41 @@ impl App {
         }
     }
 
+    /// Flat ink background + (inside the app) one static dithered horizon under the title bar.
     fn paint_backdrop(&mut self, ui: &Ui, full: Rect) {
-        let wizard = !self.settings.setup_done;
-        if !self.settings.dither_background {
-            ui.painter().rect_filled(full, 0.0, theme::BG0);
+        ui.painter().rect_filled(full, 0.0, theme::BG0);
+        if !self.settings.setup_done || !self.settings.dither_background {
             return;
         }
-        let (w, h) = dither::size_for(full.width(), full.height());
-        let animated = !self.settings.reduce_motion;
-        let q = if !animated {
-            0
-        } else if wizard {
-            (self.time * 8.0) as i64
-        } else {
-            (self.time * 1.5) as i64
-        };
-        if self.backdrop.is_none() || self.backdrop_key != (w, h, q) {
-            let t = if animated {
-                q as f32 / if wizard { 8.0 } else { 1.5 }
-            } else {
-                0.0
-            };
-            let img = dither::render(w, h, t, self.accent(), if wizard { 1.15 } else { 0.95 });
+        let cell = 4.0;
+        let w = ((full.width() - SIDEBAR_W) / cell).ceil().max(8.0) as usize;
+        let h = 40usize;
+        let key = (w, h, self.settings.accent as i64);
+        if self.backdrop.is_none() || self.backdrop_key != key {
+            let img = dither::band(w, h, self.accent());
             match &mut self.backdrop {
                 Some(tex) => tex.set(img, TextureOptions::NEAREST),
                 None => {
                     self.backdrop = Some(self.ctx.load_texture(
-                        "luminos-dither",
+                        "luminos-band",
                         img,
                         TextureOptions::NEAREST,
                     ))
                 }
             }
-            self.backdrop_key = (w, h, q);
+            self.backdrop_key = key;
         }
         if let Some(tex) = &self.backdrop {
+            let r = Rect::from_min_size(
+                pos2(full.left() + SIDEBAR_W, full.top() + TITLE_H),
+                vec2(full.width() - SIDEBAR_W, h as f32 * cell),
+            );
             ui.painter().image(
                 tex.id(),
-                full,
+                r,
                 Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
                 Color32::WHITE,
             );
-        }
-        if animated {
-            self.ctx
-                .request_repaint_after(Duration::from_millis(if wizard { 120 } else { 700 }));
         }
     }
 
@@ -812,10 +807,10 @@ impl App {
                 }
             }
         }
-        let bar = Rect::from_min_size(full.min, vec2(full.width(), 46.0));
+        let bar = Rect::from_min_size(full.min, vec2(full.width(), TITLE_H));
         let drag = ui.interact(
             Rect::from_min_max(
-                bar.min + vec2(0.0, 5.0),
+                bar.min + vec2(0.0, 4.0),
                 pos2(bar.right() - 150.0, bar.bottom()),
             ),
             egui::Id::new("titlebar"),
@@ -830,42 +825,37 @@ impl App {
                 .send_viewport_cmd(egui::ViewportCommand::Maximized(self.maximized));
         }
         let p = ui.painter();
+        p.rect_filled(bar, 0.0, theme::BG0);
+        p.line_segment(
+            [bar.left_bottom(), bar.right_bottom()],
+            Stroke::new(1.0, theme::LINE),
+        );
         widgets::logo_mark(
             p,
-            pos2(bar.left() + 34.0, bar.center().y),
-            22.0,
+            pos2(bar.left() + 26.0, bar.center().y),
+            20.0,
             accent,
             0.0,
         );
         let g = p.layout_no_wrap(
-            "Luminos".into(),
-            FontId::new(16.5, theme::bold()),
+            "LUMINOS".into(),
+            FontId::new(12.5, theme::bold()),
             theme::TEXT,
         );
-        let gw = g.size().x;
-        p.galley(
-            pos2(bar.left() + 54.0, bar.center().y - g.size().y / 2.0),
-            g,
+        let gw = g.size().x + 7.0 * 1.6;
+        p.text(
+            pos2(bar.left() + 44.0, bar.center().y),
+            Align2::LEFT_CENTER,
+            "L U M I N O S",
+            FontId::new(11.5, theme::bold()),
             theme::TEXT,
-        );
-        // version pill
-        let pill = Rect::from_min_size(
-            pos2(bar.left() + 54.0 + gw + 10.0, bar.center().y - 10.0),
-            vec2(74.0, 20.0),
-        );
-        p.rect_filled(pill, CornerRadius::same(10), theme::alpha(accent, 34));
-        p.rect_stroke(
-            pill,
-            CornerRadius::same(10),
-            Stroke::new(1.0, theme::alpha(accent, 110)),
-            StrokeKind::Inside,
         );
         p.text(
-            pill.center(),
-            Align2::CENTER_CENTER,
-            format!("v{} beta", luminos_core::VERSION),
-            FontId::new(11.0, theme::bold()),
-            theme::mix(accent, Color32::WHITE, 0.5),
+            pos2(bar.left() + 44.0 + gw + 22.0, bar.center().y + 0.5),
+            Align2::LEFT_CENTER,
+            format!("v{}", luminos_core::VERSION),
+            FontId::new(10.5, egui::FontFamily::Monospace),
+            theme::MUTED,
         );
 
         // running game badge
@@ -875,32 +865,39 @@ impl App {
                 .map(|i| i.name.clone())
                 .unwrap_or_default();
             let mins = (luminos_core::store::now_unix() - h.started).max(0) / 60;
-            let r = Rect::from_center_size(pos2(bar.center().x, bar.center().y), vec2(300.0, 30.0));
+            let r = Rect::from_center_size(bar.center(), vec2(300.0, 26.0));
             ui.painter()
-                .rect_filled(r, CornerRadius::same(15), theme::alpha(theme::GOOD, 30));
+                .rect_filled(r, CornerRadius::same(3), theme::alpha(theme::GOOD, 24));
             ui.painter().rect_stroke(
                 r,
-                CornerRadius::same(15),
-                Stroke::new(1.0, theme::alpha(theme::GOOD, 120)),
+                CornerRadius::same(3),
+                Stroke::new(1.0, theme::alpha(theme::GOOD, 110)),
                 StrokeKind::Inside,
             );
-            let pulse = (0.5 + 0.5 * (self.time * 3.0).sin()) as f32;
-            ui.painter()
-                .circle_filled(r.left_center() + vec2(16.0, 0.0), 4.0 + pulse, theme::GOOD);
+            let on = ((self.time * 2.0) as i64) % 2 == 0;
+            ui.painter().rect_filled(
+                Rect::from_center_size(r.left_center() + vec2(14.0, 0.0), vec2(6.0, 6.0)),
+                0.0,
+                if on {
+                    theme::GOOD
+                } else {
+                    theme::alpha(theme::GOOD, 90)
+                },
+            );
             ui.painter().text(
-                r.left_center() + vec2(30.0, 0.0),
+                r.left_center() + vec2(28.0, 0.0),
                 Align2::LEFT_CENTER,
-                format!("Playing {name} · {mins}m"),
-                FontId::new(13.0, theme::bold()),
+                format!("PLAYING  {name}  {mins}m"),
+                FontId::new(11.0, egui::FontFamily::Monospace),
                 theme::TEXT,
             );
-            let stop = Rect::from_center_size(r.right_center() - vec2(18.0, 0.0), vec2(26.0, 26.0));
+            let stop = Rect::from_center_size(r.right_center() - vec2(16.0, 0.0), vec2(24.0, 22.0));
             let resp = ui.interact(stop, egui::Id::new("stopgame"), Sense::click());
             icons::paint(
                 ui.painter(),
                 Icon::Stop,
                 stop.center(),
-                14.0,
+                13.0,
                 if resp.hovered() {
                     theme::BAD
                 } else {
@@ -910,11 +907,11 @@ impl App {
             if resp.on_hover_text("Stop game").clicked() {
                 h.kill();
             }
-            self.ctx.request_repaint_after(Duration::from_secs(5));
+            self.ctx.request_repaint_after(Duration::from_millis(500));
         }
 
-        // window buttons
-        let mut x = bar.right() - 14.0;
+        // window buttons: full-height flat squares
+        let mut x = bar.right();
         for (i, (icon, tip)) in [
             (Icon::Close, "Close"),
             (Icon::Square, "Maximize"),
@@ -923,24 +920,24 @@ impl App {
         .into_iter()
         .enumerate()
         {
-            let r = Rect::from_center_size(pos2(x - 18.0, bar.center().y), vec2(36.0, 30.0));
-            x -= 38.0;
+            let r = Rect::from_min_max(pos2(x - 44.0, bar.top()), pos2(x, bar.bottom() - 1.0));
+            x -= 44.0;
             let resp = ui.interact(r, egui::Id::new(("winbtn", i)), Sense::click());
             let h = ui
                 .ctx()
-                .animate_bool_with_time(resp.id, resp.hovered(), 0.1);
+                .animate_bool_with_time(resp.id, resp.hovered(), 0.08);
             let hot = if i == 0 { theme::BAD } else { theme::BG3 };
             ui.painter().rect_filled(
                 r,
-                CornerRadius::same(9),
-                theme::alpha(hot, (h * if i == 0 { 70.0 } else { 255.0 }) as u8),
+                0.0,
+                theme::alpha(hot, (h * if i == 0 { 200.0 } else { 255.0 }) as u8),
             );
             icons::paint(
                 ui.painter(),
                 icon,
                 r.center(),
-                14.0,
-                theme::mix(theme::MUTED, theme::TEXT, h),
+                13.0,
+                theme::mix(theme::MUTED, Color32::WHITE, h),
             );
             if resp.on_hover_text(tip).clicked() {
                 match i {
@@ -956,49 +953,71 @@ impl App {
                 }
             }
         }
-        Rect::from_min_max(
-            pos2(full.left() + 12.0, bar.bottom()),
-            full.right_bottom() - vec2(12.0, 12.0),
-        )
+        Rect::from_min_max(pos2(full.left(), bar.bottom()), full.right_bottom())
     }
 
     fn sidebar(&mut self, ui: &mut Ui, rect: Rect) {
         let accent = self.accent();
-        ui.painter()
-            .rect_filled(rect, CornerRadius::same(18), theme::alpha(theme::BG1, 232));
-        ui.painter().rect_stroke(
-            rect,
-            CornerRadius::same(18),
+        let p = ui.painter().clone();
+        p.rect_filled(rect, 0.0, theme::BG1);
+        p.line_segment(
+            [rect.right_top(), rect.right_bottom()],
             Stroke::new(1.0, theme::LINE),
-            StrokeKind::Inside,
         );
-        let cx = rect.center().x;
-        // account avatar
-        let av = Rect::from_center_size(pos2(cx, rect.top() + 14.0 + 26.0), vec2(48.0, 48.0));
-        let resp = ui.interact(av, egui::Id::new("avatar"), Sense::click());
-        let name = self
+        // account block
+        let acct = Rect::from_min_size(rect.min + vec2(0.0, 0.0), vec2(rect.width(), 68.0));
+        let resp = ui.interact(acct, egui::Id::new("avatar"), Sense::click());
+        let h = ui
+            .ctx()
+            .animate_bool_with_time(resp.id, resp.hovered() || self.account_menu, 0.12);
+        p.rect_filled(acct, 0.0, theme::alpha(theme::BG2, (h * 255.0) as u8));
+        p.line_segment(
+            [acct.left_bottom(), acct.right_bottom()],
+            Stroke::new(1.0, theme::LINE),
+        );
+        let (name, kind) = self
             .accounts
             .active()
-            .map(|a| a.username.clone())
-            .unwrap_or_else(|| "?".into());
+            .map(|a| {
+                (
+                    a.username.clone(),
+                    if a.kind == accounts::AccountKind::Offline {
+                        "OFFLINE"
+                    } else {
+                        "MICROSOFT"
+                    },
+                )
+            })
+            .unwrap_or_else(|| ("No account".into(), "—"));
         let tex = self
             .accounts
             .active()
             .and_then(|a| a.skin_id.clone())
             .and_then(|id| crate::pages::skins::skin_tex(self, &id));
+        let av = Rect::from_min_size(acct.min + vec2(16.0, 16.0), vec2(36.0, 36.0));
         widgets::face(ui, av, tex.as_ref(), &name);
-        if self.account_menu || resp.hovered() {
-            ui.painter().rect_stroke(
-                av.expand(3.0),
-                CornerRadius::same(14),
-                Stroke::new(1.5, accent),
-                StrokeKind::Outside,
-            );
-        }
-        if resp.on_hover_text(name).clicked() {
+        p.text(
+            acct.min + vec2(64.0, 22.0),
+            Align2::LEFT_CENTER,
+            &name,
+            FontId::new(14.0, theme::bold()),
+            theme::TEXT,
+        );
+        p.text(
+            acct.min + vec2(64.0, 41.0),
+            Align2::LEFT_CENTER,
+            format!("{kind}  ▾"),
+            FontId::new(10.0, egui::FontFamily::Monospace),
+            theme::MUTED,
+        );
+        if resp
+            .on_hover_cursor(egui::CursorIcon::PointingHand)
+            .clicked()
+        {
             self.account_menu = !self.account_menu;
         }
-        // nav items
+
+        // nav
         let items = [
             (Icon::Home, "Home", Page::Home),
             (Icon::Compass, "Discover", Page::Discover),
@@ -1007,76 +1026,123 @@ impl App {
             (Icon::Shirt, "Skins", Page::Skins),
             (Icon::Chart, "Playtime", Page::Stats),
         ];
-        let mut y = av.bottom() + 20.0;
-        for (i, (icon, tip, page)) in items.into_iter().enumerate() {
+        let mut y = acct.bottom() + 12.0;
+        for (i, (icon, label, page)) in items.into_iter().enumerate() {
             let active = self.page == page
                 || (page == Page::Library && matches!(self.page, Page::Instance(_)));
-            if self.nav_button(
-                ui,
-                Rect::from_center_size(pos2(cx, y + 22.0), vec2(52.0, 44.0)),
-                icon,
-                tip,
-                active,
-                accent,
-                i,
-            ) {
+            let r = Rect::from_min_size(pos2(rect.left(), y), vec2(rect.width() - 1.0, 36.0));
+            if self.nav_button(ui, r, icon, label, active, accent, i) {
                 self.goto(page);
             }
-            y += 52.0;
+            y += 36.0;
         }
-        // separator
-        ui.painter().line_segment(
-            [
-                pos2(rect.left() + 18.0, y + 6.0),
-                pos2(rect.right() - 18.0, y + 6.0),
-            ],
-            Stroke::new(1.0, theme::LINE),
+        y += 14.0;
+        // instances header
+        p.text(
+            pos2(rect.left() + 18.0, y + 8.0),
+            Align2::LEFT_CENTER,
+            "INSTANCES",
+            FontId::new(10.0, egui::FontFamily::Monospace),
+            theme::MUTED,
         );
-        y += 16.0;
-        if self.nav_button(
-            ui,
-            Rect::from_center_size(pos2(cx, y + 22.0), vec2(52.0, 44.0)),
+        let plus = Rect::from_center_size(pos2(rect.right() - 24.0, y + 8.0), vec2(24.0, 22.0));
+        let pr = ui.interact(plus, egui::Id::new("newinst"), Sense::click());
+        icons::paint(
+            &p,
             Icon::Plus,
-            "New instance",
-            false,
-            accent,
-            20,
-        ) {
+            plus.center(),
+            14.0,
+            if pr.hovered() { accent } else { theme::MUTED },
+        );
+        if pr.on_hover_text("New instance").clicked() {
             self.open_create();
         }
-        y += 52.0;
-        // recent instances
-        let recent: Vec<Instance> = self
-            .instances
-            .iter()
-            .take(((rect.bottom() - y - 80.0) / 56.0).max(0.0) as usize)
-            .take(5)
-            .cloned()
-            .collect();
+        y += 24.0;
+        let room = ((rect.bottom() - y - 58.0) / 40.0).max(0.0) as usize;
+        let recent: Vec<Instance> = self.instances.iter().take(room.min(7)).cloned().collect();
         for (i, inst) in recent.iter().enumerate() {
-            let r = Rect::from_center_size(pos2(cx, y + 24.0), vec2(44.0, 44.0));
+            let r = Rect::from_min_size(pos2(rect.left(), y), vec2(rect.width() - 1.0, 38.0));
             let resp = ui.interact(r, egui::Id::new(("recent", i)), Sense::click());
             let h = ui
                 .ctx()
-                .animate_bool_with_time(resp.id, resp.hovered(), 0.12);
+                .animate_bool_with_time(resp.id, resp.hovered(), 0.1);
             let active = self.page == Page::Instance(inst.id.clone());
+            p.rect_filled(
+                r,
+                0.0,
+                theme::alpha(theme::BG2, if active { 255 } else { (h * 255.0) as u8 }),
+            );
             if active {
-                ui.painter().rect_stroke(
-                    r.expand(3.0),
-                    CornerRadius::same(14),
-                    Stroke::new(2.0, accent),
-                    StrokeKind::Outside,
+                p.rect_filled(
+                    Rect::from_min_size(r.min, vec2(2.0, r.height())),
+                    0.0,
+                    accent,
                 );
             }
-            widgets::instance_icon(ui, r.shrink(2.0 - h * 2.0), &inst.name, inst.color);
-            if resp.on_hover_text(&inst.name).clicked() {
+            widgets::instance_icon(
+                ui,
+                Rect::from_min_size(r.min + vec2(16.0, 5.0), vec2(28.0, 28.0)),
+                &inst.name,
+                inst.color,
+            );
+            let running = self
+                .game
+                .as_ref()
+                .map(|g| g.instance_id == inst.id)
+                .unwrap_or(false);
+            let nm = if inst.name.chars().count() > 17 {
+                format!("{}…", inst.name.chars().take(16).collect::<String>())
+            } else {
+                inst.name.clone()
+            };
+            p.text(
+                r.min + vec2(54.0, 13.0),
+                Align2::LEFT_CENTER,
+                nm,
+                FontId::new(13.0, theme::bold()),
+                theme::mix(
+                    theme::MUTED,
+                    theme::TEXT,
+                    h.max(if active { 1.0 } else { 0.0 }),
+                ),
+            );
+            p.text(
+                r.min + vec2(54.0, 27.0),
+                Align2::LEFT_CENTER,
+                format!("{} {}", inst.loader.label().to_lowercase(), inst.mc_version),
+                FontId::new(9.5, egui::FontFamily::Monospace),
+                theme::MUTED,
+            );
+            if running {
+                p.rect_filled(
+                    Rect::from_center_size(r.right_center() - vec2(14.0, 0.0), vec2(6.0, 6.0)),
+                    0.0,
+                    theme::GOOD,
+                );
+            }
+            if resp
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                .clicked()
+            {
                 self.open_instance(&inst.id);
             }
-            y += 54.0;
+            y += 40.0;
         }
+        // settings pinned bottom
+        let r = Rect::from_min_size(
+            pos2(rect.left(), rect.bottom() - 48.0),
+            vec2(rect.width() - 1.0, 36.0),
+        );
+        p.line_segment(
+            [
+                pos2(rect.left(), r.top() - 6.0),
+                pos2(rect.right(), r.top() - 6.0),
+            ],
+            Stroke::new(1.0, theme::LINE),
+        );
         if self.nav_button(
             ui,
-            Rect::from_center_size(pos2(cx, rect.bottom() - 36.0), vec2(52.0, 44.0)),
+            r,
             Icon::Gear,
             "Settings",
             self.page == Page::Settings,
@@ -1093,7 +1159,7 @@ impl App {
         ui: &mut Ui,
         r: Rect,
         icon: Icon,
-        tip: &str,
+        label: &str,
         active: bool,
         accent: Color32,
         idx: usize,
@@ -1101,40 +1167,46 @@ impl App {
         let resp = ui.interact(r, egui::Id::new(("nav", idx)), Sense::click());
         let h = ui
             .ctx()
-            .animate_bool_with_time(resp.id, resp.hovered(), 0.12);
+            .animate_bool_with_time(resp.id, resp.hovered(), 0.1);
         let a = ui
             .ctx()
-            .animate_bool_with_time(resp.id.with("a"), active, 0.2);
+            .animate_bool_with_time(resp.id.with("a"), active, 0.16);
+        let p = ui.painter();
+        p.rect_filled(
+            r,
+            0.0,
+            theme::alpha(theme::BG2, ((a.max(h * 0.7)) * 255.0) as u8),
+        );
         if a > 0.0 {
-            ui.painter().rect_filled(
-                r,
-                CornerRadius::same(14),
-                theme::alpha(accent, (a * 255.0) as u8),
-            );
-            ui.painter().rect_filled(
-                Rect::from_min_size(
-                    r.min + vec2(2.0, 1.0),
-                    vec2(r.width() - 4.0, r.height() * 0.4),
-                ),
-                CornerRadius::same(12),
-                Color32::from_white_alpha((a * 22.0) as u8),
-            );
-        } else if h > 0.0 {
-            ui.painter().rect_filled(
-                r,
-                CornerRadius::same(14),
-                theme::alpha(theme::BG3, (h * 255.0) as u8),
+            p.rect_filled(
+                Rect::from_min_size(r.min, vec2(2.0, r.height() * a)),
+                0.0,
+                accent,
             );
         }
+        let fg = theme::mix(theme::MUTED, theme::TEXT, a.max(h * 0.85));
         icons::paint(
-            ui.painter(),
+            p,
             icon,
-            r.center(),
-            22.0,
-            theme::mix(theme::MUTED, Color32::WHITE, a.max(h * 0.8)),
+            pos2(r.left() + 28.0, r.center().y),
+            17.0,
+            theme::mix(fg, accent, a * 0.6),
         );
-        resp.on_hover_text(tip)
-            .on_hover_cursor(egui::CursorIcon::PointingHand)
+        p.text(
+            pos2(r.left() + 48.0, r.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::new(
+                13.5,
+                if active {
+                    theme::bold()
+                } else {
+                    egui::FontFamily::Proportional
+                },
+            ),
+            fg,
+        );
+        resp.on_hover_cursor(egui::CursorIcon::PointingHand)
             .clicked()
     }
 
@@ -1306,17 +1378,17 @@ impl App {
             let p = ui.painter();
             p.rect_filled(
                 r.translate(vec2(0.0, 4.0)),
-                CornerRadius::same(14),
+                CornerRadius::same(4),
                 Color32::from_black_alpha((90.0 * a) as u8),
             );
             p.rect_filled(
                 r,
-                CornerRadius::same(14),
+                CornerRadius::same(4),
                 theme::alpha(theme::BG2, (250.0 * a) as u8),
             );
             p.rect_stroke(
                 r,
-                CornerRadius::same(14),
+                CornerRadius::same(4),
                 Stroke::new(1.0, theme::alpha(col, (160.0 * a) as u8)),
                 StrokeKind::Inside,
             );
@@ -1352,14 +1424,14 @@ impl App {
         );
         ui.painter().rect_filled(
             r.translate(vec2(0.0, 6.0)),
-            CornerRadius::same(18),
+            CornerRadius::same(4),
             Color32::from_black_alpha(110),
         );
         ui.painter()
-            .rect_filled(r, CornerRadius::same(18), theme::alpha(theme::BG2, 250));
+            .rect_filled(r, CornerRadius::same(4), theme::alpha(theme::BG2, 250));
         ui.painter().rect_stroke(
             r,
-            CornerRadius::same(18),
+            CornerRadius::same(4),
             Stroke::new(1.0, theme::alpha(accent, 140)),
             StrokeKind::Inside,
         );
@@ -1413,29 +1485,15 @@ impl App {
             self.toasts_ui(ui, full);
             return;
         }
-        let side = Rect::from_min_size(body.min, vec2(76.0, body.height()));
+        let side = Rect::from_min_size(body.min, vec2(SIDEBAR_W, body.height()));
         self.sidebar(ui, side);
-        let has_right = matches!(self.page, Page::Home | Page::Discover) && body.width() > 1080.0;
-        let right_w = if has_right { 320.0 } else { 0.0 };
+        let has_right = matches!(self.page, Page::Home | Page::Discover) && body.width() > 1120.0;
+        let right_w = if has_right { 312.0 } else { 0.0 };
         let content = Rect::from_min_max(
-            pos2(side.right() + 12.0, body.top()),
-            pos2(
-                body.right() - right_w - if has_right { 12.0 } else { 0.0 },
-                body.bottom(),
-            ),
+            pos2(side.right(), body.top()),
+            pos2(body.right() - right_w, body.bottom()),
         );
-        ui.painter().rect_filled(
-            content,
-            CornerRadius::same(18),
-            theme::alpha(theme::BG1, 232),
-        );
-        ui.painter().rect_stroke(
-            content,
-            CornerRadius::same(18),
-            Stroke::new(1.0, theme::LINE),
-            StrokeKind::Inside,
-        );
-        let fade = (((self.time - self.page_t0) / 0.22) as f32).clamp(0.0, 1.0);
+        let fade = (((self.time - self.page_t0) / 0.2) as f32).clamp(0.0, 1.0);
         if fade < 1.0 {
             ctx.request_repaint();
         }
@@ -1443,16 +1501,16 @@ impl App {
         ui.scope_builder(
             UiBuilder::new().max_rect(
                 content
-                    .shrink2(vec2(26.0, 20.0))
-                    .translate(vec2(0.0, (1.0 - ease) * 14.0)),
+                    .shrink2(vec2(30.0, 22.0))
+                    .translate(vec2(0.0, (1.0 - ease) * 10.0)),
             ),
             |ui| {
-                ui.set_clip_rect(content.shrink(2.0));
+                ui.set_clip_rect(content);
                 ui.set_opacity(ease);
                 egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
-                        ui.set_width(content.width() - 52.0 - 8.0);
+                        ui.set_width(content.width() - 60.0 - 8.0);
                         match self.page.clone() {
                             Page::Home => crate::pages::home::ui(self, ui),
                             Page::Discover => crate::pages::discover::ui(self, ui),
@@ -1467,27 +1525,21 @@ impl App {
             },
         );
         if has_right {
-            let right = Rect::from_min_max(
-                pos2(content.right() + 12.0, body.top()),
-                body.right_bottom(),
-            );
-            ui.painter()
-                .rect_filled(right, CornerRadius::same(18), theme::alpha(theme::BG1, 232));
-            ui.painter().rect_stroke(
-                right,
-                CornerRadius::same(18),
+            let right = Rect::from_min_max(pos2(content.right(), body.top()), body.right_bottom());
+            ui.painter().rect_filled(right, 0.0, theme::BG1);
+            ui.painter().line_segment(
+                [right.left_top(), right.left_bottom()],
                 Stroke::new(1.0, theme::LINE),
-                StrokeKind::Inside,
             );
             ui.scope_builder(
-                UiBuilder::new().max_rect(right.shrink2(vec2(16.0, 16.0))),
+                UiBuilder::new().max_rect(right.shrink2(vec2(20.0, 20.0))),
                 |ui| {
-                    ui.set_clip_rect(right.shrink(2.0));
+                    ui.set_clip_rect(right);
                     egui::ScrollArea::vertical()
                         .id_salt("right")
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
-                            ui.set_width(right.width() - 32.0 - 6.0);
+                            ui.set_width(right.width() - 40.0 - 6.0);
                             match self.page {
                                 Page::Discover => crate::pages::discover::filters(self, ui),
                                 _ => crate::pages::home::news_panel(self, ui),
@@ -1496,6 +1548,9 @@ impl App {
                 },
             );
         }
+        // hairline window frame
+        ui.painter()
+            .rect_stroke(full, 0.0, Stroke::new(1.0, theme::LINE), StrokeKind::Inside);
         crate::pages::library::create_dialog(self, ui, full);
         self.account_popup(ui, side);
         self.launch_panel(ui, full);
@@ -1509,6 +1564,6 @@ impl eframe::App for App {
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
-        [0.02, 0.03, 0.09, 1.0]
+        [0.016, 0.027, 0.07, 1.0]
     }
 }

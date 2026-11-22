@@ -75,3 +75,26 @@ pub fn size_for(screen_w: f32, screen_h: f32) -> (usize, usize) {
         ((screen_h / 6.0).ceil() as usize).clamp(48, 300),
     )
 }
+
+/// A static, vertically fading dither band (the signature "horizon" under the title bar).
+/// One dither cell = 4 screen points; the texture is regenerated only when the window is resized.
+pub fn band(w: usize, h: usize, accent: Color32) -> ColorImage {
+    let ramp = [
+        crate::theme::BG0,
+        crate::theme::mix(crate::theme::BG0, accent, 0.10),
+        crate::theme::mix(crate::theme::BG0, accent, 0.20),
+        crate::theme::mix(crate::theme::BG0, accent, 0.34),
+    ];
+    let mut px = vec![crate::theme::BG0; w * h];
+    for y in 0..h {
+        let fy = (1.0 - y as f32 / h as f32).powf(1.7);
+        for x in 0..w {
+            let fx = 0.35 + 0.65 * (1.0 - x as f32 / w as f32).powf(0.9);
+            let v = (fy * fx).clamp(0.0, 1.0) * 3.0;
+            let lo = v.floor();
+            let idx = lo as usize + usize::from(v - lo > bayer8(x, y));
+            px[y * w + x] = ramp[idx.min(3)];
+        }
+    }
+    ColorImage::new([w, h], px)
+}

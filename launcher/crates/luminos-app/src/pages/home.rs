@@ -130,12 +130,12 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             let p = cols[0].painter();
             p.rect_filled(
                 r,
-                CornerRadius::same(14),
+                CornerRadius::same(4),
                 theme::mix(theme::BG2, theme::BG3, h),
             );
             p.rect_stroke(
                 r,
-                CornerRadius::same(14),
+                CornerRadius::same(4),
                 Stroke::new(1.0, theme::LINE),
                 StrokeKind::Inside,
             );
@@ -183,7 +183,7 @@ fn featured_card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
         .animate_bool_with_time(resp.id, resp.hovered(), 0.15);
     let rr = r.translate(vec2(0.0, -3.0 * hv));
     ui.painter()
-        .rect_filled(rr, CornerRadius::same(16), theme::BG2);
+        .rect_filled(rr, CornerRadius::same(4), theme::BG2);
     let banner = Rect::from_min_size(rr.min, vec2(w, 112.0));
     let url = p.featured_gallery.clone().or(p.icon_url.clone());
     let seed = p.title.bytes().fold(0u8, |a, b| a.wrapping_add(b));
@@ -202,7 +202,7 @@ fn featured_card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
     });
     ui.painter().rect_stroke(
         icon,
-        CornerRadius::same(12),
+        CornerRadius::same(3),
         Stroke::new(2.0, theme::BG2),
         StrokeKind::Outside,
     );
@@ -256,7 +256,7 @@ fn featured_card(app: &mut App, ui: &mut Ui, p: &Project, w: f32) {
     );
     ui.painter().rect_stroke(
         rr,
-        CornerRadius::same(16),
+        CornerRadius::same(4),
         Stroke::new(1.0, theme::mix(theme::LINE, app.accent(), hv)),
         StrokeKind::Inside,
     );
@@ -310,7 +310,7 @@ pub fn bar_chart(ui: &mut Ui, accent: Color32, data: &[(String, u64)], height: f
         } else {
             theme::mix(accent, Color32::WHITE, if hover { 0.25 } else { 0.0 })
         };
-        ui.painter().rect_filled(bar, CornerRadius::same(5), col);
+        ui.painter().rect_filled(bar, CornerRadius::same(2), col);
         ui.painter().text(
             pos2(x, r.bottom() - 6.0),
             Align2::CENTER_CENTER,
@@ -362,7 +362,7 @@ pub fn news_panel(app: &mut App, ui: &mut Ui) {
             .animate_bool_with_time(resp.id, resp.hovered(), 0.12);
         ui.painter().rect_filled(
             r,
-            CornerRadius::same(14),
+            CornerRadius::same(4),
             theme::alpha(theme::BG3, (h * 255.0) as u8),
         );
         let img = Rect::from_min_size(r.min + vec2(6.0, 6.0), vec2(62.0, 62.0));

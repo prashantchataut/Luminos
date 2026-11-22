@@ -1,9 +1,17 @@
-## Luminos — standalone launcher + built-in client
+## Luminos 0.3.0 — redesign + launch fixes
 
-**Download `Luminos-Setup.exe`** (Windows, per-user install, no admin rights). `Luminos-Portable.exe` is the same app without an installer; `SHA256SUMS.txt` lets you verify downloads.
+**Fixed**
+- **Minecraft not opening on Fabric / Luminos Client.** Fabric profiles shipped a second ASM version and Fabric Loader refuses to start with duplicates. Libraries are now de-duplicated (highest version wins). Verified: Minecraft 1.21.4 + Fabric 0.20 + the full 28-mod client reaches the renderer.
+- A manually chosen Java that is too old for the game version (e.g. Java 8 for 1.21) is now ignored instead of crashing instantly.
+- **Terminal windows flickering 8–10 times** on start: every `java -version` probe opened a console. All child processes are now silent.
+- Launcher opening multiple times: single-instance lock.
+- JVM defaults: safe G1 preset on every Java (no `AlwaysPreTouch`, no experimental ZGC flags).
 
-This release is the launcher itself — the Luminos Client mod is installed *by the launcher* into your instances, you never need to handle a `.jar`.
+**New**
+- Complete visual redesign: flat ink + hairline UI, labelled sidebar, mono micro-labels, segmented pixel progress, dithered horizon.
+- New onboarding: live dithered orb, boot log with your real machine facts, left-rail stepper.
+- New logo — the **lumen orb** — plus a distinct **Luminos Client** mark (orb inside HUD brackets), used in the mod icon (Mod Menu) and the in-game HUD editor header.
+- New website. New licence (proprietary, all rights reserved).
+- Static-CRT Windows build + provenance attestation; see `docs/WINDOWS_SECURITY.md`.
 
-**New in 0.2.0:** redesigned pixel-"L" logo and icon, Home hero banner with Minecraft art and a one-click *Continue*, real window/taskbar/exe icon, Windows installer, rebuilt website.
-
-Known limitations: Microsoft sign-in is not wired yet (offline accounts only); Forge/NeoForge can't launch yet; the HUD mod hasn't been verified in a live game session on every platform.
+**Known limits:** not code-signed yet (SmartScreen warning), offline accounts only, Forge/NeoForge can't launch yet.

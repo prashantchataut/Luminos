@@ -1,5 +1,5 @@
 //! Java discovery and automatic Temurin runtime download.
-use crate::{download::Progress, http, paths};
+use crate::{download::Progress, http, paths, sys};
 use anyhow::{anyhow, Result};
 use std::{
     fs,
@@ -23,7 +23,9 @@ fn exe() -> &'static str {
 
 /// Run `java -version` and parse the major version.
 pub fn probe(path: &Path) -> Option<u32> {
-    let out = Command::new(path).arg("-version").output().ok()?;
+    let out = sys::quiet(Command::new(path).arg("-version"))
+        .output()
+        .ok()?;
     let text =
         String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
     let q = text.split('"').nth(1)?;
@@ -61,6 +63,10 @@ pub fn detect() -> Vec<JavaInstall> {
         r"C:\Program Files\Eclipse Adoptium",
         r"C:\Program Files\Microsoft",
         r"C:\Program Files\Zulu",
+        r"C:\Program Files\BellSoft",
+        r"C:\Program Files\Amazon Corretto",
+        r"C:\Program Files\Eclipse Foundation",
+        r"C:\Program Files (x86)\Java",
     ] {
         push_children(&mut cands, base, "");
     }
@@ -68,6 +74,17 @@ pub fn detect() -> Vec<JavaInstall> {
         for e in rd.flatten() {
             if let Some(p) = find_java_bin(&e.path()) {
                 cands.push(p);
+            }
+        }
+    }
+    // Runtimes the official launcher already downloaded (saves a ~50 MB download).
+    if let Some(data) = dirs::data_dir() {
+        let rt = data.join(".minecraft").join("runtime");
+        if let Ok(rd) = fs::read_dir(&rt) {
+            for e in rd.flatten() {
+                if let Some(p) = find_java_bin(&e.path()) {
+                    cands.push(p);
+                }
             }
         }
     }
@@ -103,11 +120,25 @@ fn find_java_bin(dir: &Path) -> Option<PathBuf> {
     None
 }
 
+/// Can a Java of major version `have` run a game that needs `need`?
+pub fn compatible(have: u32, need: u32) -> bool {
+    if need <= 8 {
+        have == 8
+    } else {
+        have >= need
+    }
+}
+
 /// Pick the best Java for `major`, downloading a managed Temurin JRE if none fits.
 pub fn ensure(major: u32, preferred: Option<&str>, p: &Progress) -> Result<PathBuf> {
     if let Some(path) = preferred.filter(|s| !s.is_empty()) {
         let pb = PathBuf::from(path);
-        if probe(&pb).is_some() {
+        // A manually chosen Java is only honoured when it can actually run this game version
+        // (a Java 8 here used to make 1.21 die instantly with UnsupportedClassVersionError).
+        if probe(&pb)
+            .map(|have| compatible(have, major))
+            .unwrap_or(false)
+        {
             return Ok(pb);
         }
     }
@@ -116,13 +147,7 @@ pub fn ensure(major: u32, preferred: Option<&str>, p: &Progress) -> Result<PathB
         return Ok(j);
     }
     let installs = detect();
-    let fits = |j: &&JavaInstall| {
-        if major <= 8 {
-            j.major == 8
-        } else {
-            j.major >= major
-        }
-    };
+    let fits = |j: &&JavaInstall| compatible(j.major, major);
     if let Some(j) = installs.iter().filter(fits).min_by_key(|j| j.major) {
         return Ok(j.path.clone());
     }

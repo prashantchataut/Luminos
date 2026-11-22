@@ -326,10 +326,10 @@ fn preview(app: &mut App, ui: &mut Ui) {
         ui.set_width(ui.available_width());
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 276.0), Sense::hover());
         let p = ui.painter();
-        p.rect_filled(r, CornerRadius::same(14), theme::BG0);
+        p.rect_filled(r, CornerRadius::same(4), theme::BG0);
         p.rect_stroke(
             r,
-            CornerRadius::same(14),
+            CornerRadius::same(4),
             Stroke::new(1.0, theme::LINE),
             StrokeKind::Inside,
         );
@@ -338,7 +338,7 @@ fn preview(app: &mut App, ui: &mut Ui) {
             let w = 220.0 - i as f32 * 12.0;
             p.rect_filled(
                 Rect::from_center_size(pos2(r.center().x, r.bottom() - 18.0), vec2(w, 10.0)),
-                CornerRadius::same(5),
+                CornerRadius::same(2),
                 theme::alpha(accent, 7),
             );
         }
@@ -573,12 +573,12 @@ fn library(app: &mut App, ui: &mut Ui) {
                     .animate_bool_with_time(resp.id, resp.hovered(), 0.12);
                 ui.painter().rect_filled(
                     r,
-                    CornerRadius::same(14),
+                    CornerRadius::same(4),
                     theme::mix(theme::BG2, theme::BG3, h),
                 );
                 ui.painter().rect_stroke(
                     r,
-                    CornerRadius::same(14),
+                    CornerRadius::same(4),
                     Stroke::new(
                         1.0 + sel as u8 as f32,
                         if sel { accent } else { theme::LINE },
@@ -652,7 +652,7 @@ fn studio(app: &mut App, ui: &mut Ui) {
         let scale = 7.0;
         let (rect, resp) = ui.allocate_exact_size(vec2(64.0 * scale, 64.0 * scale), Sense::click_and_drag());
         let p = ui.painter();
-        p.rect_filled(rect, CornerRadius::same(6), theme::BG0);
+        p.rect_filled(rect, CornerRadius::same(2), theme::BG0);
         for y in 0..64 {
             for x in 0..64 {
                 if (x + y) % 2 == 0 {
@@ -668,7 +668,7 @@ fn studio(app: &mut App, ui: &mut Ui) {
             p.line_segment([rect.min + vec2(o, 0.0), rect.min + vec2(o, rect.height())], Stroke::new(1.0, Color32::from_white_alpha(14)));
             p.line_segment([rect.min + vec2(0.0, o), rect.min + vec2(rect.width(), o)], Stroke::new(1.0, Color32::from_white_alpha(14)));
         }
-        p.rect_stroke(rect, CornerRadius::same(6), Stroke::new(1.0, theme::LINE), StrokeKind::Outside);
+        p.rect_stroke(rect, CornerRadius::same(2), Stroke::new(1.0, theme::LINE), StrokeKind::Outside);
         let pointer = resp.hover_pos().or_else(|| resp.interact_pointer_pos());
         if let Some(pos) = pointer.filter(|p| rect.contains(*p)) {
             let px = (((pos.x - rect.left()) / scale) as usize).min(63);
@@ -723,8 +723,8 @@ fn studio(app: &mut App, ui: &mut Ui) {
                 ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
                 for c in swatches() {
                     let (r, resp) = ui.allocate_exact_size(vec2(22.0, 22.0), Sense::click());
-                    ui.painter().rect_filled(r, CornerRadius::same(6), c);
-                    ui.painter().rect_stroke(r, CornerRadius::same(6), Stroke::new(if app.skins.editor.color == c { 2.0 } else { 1.0 }, if app.skins.editor.color == c { Color32::WHITE } else { theme::LINE }), StrokeKind::Inside);
+                    ui.painter().rect_filled(r, CornerRadius::same(2), c);
+                    ui.painter().rect_stroke(r, CornerRadius::same(2), Stroke::new(if app.skins.editor.color == c { 2.0 } else { 1.0 }, if app.skins.editor.color == c { Color32::WHITE } else { theme::LINE }), StrokeKind::Inside);
                     if resp.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
                         app.skins.editor.color = c;
                     }

@@ -23,6 +23,25 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 4 — fixes, redesign, licence (branch `feat/session-4-redesign-and-fixes`, release v0.3.0)
+Owner feedback: Minecraft doesn't open · terminal flickers 8-10× and app opens several times · Defender flags it · UI/site/logo/setup look vibe-coded · client has no logo · no GNU licence.
+- ✅ **Root cause of "Minecraft doesn't open"** found by running the real game in the sandbox (JRE 21): Fabric profile + vanilla gave **two ASM versions** → Fabric Loader aborts ("duplicate ASM classes"). Fixed with `mojang::dedupe_libraries` (+unit test). Verified end-to-end: vanilla 1.21.4 and Fabric 1.21.4 + full 28-mod Luminos Client preset boot to graphics init (stop only because sandbox has no display). Test: `crates/luminos-core/tests/launch_smoke.rs`.
+- ✅ Incompatible manual Java (e.g. 8 for 1.21) no longer accepted (`java::compatible`). More Java search paths incl. the official launcher's runtimes.
+- ✅ **Console flicker**: `java -version` probes opened a console each. `sys::quiet` (CREATE_NO_WINDOW) on every child. Single-instance lock (`sys::SingleInstance`). Panic log in data dir.
+- ✅ JVM flags: G1 everywhere, no AlwaysPreTouch, ZGC removed from defaults.
+- 🟡 **Defender / SmartScreen**: mitigations done (manifest, static CRT, no console, provenance attestation) — **real fix is code signing**, see `docs/WINDOWS_SECURITY.md`. Owner action needed.
+- ✅ **Redesign**: new identity (flat ink, hairlines, mono labels, segmented pixel progress, dithered horizon), new shell (labelled sidebar, flush title bar), new onboarding (live orb, boot log of real facts, rail stepper).
+- ✅ **New logo**: the lumen orb (`brand.rs`, one source → in-app painter, exe icon, SVG, ICO, installer BMPs, favicon, `Logo.java`). **Client logo**: orb inside HUD brackets; in Mod Menu (icon) and HUD-editor header.
+- ✅ **Site rebuilt** again in the new identity (live orb canvas, spec-sheet sections, real renders, Modrinth art, honest Trust section).
+- ✅ **Licence**: GPL removed → proprietary all-rights-reserved (`LICENSE`, `client/LICENSE`, Cargo/fabric metadata, `THIRD_PARTY_NOTICES.md`).
+- ✅ Repo hygiene: untracked `client/build` + `client/.gradle` (they were committed; the loom-cache holds Mojang's merged jar).
+- ⬜ **History still contains those files** — run `git filter-repo --path client/.gradle --path client/build --invert-paths` and force-push (needs owner OK; destructive).
+- ⬜ Not verified: running the new Windows installer on real Windows; the Java client edit (`Logo.java`, HUD header) compiles only in CI (`client-v0.2.0` tag).
+- ⬜ Next top 3: (1) owner runs v0.3.0 on Windows and reports; (2) code signing; (3) Microsoft sign-in + launcher self-update.
+
+### Security note
+A GitHub PAT was pasted in chat again. Used only via one-off headers. **Revoke it now** (Settings → Developer settings) and use a fine-grained token.
+
 ## Session 3 — brand, installer, website, Home hero
 Branch `feat/session-3-brand-installer-site`.
 Owner feedback: "app and site look AI slop", release only showed a `.jar`, wants a real `Setup.exe`, a redesigned logo, real Minecraft imagery, README/continuity updated.
