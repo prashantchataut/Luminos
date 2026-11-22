@@ -1,7 +1,10 @@
-#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
-use luminos_app::App;
 use eframe::egui;
+use luminos_app::App;
 
 fn main() -> eframe::Result<()> {
     luminos_core::paths::root();
@@ -14,5 +17,9 @@ fn main() -> eframe::Result<()> {
             .with_transparent(false),
         ..Default::default()
     };
-    eframe::run_native("Luminos Launcher", options, Box::new(|cc| Ok(Box::new(App::new(&cc.egui_ctx, true)))))
+    eframe::run_native(
+        "Luminos Launcher",
+        options,
+        Box::new(|cc| Ok(Box::new(App::new(&cc.egui_ctx, true)))),
+    )
 }

@@ -25,12 +25,20 @@ pub fn record(instance: &str, start: i64, secs: u64) {
         return;
     }
     let mut log = load();
-    log.sessions.push(Session { instance: instance.to_string(), start, secs });
+    log.sessions.push(Session {
+        instance: instance.to_string(),
+        start,
+        secs,
+    });
     let _ = store::write_json(&paths::playtime_file(), &log);
 }
 
 fn day_of(ts: i64) -> NaiveDate {
-    Local.timestamp_opt(ts, 0).single().map(|d| d.date_naive()).unwrap_or_default()
+    Local
+        .timestamp_opt(ts, 0)
+        .single()
+        .map(|d| d.date_naive())
+        .unwrap_or_default()
 }
 
 /// Seconds played per day for the last `days` days (oldest first), with short weekday labels.
@@ -64,7 +72,11 @@ pub fn total(log: &Log) -> u64 {
 
 pub fn last_days_total(log: &Log, days: i64) -> u64 {
     let cutoff = store::now_unix() - days * 86_400;
-    log.sessions.iter().filter(|s| s.start >= cutoff).map(|s| s.secs).sum()
+    log.sessions
+        .iter()
+        .filter(|s| s.start >= cutoff)
+        .map(|s| s.secs)
+        .sum()
 }
 
 pub fn per_instance(log: &Log) -> Vec<(String, u64)> {
@@ -79,7 +91,8 @@ pub fn per_instance(log: &Log) -> Vec<(String, u64)> {
 
 /// Consecutive days (ending today or yesterday) with at least one session.
 pub fn streak(log: &Log) -> u32 {
-    let days: std::collections::HashSet<NaiveDate> = log.sessions.iter().map(|s| day_of(s.start)).collect();
+    let days: std::collections::HashSet<NaiveDate> =
+        log.sessions.iter().map(|s| day_of(s.start)).collect();
     let mut d = Local::now().date_naive();
     if !days.contains(&d) {
         d -= Duration::days(1);

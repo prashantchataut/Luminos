@@ -20,6 +20,9 @@ export const SCREENS = [
   { file: "12-playtime", title: "Playtime", desc: "Local-only session tracking: 14-day chart, streaks, per-instance totals." },
   { file: "13-settings", title: "Settings", desc: "Six blue accents, reduce-motion, memory, JVM flags and auto-update." },
   { file: "14-new-instance", title: "New instance", desc: "Vanilla, Fabric or Quilt — optionally with the full Luminos Client bundle." },
+  { file: "16-servers", title: "Server hub", desc: "Saved servers with live MOTD, player count, version and latency — pinged directly, no third-party API." },
+  { file: "17-instance-worlds", title: "World backups", desc: "One-click zip backups per world, newest-10 pruning, and non-destructive restore." },
+  { file: "18-crash-doctor", title: "Crash doctor", desc: "Reads your log or crash report and explains the cause: out of memory, wrong Java, missing dependency, bad mixin." },
   { file: "15-launching", title: "Launching", desc: "Downloads game files with parallel, verified transfers and clear progress." },
 ];
 
@@ -33,9 +36,12 @@ export const FEATURES: { title: string; body: string; status: Status; icon: stri
   { title: "Modpack import", body: "Install .mrpack modpacks from Modrinth as brand-new instances with overrides applied.", status: "preview", icon: "❒" },
   { title: "Auto Java", body: "Detects installed Java or downloads the exact Temurin runtime each Minecraft version needs.", status: "preview", icon: "☕" },
   { title: "Tiny & fast", body: "100% Rust, immediate-mode UI, no webview. ≈ 11 MB release binary, near-zero idle CPU.", status: "live", icon: "⚡" },
-  { title: "Microsoft sign-in", body: "Xbox device-code login, token refresh and skin upload.", status: "planned", icon: "⌘" },
+  { title: "Server hub", body: "Saved servers with live MOTD, players, version and latency, using a from-scratch Server List Ping. Verified live.", status: "live", icon: "▤" },
+  { title: "World backups", body: "Zip any world in one click, keep the newest 10, restore without ever overwriting your current world.", status: "preview", icon: "⛁" },
+  { title: "Crash doctor", body: "Plain-language diagnosis of crash reports with one-click fixes (more RAM, right Java, missing dependency).", status: "preview", icon: "✚" },
+  { title: "Microsoft sign-in", body: "Xbox device-code flow is written in the engine (bring your own Azure client id); UI hookup is next.", status: "preview", icon: "⌘" },
   { title: "Forge & NeoForge", body: "Installer processing so every loader launches.", status: "planned", icon: "⚒" },
-  { title: "Luminos Client mod", body: "Own HUD modules and a drag-and-drop customisable mod menu.", status: "planned", icon: "✦" },
+  { title: "Luminos Client mod", body: "First-party Fabric mod: Armor HUD, keystrokes, CPS, FPS, coordinates, potion HUD, toggle sprint, zoom — and a drag-and-drop HUD editor in Mod Menu.", status: "preview", icon: "✦" },
 ];
 
 export const CLIENT_MODS: { group: string; mods: string[] }[] = [
@@ -48,7 +54,8 @@ export const CLIENT_MODS: { group: string; mods: string[] }[] = [
 
 export const ROADMAP: { phase: string; title: string; items: string[]; state: "done" | "next" | "later" }[] = [
   { phase: "Session 1", title: "Foundation", state: "done", items: ["Rust engine + egui UI", "Dither theme & animated setup", "Instances, Discover, content manager", "Skins studio, playtime, news", "CI, Pages, screenshot renderer"] },
+  { phase: "Session 2", title: "Client mod & power features", state: "done", items: ["First-party Luminos Client Fabric mod (1.21.4)", "Server hub with live ping", "World backups & restore", "Crash doctor", "Microsoft device-code auth (engine)"] },
   { phase: "Next", title: "Real-world hardening", state: "next", items: ["Test launches on Win / macOS / Linux", "Microsoft login & skin upload", "Forge / NeoForge", "Installers & self-update"] },
-  { phase: "Then", title: "Luminos Client mod", state: "next", items: ["Armour / potion / keystroke HUD modules", "Drag-and-drop HUD editor", "Zoom, freelook, toggle sprint"] },
+  { phase: "Then", title: "Luminos Client polish", state: "next", items: ["Test in-game on real hardware", "Freelook, module themes, per-server profiles", "Port to newer Minecraft versions"] },
   { phase: "Later", title: "Power features", state: "later", items: ["CurseForge source", "World backups & server hub", "Crash doctor", "Instance import from Prism / MultiMC"] },
 ];

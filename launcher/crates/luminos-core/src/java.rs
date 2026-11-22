@@ -14,13 +14,18 @@ pub struct JavaInstall {
 }
 
 fn exe() -> &'static str {
-    if cfg!(windows) { "java.exe" } else { "java" }
+    if cfg!(windows) {
+        "java.exe"
+    } else {
+        "java"
+    }
 }
 
 /// Run `java -version` and parse the major version.
 pub fn probe(path: &Path) -> Option<u32> {
     let out = Command::new(path).arg("-version").output().ok()?;
-    let text = String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
+    let text =
+        String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
     let q = text.split('"').nth(1)?;
     let mut parts = q.split(['.', '_', '-', '+']);
     let first: u32 = parts.next()?.parse().ok()?;
@@ -46,8 +51,17 @@ pub fn detect() -> Vec<JavaInstall> {
     }
     cands.push(PathBuf::from(exe()));
     push_children(&mut cands, "/usr/lib/jvm", "");
-    push_children(&mut cands, "/Library/Java/JavaVirtualMachines", "Contents/Home");
-    for base in [r"C:\Program Files\Java", r"C:\Program Files\Eclipse Adoptium", r"C:\Program Files\Microsoft", r"C:\Program Files\Zulu"] {
+    push_children(
+        &mut cands,
+        "/Library/Java/JavaVirtualMachines",
+        "Contents/Home",
+    );
+    for base in [
+        r"C:\Program Files\Java",
+        r"C:\Program Files\Eclipse Adoptium",
+        r"C:\Program Files\Microsoft",
+        r"C:\Program Files\Zulu",
+    ] {
         push_children(&mut cands, base, "");
     }
     if let Ok(rd) = fs::read_dir(paths::runtimes_dir()) {
@@ -102,13 +116,29 @@ pub fn ensure(major: u32, preferred: Option<&str>, p: &Progress) -> Result<PathB
         return Ok(j);
     }
     let installs = detect();
-    let fits = |j: &&JavaInstall| if major <= 8 { j.major == 8 } else { j.major >= major };
+    let fits = |j: &&JavaInstall| {
+        if major <= 8 {
+            j.major == 8
+        } else {
+            j.major >= major
+        }
+    };
     if let Some(j) = installs.iter().filter(fits).min_by_key(|j| j.major) {
         return Ok(j.path.clone());
     }
     p.set_stage(format!("Downloading Java {major} runtime…"));
-    let os = if cfg!(windows) { "windows" } else if cfg!(target_os = "macos") { "mac" } else { "linux" };
-    let arch = if cfg!(target_arch = "aarch64") { "aarch64" } else { "x64" };
+    let os = if cfg!(windows) {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "mac"
+    } else {
+        "linux"
+    };
+    let arch = if cfg!(target_arch = "aarch64") {
+        "aarch64"
+    } else {
+        "x64"
+    };
     let url = format!("https://api.adoptium.net/v3/binary/latest/{major}/ga/{os}/{arch}/jre/hotspot/normal/eclipse");
     fs::create_dir_all(&managed)?;
     let archive = paths::cache_dir().join(format!("java-{major}.archive"));
@@ -124,7 +154,8 @@ pub fn ensure(major: u32, preferred: Option<&str>, p: &Progress) -> Result<PathB
         tar::Archive::new(gz).unpack(&managed)?;
     }
     let _ = fs::remove_file(&archive);
-    let java = find_java_bin(&managed).ok_or_else(|| anyhow!("Downloaded runtime has no java executable"))?;
+    let java = find_java_bin(&managed)
+        .ok_or_else(|| anyhow!("Downloaded runtime has no java executable"))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

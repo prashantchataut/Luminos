@@ -37,7 +37,7 @@ export default function Home() {
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <a href="#top" className="flex items-center gap-2.5 text-lg font-bold">
             <Logo /> Luminos
-            <span className="rounded-full border border-[#4f8cff]/50 bg-[#4f8cff]/15 px-2 py-0.5 font-mono text-[10px] text-[#9bbcff]">v0.1 beta</span>
+            <span className="rounded-full border border-[#4f8cff]/50 bg-[#4f8cff]/15 px-2 py-0.5 font-mono text-[10px] text-[#9bbcff]">v0.2 beta</span>
           </a>
           <div className="hidden items-center gap-7 text-sm font-semibold text-[#8596c5] md:flex">
             <a className="hover:text-white" href="#features">Features</a>
@@ -54,7 +54,7 @@ export default function Home() {
         <section className="relative mx-auto max-w-6xl px-5 pb-10 pt-16 text-center sm:pt-24">
           <Reveal>
             <p className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-[#4f8cff]/40 bg-[#0f1734]/70 px-4 py-1.5 font-mono text-xs text-[#9bbcff]">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" /> Foundation build · 100% Rust · open source
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" /> Session 2 build · 100% Rust · open source
             </p>
           </Reveal>
           <Reveal delay={80}>
@@ -96,8 +96,8 @@ export default function Home() {
           {[
             ["≈ 11 MB", "release binary"],
             ["0", "webviews or Electron"],
-            ["30", "vetted client mods"],
-            ["15", "screens, rendered from real code"],
+            ["30+", "vetted client mods"],
+            ["18", "screens, rendered from real code"],
           ].map(([a, b], i) => (
             <Reveal key={b} delay={i * 70}>
               <div className="rounded-2xl border border-[#213060] bg-[#090e22]/80 p-5 text-center">
@@ -153,9 +153,9 @@ export default function Home() {
             ))}
             <Reveal delay={350}>
               <div className="h-full rounded-2xl border border-dashed border-[#4f8cff]/50 bg-[#4f8cff]/5 p-6">
-                <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-[#9bbcff]">Coming next</h3>
+                <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-[#9bbcff]">First-party mod</h3>
                 <p className="mt-4 text-[15px] leading-relaxed text-[#a9b8e0]">
-                  A first-party Luminos Client mod: keystrokes, CPS, potion and durability HUDs, toggle sprint, freelook, and a drag-and-drop HUD editor opened from Mod Menu.
+                  Luminos Client mod: Armor HUD, keystrokes, CPS, FPS, coordinates, potion HUD, toggle sprint, zoom — all movable in a drag-and-drop HUD editor (Right Shift, or Mod Menu → Configure).
                 </p>
               </div>
             </Reveal>

@@ -2,7 +2,10 @@
 use crate::{paths, store};
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -16,7 +19,13 @@ pub enum Loader {
 }
 
 impl Loader {
-    pub const ALL: [Loader; 5] = [Loader::Vanilla, Loader::Fabric, Loader::Quilt, Loader::Forge, Loader::NeoForge];
+    pub const ALL: [Loader; 5] = [
+        Loader::Vanilla,
+        Loader::Fabric,
+        Loader::Quilt,
+        Loader::Forge,
+        Loader::NeoForge,
+    ];
     pub fn label(self) -> &'static str {
         match self {
             Loader::Vanilla => "Vanilla",
@@ -104,7 +113,12 @@ pub fn list() -> Vec<Instance> {
     out
 }
 
-pub fn create(name: &str, mc_version: &str, loader: Loader, loader_version: Option<String>) -> Result<Instance> {
+pub fn create(
+    name: &str,
+    mc_version: &str,
+    loader: Loader,
+    loader_version: Option<String>,
+) -> Result<Instance> {
     let name = name.trim();
     if name.is_empty() {
         bail!("Give your instance a name");
@@ -126,7 +140,14 @@ pub fn create(name: &str, mc_version: &str, loader: Loader, loader_version: Opti
         color: (store::now_unix() % 8) as u8,
         ..Default::default()
     };
-    for sub in ["mods", "resourcepacks", "shaderpacks", "saves", "screenshots", "config"] {
+    for sub in [
+        "mods",
+        "resourcepacks",
+        "shaderpacks",
+        "saves",
+        "screenshots",
+        "config",
+    ] {
         fs::create_dir_all(inst.game_dir().join(sub))?;
     }
     inst.save()?;
@@ -191,7 +212,10 @@ pub fn worlds(inst: &Instance) -> Vec<World> {
                     .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                     .map(|d| d.as_secs() as i64)
                     .unwrap_or(0);
-                v.push(World { name: e.file_name().to_string_lossy().to_string(), modified });
+                v.push(World {
+                    name: e.file_name().to_string_lossy().to_string(),
+                    modified,
+                });
             }
         }
     }

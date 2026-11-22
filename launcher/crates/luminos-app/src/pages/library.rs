@@ -5,11 +5,14 @@ use crate::{
     theme,
     widgets::{self, Btn},
 };
+use eframe::egui::{
+    self, pos2, vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Rect, Sense, Stroke,
+    StrokeKind, Ui,
+};
 use luminos_core::{
     instances::{self, Loader},
     preset, store,
 };
-use eframe::egui::{self, pos2, vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Rect, Sense, Stroke, StrokeKind, Ui};
 
 pub fn ago(ts: Option<i64>) -> String {
     let Some(ts) = ts else { return "Never".into() };
@@ -27,10 +30,28 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             widgets::heading(ui, "Library");
-            widgets::muted(ui, &format!("{} instance{} · every instance has its own mods, packs and settings", app.instances.len(), if app.instances.len() == 1 { "" } else { "s" }));
+            widgets::muted(
+                ui,
+                &format!(
+                    "{} instance{} · every instance has its own mods, packs and settings",
+                    app.instances.len(),
+                    if app.instances.len() == 1 { "" } else { "s" }
+                ),
+            );
         });
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if widgets::button_sized(ui, accent, "New instance", Some(Icon::Plus), Btn::Primary, true, 0.0, 44.0).clicked() {
+            if widgets::button_sized(
+                ui,
+                accent,
+                "New instance",
+                Some(Icon::Plus),
+                Btn::Primary,
+                true,
+                0.0,
+                44.0,
+            )
+            .clicked()
+            {
                 app.open_create();
             }
         });
@@ -41,12 +62,30 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             ui.set_width(ui.available_width());
             ui.add_space(30.0);
             ui.vertical_centered(|ui| {
-                widgets::logo_mark(ui.painter(), ui.cursor().min + vec2(ui.available_width() / 2.0, 40.0), 64.0, accent, 0.5);
+                widgets::logo_mark(
+                    ui.painter(),
+                    ui.cursor().min + vec2(ui.available_width() / 2.0, 40.0),
+                    64.0,
+                    accent,
+                    0.5,
+                );
                 ui.add_space(90.0);
                 widgets::subheading(ui, "No instances yet");
-                widgets::muted(ui, "Create one to start playing — or install a modpack from Discover.");
+                widgets::muted(
+                    ui,
+                    "Create one to start playing — or install a modpack from Discover.",
+                );
                 ui.add_space(10.0);
-                if widgets::button(ui, accent, "Create instance", Some(Icon::Plus), Btn::Primary, true).clicked() {
+                if widgets::button(
+                    ui,
+                    accent,
+                    "Create instance",
+                    Some(Icon::Plus),
+                    Btn::Primary,
+                    true,
+                )
+                .clicked()
+                {
                     app.open_create();
                 }
             });
@@ -63,29 +102,99 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             ui.spacing_mut().item_spacing.x = gap;
             for inst in row {
                 let (r, resp) = ui.allocate_exact_size(vec2(w, 132.0), Sense::click());
-                let h = ui.ctx().animate_bool_with_time(resp.id, resp.hovered(), 0.15);
+                let h = ui
+                    .ctx()
+                    .animate_bool_with_time(resp.id, resp.hovered(), 0.15);
                 let rr = r.translate(vec2(0.0, -2.0 * h));
                 let p = ui.painter();
-                p.rect_filled(rr, CornerRadius::same(16), theme::mix(theme::BG2, theme::BG3, h));
-                p.rect_stroke(rr, CornerRadius::same(16), Stroke::new(1.0, theme::mix(theme::LINE, accent, h)), StrokeKind::Inside);
-                widgets::instance_icon(ui, Rect::from_min_size(rr.min + vec2(14.0, 14.0), vec2(60.0, 60.0)), &inst.name, inst.color);
+                p.rect_filled(
+                    rr,
+                    CornerRadius::same(16),
+                    theme::mix(theme::BG2, theme::BG3, h),
+                );
+                p.rect_stroke(
+                    rr,
+                    CornerRadius::same(16),
+                    Stroke::new(1.0, theme::mix(theme::LINE, accent, h)),
+                    StrokeKind::Inside,
+                );
+                widgets::instance_icon(
+                    ui,
+                    Rect::from_min_size(rr.min + vec2(14.0, 14.0), vec2(60.0, 60.0)),
+                    &inst.name,
+                    inst.color,
+                );
                 let p = ui.painter();
-                let g = p.layout(inst.name.clone(), FontId::new(16.0, theme::bold()), theme::TEXT, w - 100.0);
+                let g = p.layout(
+                    inst.name.clone(),
+                    FontId::new(16.0, theme::bold()),
+                    theme::TEXT,
+                    w - 100.0,
+                );
                 p.galley(rr.min + vec2(86.0, 16.0), g, theme::TEXT);
-                p.text(rr.min + vec2(86.0, 44.0), Align2::LEFT_TOP, inst.subtitle(), FontId::new(13.0, egui::FontFamily::Proportional), theme::MUTED);
-                p.text(rr.min + vec2(86.0, 62.0), Align2::LEFT_TOP, format!("{} played · {}", store::fmt_duration(inst.playtime_secs), ago(inst.last_played)), FontId::new(12.0, egui::FontFamily::Proportional), theme::MUTED);
+                p.text(
+                    rr.min + vec2(86.0, 44.0),
+                    Align2::LEFT_TOP,
+                    inst.subtitle(),
+                    FontId::new(13.0, egui::FontFamily::Proportional),
+                    theme::MUTED,
+                );
+                p.text(
+                    rr.min + vec2(86.0, 62.0),
+                    Align2::LEFT_TOP,
+                    format!(
+                        "{} played · {}",
+                        store::fmt_duration(inst.playtime_secs),
+                        ago(inst.last_played)
+                    ),
+                    FontId::new(12.0, egui::FontFamily::Proportional),
+                    theme::MUTED,
+                );
                 if inst.preset.is_some() {
-                    p.text(rr.right_top() + vec2(-14.0, 18.0), Align2::RIGHT_CENTER, "CLIENT", FontId::new(10.5, theme::bold()), theme::mix(accent, Color32::WHITE, 0.4));
+                    p.text(
+                        rr.right_top() + vec2(-14.0, 18.0),
+                        Align2::RIGHT_CENTER,
+                        "CLIENT",
+                        FontId::new(10.5, theme::bold()),
+                        theme::mix(accent, Color32::WHITE, 0.4),
+                    );
                 }
                 // play button
-                let btn = Rect::from_min_size(rr.left_bottom() + vec2(14.0, -42.0), vec2(w - 28.0, 32.0));
-                let running = app.game.as_ref().map(|g| g.instance_id == inst.id).unwrap_or(false);
+                let btn =
+                    Rect::from_min_size(rr.left_bottom() + vec2(14.0, -42.0), vec2(w - 28.0, 32.0));
+                let running = app
+                    .game
+                    .as_ref()
+                    .map(|g| g.instance_id == inst.id)
+                    .unwrap_or(false);
                 ui.scope_builder(egui::UiBuilder::new().max_rect(btn), |ui| {
-                    if widgets::button_sized(ui, accent, if running { "Running" } else { "Play" }, Some(Icon::Play), if running { Btn::Secondary } else { Btn::Primary }, !running, btn.width(), 32.0).clicked() {
+                    if widgets::button_sized(
+                        ui,
+                        accent,
+                        if running { "Running" } else { "Play" },
+                        Some(Icon::Play),
+                        if running {
+                            Btn::Secondary
+                        } else {
+                            Btn::Primary
+                        },
+                        !running,
+                        btn.width(),
+                        32.0,
+                    )
+                    .clicked()
+                    {
                         app.play(&inst.id);
                     }
                 });
-                if resp.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() && ui.input(|i| i.pointer.interact_pos()).map(|p| !btn.contains(p)).unwrap_or(true) {
+                if resp
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .clicked()
+                    && ui
+                        .input(|i| i.pointer.interact_pos())
+                        .map(|p| !btn.contains(p))
+                        .unwrap_or(true)
+                {
                     app.open_instance(&inst.id);
                 }
             }
@@ -100,10 +209,14 @@ pub fn create_dialog(app: &mut App, ui: &mut Ui, full: Rect) {
     }
     let accent = app.accent();
     let ctx = ui.ctx().clone();
-    egui::Area::new(egui::Id::new("dim")).order(egui::Order::Middle).fixed_pos(full.min).show(&ctx, |ui| {
-        ui.allocate_rect(full, Sense::click_and_drag());
-        ui.painter().rect_filled(full, 0.0, Color32::from_black_alpha(170));
-    });
+    egui::Area::new(egui::Id::new("dim"))
+        .order(egui::Order::Middle)
+        .fixed_pos(full.min)
+        .show(&ctx, |ui| {
+            ui.allocate_rect(full, Sense::click_and_drag());
+            ui.painter()
+                .rect_filled(full, 0.0, Color32::from_black_alpha(170));
+        });
     let mut close = false;
     let mut do_create = false;
     egui::Area::new(egui::Id::new("create_dialog")).order(egui::Order::Foreground).anchor(Align2::CENTER_CENTER, vec2(0.0, 0.0)).show(&ctx, |ui| {
@@ -170,23 +283,40 @@ pub fn create_dialog(app: &mut App, ui: &mut Ui, full: Rect) {
         let c = app.create.as_mut().unwrap();
         c.busy = true;
         c.error = None;
-        let (name, ver, loader, client) = (c.name.clone(), c.mc_version.clone(), c.loader, c.preset_client && c.loader == Loader::Fabric);
+        let (name, ver, loader, client) = (
+            c.name.clone(),
+            c.mc_version.clone(),
+            c.loader,
+            c.preset_client && c.loader == Loader::Fabric,
+        );
         let bg = app.bg();
         std::thread::spawn(move || {
             let run = || -> anyhow::Result<instances::Instance> {
                 let mut inst = instances::create(&name, &ver, loader, None)?;
                 if client {
-                    let mods: Vec<&preset::PresetMod> = preset::LUMINOS_CLIENT.iter().filter(|m| m.default_on).collect();
+                    let mods: Vec<&preset::PresetMod> = preset::LUMINOS_CLIENT
+                        .iter()
+                        .filter(|m| m.default_on)
+                        .collect();
                     let rep = preset::install(&inst, &mods, |_, _, _| {});
                     inst.preset = Some("luminos-client".into());
                     inst.save()?;
                     if !rep.skipped.is_empty() {
-                        bg.send(Msg::Toast(format!("{} bundle mods skipped (not available for {ver})", rep.skipped.len()), crate::app::ToastKind::Info));
+                        bg.send(Msg::Toast(
+                            format!(
+                                "{} bundle mods skipped (not available for {ver})",
+                                rep.skipped.len()
+                            ),
+                            crate::app::ToastKind::Info,
+                        ));
                     }
                 }
                 Ok(inst)
             };
-            bg.send(Msg::Created { result: run().map_err(|e| format!("{e:#}")), from_wizard: false });
+            bg.send(Msg::Created {
+                result: run().map_err(|e| format!("{e:#}")),
+                from_wizard: false,
+            });
         });
     }
     if close {

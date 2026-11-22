@@ -1,6 +1,9 @@
 //! Modrinth modpack (`.mrpack`) import: creates a new instance from a pack.
 use crate::{
-    content, download::{self, Progress, Task}, instances::{self, Instance, Loader}, modrinth, paths,
+    content,
+    download::{self, Progress, Task},
+    instances::{self, Instance, Loader},
+    modrinth, paths,
 };
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
@@ -30,7 +33,8 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
     p.set_stage("Looking up modpack…");
     let proj = modrinth::project(project_id)?;
     let versions = modrinth::versions(&proj.id, None, None)?;
-    let v = modrinth::best_version(versions).ok_or_else(|| anyhow!("{} has no versions", proj.title))?;
+    let v = modrinth::best_version(versions)
+        .ok_or_else(|| anyhow!("{} has no versions", proj.title))?;
     let file = v
         .files
         .iter()
@@ -47,7 +51,11 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
         f.read_to_string(&mut s)?;
         serde_json::from_str(&s)?
     };
-    let mc = index.dependencies.get("minecraft").cloned().ok_or_else(|| anyhow!("pack has no Minecraft version"))?;
+    let mc = index
+        .dependencies
+        .get("minecraft")
+        .cloned()
+        .ok_or_else(|| anyhow!("pack has no Minecraft version"))?;
     let (loader, lv) = if let Some(v) = index.dependencies.get("fabric-loader") {
         (Loader::Fabric, Some(v.clone()))
     } else if let Some(v) = index.dependencies.get("quilt-loader") {
@@ -59,7 +67,11 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
     } else {
         (Loader::Vanilla, None)
     };
-    let name = if index.name.is_empty() { proj.title.clone() } else { index.name.clone() };
+    let name = if index.name.is_empty() {
+        proj.title.clone()
+    } else {
+        index.name.clone()
+    };
     let mut inst = instances::create(&name, &mc, loader, lv)?;
     inst.notes = proj.description.clone();
     inst.save()?;
@@ -68,7 +80,12 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
     let tasks: Vec<Task> = index
         .files
         .iter()
-        .filter(|f| f.env.as_ref().map(|e| e.get("client").map(|c| c != "unsupported").unwrap_or(true)).unwrap_or(true))
+        .filter(|f| {
+            f.env
+                .as_ref()
+                .map(|e| e.get("client").map(|c| c != "unsupported").unwrap_or(true))
+                .unwrap_or(true)
+        })
         .filter(|f| !f.path.contains("..") && !f.path.starts_with('/'))
         .filter_map(|f| {
             Some(Task {
@@ -86,8 +103,12 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
     p.set_stage("Applying overrides…");
     for i in 0..zip.len() {
         let mut e = zip.by_index(i)?;
-        let Some(name) = e.enclosed_name() else { continue };
-        let rel = name.strip_prefix("overrides").or_else(|_| name.strip_prefix("client-overrides"));
+        let Some(name) = e.enclosed_name() else {
+            continue;
+        };
+        let rel = name
+            .strip_prefix("overrides")
+            .or_else(|_| name.strip_prefix("client-overrides"));
         if let Ok(rel) = rel {
             let out = game.join(rel);
             if e.is_dir() {

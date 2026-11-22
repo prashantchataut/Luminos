@@ -69,7 +69,11 @@ impl AccountStore {
         self.accounts.get(self.active)
     }
     pub fn add(&mut self, acc: Account) {
-        if let Some(i) = self.accounts.iter().position(|a| a.username == acc.username) {
+        if let Some(i) = self
+            .accounts
+            .iter()
+            .position(|a| a.username == acc.username)
+        {
             self.active = i;
         } else {
             self.accounts.push(acc);
@@ -93,7 +97,10 @@ mod tests {
     #[test]
     fn offline_uuid_matches_vanilla() {
         // Known value produced by Java's UUID.nameUUIDFromBytes("OfflinePlayer:Notch")
-        assert_eq!(offline_uuid("Notch"), "b50ad385-829d-3141-a216-7e7d7539ba7f");
+        assert_eq!(
+            offline_uuid("Notch"),
+            "b50ad385-829d-3141-a216-7e7d7539ba7f"
+        );
     }
 
     #[test]

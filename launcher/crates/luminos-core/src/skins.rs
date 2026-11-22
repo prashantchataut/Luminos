@@ -44,7 +44,13 @@ pub fn save(name: &str, png: &[u8], slim: bool, source: &str) -> Result<SkinEntr
     let id = format!("{}-{}", paths::slugify(name), store::now_unix());
     fs::create_dir_all(paths::skins_dir())?;
     fs::write(png_path(&id), png)?;
-    let e = SkinEntry { id, name: name.to_string(), slim, source: source.to_string(), added: store::now_unix() };
+    let e = SkinEntry {
+        id,
+        name: name.to_string(),
+        slim,
+        source: source.to_string(),
+        added: store::now_unix(),
+    };
     lib.skins.insert(0, e.clone());
     store::write_json(&lib_file(), &lib)?;
     Ok(e)

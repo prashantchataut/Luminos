@@ -41,15 +41,22 @@ pub fn render(w: usize, h: usize, t: f32, accent: Color32, intensity: f32) -> Co
             let u = x as f32 / w as f32;
             let ux = u * aspect;
             // top-left glow, drifting slowly
-            let c1 = (0.10 * aspect + 0.06 * (t * 0.23).sin(), 0.05 + 0.04 * (t * 0.31).cos());
+            let c1 = (
+                0.10 * aspect + 0.06 * (t * 0.23).sin(),
+                0.05 + 0.04 * (t * 0.31).cos(),
+            );
             let d1 = ((ux - c1.0).powi(2) + (v - c1.1).powi(2)).sqrt();
             let g1 = (1.0 - d1 / 0.85).max(0.0).powf(1.6) * 0.95;
             // bottom-right glow
-            let c2 = (0.95 * aspect + 0.05 * (t * 0.27).cos(), 1.0 + 0.05 * (t * 0.19).sin());
+            let c2 = (
+                0.95 * aspect + 0.05 * (t * 0.27).cos(),
+                1.0 + 0.05 * (t * 0.19).sin(),
+            );
             let d2 = ((ux - c2.0).powi(2) + (v - c2.1).powi(2)).sqrt();
             let g2 = (1.0 - d2 / 0.75).max(0.0).powf(1.5) * 0.8;
             // faint diagonal waves
-            let wave = 0.045 * ((u * 9.0 + v * 6.0) + t * 0.6).sin() + 0.03 * ((u * 4.0 - v * 7.0) - t * 0.45).sin();
+            let wave = 0.045 * ((u * 9.0 + v * 6.0) + t * 0.6).sin()
+                + 0.03 * ((u * 4.0 - v * 7.0) - t * 0.45).sin();
             let val = ((g1 + g2) * intensity + wave * intensity + 0.06).clamp(0.0, 1.0);
             let scaled = val * (LEVELS - 1) as f32;
             let lo = scaled.floor();
@@ -63,5 +70,8 @@ pub fn render(w: usize, h: usize, t: f32, accent: Color32, intensity: f32) -> Co
 
 /// Pick a backdrop resolution for a window: ~1 dither pixel per 6 screen points.
 pub fn size_for(screen_w: f32, screen_h: f32) -> (usize, usize) {
-    (((screen_w / 6.0).ceil() as usize).clamp(64, 480), ((screen_h / 6.0).ceil() as usize).clamp(48, 300))
+    (
+        ((screen_w / 6.0).ceil() as usize).clamp(64, 480),
+        ((screen_h / 6.0).ceil() as usize).clamp(48, 300),
+    )
 }

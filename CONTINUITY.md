@@ -20,7 +20,25 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
-## Session 1 — foundation (this session)
+## Session 2 — client mod, power features, repo hygiene
+Branch `feat/session-2-client-and-core` → PR. Owner's source zip imported, **renamed Cobalt → Luminos**, zip deleted.
+- ✅ Workspace builds on rustc 1.100 (fonts were missing from the zip → re-fetched Inter/JetBrains Mono, both OFL). 21 core unit tests pass. Release binary 11.6 MB.
+- ✅ **Server hub** (`servers.rs` + Servers page): from-scratch Server List Ping; **verified live** against mc.hypixel.net.
+- ✅ **World backups** (`backup.rs` + Worlds tab): zip/list/prune/restore, traversal-safe, unit-tested round trip.
+- ✅ **Crash doctor** (`crash.rs` + Logs tab): OOM, wrong Java, missing dependency, mixin owner, GPU driver; 5 unit tests. One-click "Give 6 GB".
+- ✅ **Smart JVM flags** (`jvmflags.rs`): ZGC on Java 21+, Aikar G1 on ≤17; empty setting = auto; legacy default auto-upgrades.
+- 🟡 **Microsoft sign-in** (`msauth.rs`): device-code → XBL → XSTS → Minecraft services written; pure parts unit-tested. **Not wired into UI/launch, never run with a real account.** Needs an Azure client id (`LUMINOS_MS_CLIENT_ID`).
+- ✅(compiled) 🟡(not run in-game) **Luminos Client mod** (`client/`, Fabric, MC 1.21.4, Mojang mappings, Loom): Armor HUD, Keystrokes, CPS (GLFW callback chaining, no mixins), FPS, coordinates, potion HUD, toggle sprint, zoom, drag-and-drop **HUD editor** (Right Shift or Mod Menu → Configure). `./gradlew build` succeeds; **never launched in a real game** — first thing to verify.
+- ✅ (verified live against release `client-v0.1.0`) Launcher installs the first-party jar from GitHub Releases (`client-v*` tags) and skips third-party Armor HUD / Status Effect Bars when it works (`preset::install_first_party`).
+- ✅ CI: `client.yml` builds the mod and publishes the jar on `client-v*` tags.
+- ✅ Site updated (new screens, features, roadmap); GitHub Pages enabled (workflow build). Repo description/topics/homepage set.
+- ✅ `docs/SKILLS.md`: skills directory + how agents must use them. `AGENTS.md` extended.
+- ⬜ In-game screenshot/GIF of the HUD editor (no GPU in sandbox) — capture on desktop and add to `docs/`.
+
+### Security note
+The owner pasted a GitHub PAT into chat. It was used only via a one-off HTTP header (never stored in git config or files). **Revoke it** and use a fine-grained token / `gh auth login` next time.
+
+## Session 1 — foundation
 ### Engine (`luminos-core`)
 - ✅ Settings, accounts (offline UUID matches vanilla `OfflinePlayer:` algorithm — unit-tested)
 - ✅ Instances: create / list / duplicate / delete / worlds
@@ -58,7 +76,9 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 - Release binary ≈ 11 MB (≈ 0.8 MB of that is embedded fonts). Idle CPU is near zero when "Reduce motion" is on.
 - Window is custom-decorated (`with_decorations(false)`); verify drag/resize/maximise on Windows, macOS and Wayland.
 
-## Next steps (priority order)
+## Next steps (priority order, as of session 2)
+> Done in session 2: items about the client mod skeleton, world backups, server hub, crash analyser (see above). Remaining list below is still valid.
+
 1. **Run on real desktops** (Win/macOS/Linux): launch vanilla + Fabric, fix whatever breaks. Add `cargo test` for `build_command` against a recorded 1.21 version JSON fixture.
 2. **Microsoft / Xbox auth** (device-code flow → XBL → XSTS → Minecraft services), token refresh in OS keychain; skin upload through Minecraft services.
 3. **Forge & NeoForge** installers (run installer headless / process `install_profile.json`).
@@ -81,6 +101,7 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ```bash
 cd launcher
 cargo run -p luminos-app --release                         # the launcher
+# client mod: cd client && ./gradlew build   (needs JDK 21)
 cargo test -p luminos-core                                 # unit tests
 cargo test -p luminos-core --test live -- --ignored --test-threads=1   # live API smoke tests
 cargo run -p luminos-app --release --bin luminos-shots -- ../docs/screenshots   # re-render screenshots

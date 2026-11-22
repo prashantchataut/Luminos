@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use std::{sync::OnceLock, time::Duration};
 
-pub const USER_AGENT: &str = "LuminosLauncher/0.1 (+https://github.com/luminos-launcher/luminos)";
+pub const USER_AGENT: &str = "LuminosLauncher/0.1 (+https://github.com/prashantchataut/Luminos)";
 
 pub fn agent() -> &'static ureq::Agent {
     static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
@@ -18,7 +18,10 @@ pub fn agent() -> &'static ureq::Agent {
 }
 
 pub fn get_json<T: DeserializeOwned>(url: &str) -> Result<T> {
-    let mut resp = agent().get(url).call().with_context(|| format!("GET {url}"))?;
+    let mut resp = agent()
+        .get(url)
+        .call()
+        .with_context(|| format!("GET {url}"))?;
     resp.body_mut()
         .read_json::<T>()
         .with_context(|| format!("decoding JSON from {url}"))
@@ -46,7 +49,10 @@ pub fn post_json<T: DeserializeOwned>(url: &str, body: &serde_json::Value) -> Re
 }
 
 pub fn get_bytes(url: &str) -> Result<Vec<u8>> {
-    let mut resp = agent().get(url).call().with_context(|| format!("GET {url}"))?;
+    let mut resp = agent()
+        .get(url)
+        .call()
+        .with_context(|| format!("GET {url}"))?;
     Ok(resp
         .body_mut()
         .with_config()
@@ -60,7 +66,10 @@ pub fn download_to(url: &str, dest: &std::path::Path) -> Result<u64> {
         std::fs::create_dir_all(parent)?;
     }
     let tmp = dest.with_extension("part");
-    let mut resp = agent().get(url).call().with_context(|| format!("GET {url}"))?;
+    let mut resp = agent()
+        .get(url)
+        .call()
+        .with_context(|| format!("GET {url}"))?;
     let mut reader = resp.body_mut().with_config().limit(u64::MAX).reader();
     let mut file = std::fs::File::create(&tmp)?;
     let n = std::io::copy(&mut reader, &mut file)?;

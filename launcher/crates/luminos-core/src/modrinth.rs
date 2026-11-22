@@ -57,9 +57,23 @@ pub fn search(q: &SearchQuery) -> Result<SearchResult> {
     let query = vec![
         ("query", q.text.clone()),
         ("facets", serde_json::to_string(&facets)?),
-        ("index", if q.sort.is_empty() { "relevance".into() } else { q.sort.clone() }),
+        (
+            "index",
+            if q.sort.is_empty() {
+                "relevance".into()
+            } else {
+                q.sort.clone()
+            },
+        ),
         ("offset", q.offset.to_string()),
-        ("limit", if q.limit == 0 { "24".into() } else { q.limit.to_string() }),
+        (
+            "limit",
+            if q.limit == 0 {
+                "24".into()
+            } else {
+                q.limit.to_string()
+            },
+        ),
     ];
     http::get_json_query(&format!("{API}/search"), &query)
 }
@@ -72,7 +86,10 @@ pub fn projects(ids: &[String]) -> Result<Vec<Project>> {
     if ids.is_empty() {
         return Ok(vec![]);
     }
-    http::get_json_query(&format!("{API}/projects"), &[("ids", serde_json::to_string(ids)?)])
+    http::get_json_query(
+        &format!("{API}/projects"),
+        &[("ids", serde_json::to_string(ids)?)],
+    )
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
@@ -117,11 +134,18 @@ pub struct Version {
 
 impl Version {
     pub fn primary_file(&self) -> Option<&VFile> {
-        self.files.iter().find(|f| f.primary).or_else(|| self.files.first())
+        self.files
+            .iter()
+            .find(|f| f.primary)
+            .or_else(|| self.files.first())
     }
 }
 
-pub fn versions(project: &str, loader: Option<&str>, game_version: Option<&str>) -> Result<Vec<Version>> {
+pub fn versions(
+    project: &str,
+    loader: Option<&str>,
+    game_version: Option<&str>,
+) -> Result<Vec<Version>> {
     let mut q: Vec<(&str, String)> = vec![];
     if let Some(l) = loader {
         q.push(("loaders", serde_json::to_string(&[l])?));
@@ -150,7 +174,11 @@ pub fn versions_by_hashes(hashes: &[String]) -> Result<HashMap<String, Version>>
 }
 
 /// Latest compatible version for every hash in one request: hash -> newest Version.
-pub fn latest_for_hashes(hashes: &[String], loaders: &[String], game_versions: &[String]) -> Result<HashMap<String, Version>> {
+pub fn latest_for_hashes(
+    hashes: &[String],
+    loaders: &[String],
+    game_versions: &[String],
+) -> Result<HashMap<String, Version>> {
     if hashes.is_empty() {
         return Ok(HashMap::new());
     }
@@ -173,5 +201,9 @@ pub fn game_versions() -> Result<Vec<String>> {
         version_type: String,
     }
     let list: Vec<Gv> = http::get_json(&format!("{API}/tag/game_version"))?;
-    Ok(list.into_iter().filter(|g| g.version_type == "release").map(|g| g.version).collect())
+    Ok(list
+        .into_iter()
+        .filter(|g| g.version_type == "release")
+        .map(|g| g.version)
+        .collect())
 }

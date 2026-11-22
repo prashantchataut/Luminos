@@ -1,5 +1,7 @@
 //! Luminos design tokens: a deep-navy, dithered-blue identity.
-use eframe::egui::{self, Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Stroke, TextStyle};
+use eframe::egui::{
+    self, Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Stroke, TextStyle,
+};
 use std::sync::Arc;
 
 pub const BG0: Color32 = Color32::from_rgb(5, 8, 22);
@@ -42,12 +44,37 @@ pub fn bold() -> FontFamily {
 
 pub fn install_fonts(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
-    fonts.font_data.insert("inter".into(), Arc::new(FontData::from_static(include_bytes!("../assets/fonts/Inter-Regular.otf"))));
-    fonts.font_data.insert("inter-bold".into(), Arc::new(FontData::from_static(include_bytes!("../assets/fonts/Inter-Bold.otf"))));
-    fonts.font_data.insert("jbmono".into(), Arc::new(FontData::from_static(include_bytes!("../assets/fonts/JetBrainsMono-Regular.ttf"))));
-    fonts.families.entry(FontFamily::Proportional).or_default().insert(0, "inter".into());
-    fonts.families.entry(FontFamily::Monospace).or_default().insert(0, "jbmono".into());
-    fonts.families.insert(bold(), vec!["inter-bold".into(), "inter".into()]);
+    fonts.font_data.insert(
+        "inter".into(),
+        Arc::new(FontData::from_static(include_bytes!(
+            "../assets/fonts/Inter-Regular.otf"
+        ))),
+    );
+    fonts.font_data.insert(
+        "inter-bold".into(),
+        Arc::new(FontData::from_static(include_bytes!(
+            "../assets/fonts/Inter-Bold.otf"
+        ))),
+    );
+    fonts.font_data.insert(
+        "jbmono".into(),
+        Arc::new(FontData::from_static(include_bytes!(
+            "../assets/fonts/JetBrainsMono-Regular.ttf"
+        ))),
+    );
+    fonts
+        .families
+        .entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, "inter".into());
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .insert(0, "jbmono".into());
+    fonts
+        .families
+        .insert(bold(), vec!["inter-bold".into(), "inter".into()]);
     ctx.set_fonts(fonts);
 }
 
@@ -65,7 +92,13 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
         v.selection.bg_fill = alpha(accent, 90);
         v.selection.stroke = Stroke::new(1.0, accent);
         v.hyperlink_color = accent;
-        for w in [&mut v.widgets.noninteractive, &mut v.widgets.inactive, &mut v.widgets.hovered, &mut v.widgets.active, &mut v.widgets.open] {
+        for w in [
+            &mut v.widgets.noninteractive,
+            &mut v.widgets.inactive,
+            &mut v.widgets.hovered,
+            &mut v.widgets.active,
+            &mut v.widgets.open,
+        ] {
             w.corner_radius = CornerRadius::same(10);
         }
         v.widgets.noninteractive.bg_fill = BG2;
@@ -88,9 +121,18 @@ pub fn apply(ctx: &egui::Context, accent: Color32) {
         s.text_styles = [
             (TextStyle::Heading, FontId::new(26.0, bold())),
             (TextStyle::Body, FontId::new(14.5, FontFamily::Proportional)),
-            (TextStyle::Button, FontId::new(14.0, FontFamily::Proportional)),
-            (TextStyle::Small, FontId::new(12.0, FontFamily::Proportional)),
-            (TextStyle::Monospace, FontId::new(12.5, FontFamily::Monospace)),
+            (
+                TextStyle::Button,
+                FontId::new(14.0, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Small,
+                FontId::new(12.0, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Monospace,
+                FontId::new(12.5, FontFamily::Monospace),
+            ),
         ]
         .into();
     });
