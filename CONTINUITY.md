@@ -23,6 +23,61 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 5: website rebuilt (branch `feat/session-5-site-rebuild`)
+Brief was the full rebuild (Rust app, client matrix, signing, cosmetics service, onboarding...). **This sandbox had no Rust,
+Java, display or Windows**, so only the website could be built and checked. Nothing in `launcher/` or `client/` changed.
+
+### Done and verified
+- ✅ **Site rebuilt from scratch** in `site/` (Vite + React + Tailwind v4). Instrument Serif + Inter, bundled (no Google Fonts request).
+  - Real **ordered-dither sky** (`site/src/lib/skyCore.ts`, 8x8 Bayer into a 9-colour blue palette): stars, a moon rising behind
+    moonlit clouds in the hero, bright cloud bank in the closing section. Pauses off-screen, still frame under reduced motion.
+  - Sections: hero, product frame, scroll-driven tour (5 real launcher renders), "what's in it" with Verified/Built status,
+    Luminos Client, Modrinth gallery (credited), "what doesn't work yet", changelog, FAQ (incl. SmartScreen), download, footer;
+    `#/privacy` and `#/license` pages.
+  - **Download button reads the latest GitHub release** (`Luminos-Setup*.exe` asset + SHA256 asset). Loading, ready, none and
+    error states are all designed. Verified live: it found v0.3.0, 4.8 MB.
+- ✅ Verified in **headless Chromium** at 1440x900 and 390x844: no console errors, no horizontal overflow. Screenshots in `docs/screenshots/site/`.
+- ✅ `tsc --noEmit` and `npm run build` pass. JS 73 KB gzipped, whole `dist` 1.3 MB.
+- ✅ Perf work that mattered: first Lighthouse run scored **60** (TBT 1.6 s) because the sky recomputed noise per pixel per frame. Now the layers are built once in 8 ms slices, only when near the viewport, and animation is a slide of a precomputed cloud layer (about 2 ms/frame, 10 fps). Fonts are self-hosted Latin-only and preloaded. Test server must gzip, or Lighthouse overstates JS by 3x.
+- ✅ Docs: `docs/research/` (Lunar features mapped, Prism notes), `docs/SKILLS.md` (what was really applied).
+- ✅ Privacy page claims checked against code: grep for telemetry/analytics/sentry/posthog in `launcher/` = nothing;
+  host list taken from every URL literal in `launcher/crates`.
+
+### NOT done (so the owner isn't misled)
+- ⬜ **P0 A** client version matrix + compatibility manifest + Java-per-version + headless CI: not started. The "requires >=1.21.4 <1.22 but 26.3 present" crash can still happen.
+  Note: v0.3.0 release notes/site say the client is 1.21.4 only.
+- ⬜ **P0 B** already fixed in session 4 (CREATE_NO_WINDOW, single instance). Not re-tested on Windows.
+- ⬜ **P0 C** signing: needs owner action (see `docs/WINDOWS_SECURITY.md`). Nothing new this session. No winget manifest.
+- ⬜ Cinematic onboarding, Microsoft sign-in wiring, cosmetics service + in-game skin switcher, utility wheel, instances/library rework,
+  Discord RPC, Ctrl+K palette: not started. The site does not advertise any of them.
+- ⬜ `cargo-deny`/`cargo-about` licence audit: no cargo here. Run it in CI before release.
+- 🟡 **Lighthouse (mobile profile, local gzip server, 2 runs): performance 90 and 97, accessibility 100, best practices 100, SEO 100, CLS 0, TBT ~10 ms.** Target was 95+: met on one run, not the other (run-to-run spread). Not measured on the real GitHub Pages deploy. Desktop profile not run.
+- ⬜ In-game screenshots of the client (HUD, mod menu): none exist, so the site shows none.
+- ⬜ Brand redesign: the site still uses the session-4 "lumen orb". Not redesigned.
+- ⬜ Teardowns of OneLauncher/OneClient, Feather, SK, TLauncher, OpenLauncher: not done.
+- ⬜ History still contains `client/.gradle`/`client/build` (needs owner OK for `git filter-repo`).
+
+### Next steps, in order
+1. Client build matrix + `compat.json` read by the launcher; launch vanilla/loader-only with a clear message when no match (fixes P0 A).
+2. Run `release.yml` on a tag, install on a clean Windows VM, record the result here.
+3. Code signing (Azure Trusted Signing) + false-positive submission.
+4. Wire Microsoft sign-in (needs Azure client id).
+5. Onboarding rebuild in egui using `skyCore.ts` as the reference for the dither look (port the 40 lines to Rust).
+6. Teardown research, then cosmetics service design doc (hosting cost, moderation) before any code.
+
+### Recommendations (effort / impact)
+| Idea | Effort | Impact |
+|---|---|---|
+| Compatibility manifest + vanilla fallback | M | Very high: removes the crash class |
+| Performance-profile toggle (installs/removes the Modrinth set) | S | High |
+| Public `nightly` update channel with an unstable label (Prism pattern) | S | Medium |
+| Crash doctor "copy report" + "open folder" buttons | S | Medium |
+| Weblate translations after a real language picker exists | M | Medium |
+
+### Security note
+The owner pasted a GitHub PAT in chat **again**. It was used only through a one-off HTTP header and never written to disk,
+git config or any file. **Revoke it now** and use a fine-grained token limited to this repo.
+
 ## Session 4 — fixes, redesign, licence (branch `feat/session-4-redesign-and-fixes`, release v0.3.0)
 Owner feedback: Minecraft doesn't open · terminal flickers 8-10× and app opens several times · Defender flags it · UI/site/logo/setup look vibe-coded · client has no logo · no GNU licence.
 - ✅ **Root cause of "Minecraft doesn't open"** found by running the real game in the sandbox (JRE 21): Fabric profile + vanilla gave **two ASM versions** → Fabric Loader aborts ("duplicate ASM classes"). Fixed with `mojang::dedupe_libraries` (+unit test). Verified end-to-end: vanilla 1.21.4 and Fabric 1.21.4 + full 28-mod Luminos Client preset boot to graphics init (stop only because sandbox has no display). Test: `crates/luminos-core/tests/launch_smoke.rs`.
