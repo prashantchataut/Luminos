@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "luminos_client",
+  "version": "0.1.0",
+  "name": "Luminos Client",
+  "description": "The first-party Luminos in-game companion: Armor HUD, keystrokes, CPS, FPS, coordinates, potion HUD, toggle sprint, zoom and a drag-and-drop HUD editor. Pairs with Sodium, Lithium and Entity Culling in the Luminos Client bundle.",
+  "authors": ["Luminos contributors"],
+  "contact": {
+    "homepage": "https://prashantchataut.github.io/Luminos/",
+    "sources": "https://github.com/prashantchataut/Luminos"
+  },
+  "license": "GPL-3.0-or-later",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.luminos.client.LuminosClient"],
+    "modmenu": ["dev.luminos.client.ModMenuIntegration"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "sodium": "*",
+    "lithium": "*"
+  }
+}
