@@ -87,3 +87,19 @@ fn server_ping_live() {
     println!("{s:?}");
     assert!(s.max > 0);
 }
+
+#[test]
+#[ignore]
+fn first_party_client_jar_installs() {
+    let tmp = std::env::temp_dir().join("luminos-live-fp");
+    std::env::set_var("LUMINOS_HOME", &tmp);
+    let inst = luminos_core::instances::Instance {
+        id: "fp".into(),
+        name: "fp".into(),
+        ..Default::default()
+    };
+    let name = luminos_core::preset::install_first_party(&inst).expect("install");
+    let meta = std::fs::metadata(inst.game_dir().join("mods").join(&name)).unwrap();
+    println!("{name} {} bytes", meta.len());
+    assert!(meta.len() > 10_000);
+}

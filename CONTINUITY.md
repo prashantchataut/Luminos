@@ -29,7 +29,7 @@ Branch `feat/session-2-client-and-core` → PR. Owner's source zip imported, **r
 - ✅ **Smart JVM flags** (`jvmflags.rs`): ZGC on Java 21+, Aikar G1 on ≤17; empty setting = auto; legacy default auto-upgrades.
 - 🟡 **Microsoft sign-in** (`msauth.rs`): device-code → XBL → XSTS → Minecraft services written; pure parts unit-tested. **Not wired into UI/launch, never run with a real account.** Needs an Azure client id (`LUMINOS_MS_CLIENT_ID`).
 - ✅(compiled) 🟡(not run in-game) **Luminos Client mod** (`client/`, Fabric, MC 1.21.4, Mojang mappings, Loom): Armor HUD, Keystrokes, CPS (GLFW callback chaining, no mixins), FPS, coordinates, potion HUD, toggle sprint, zoom, drag-and-drop **HUD editor** (Right Shift or Mod Menu → Configure). `./gradlew build` succeeds; **never launched in a real game** — first thing to verify.
-- ✅ Launcher installs the first-party jar from GitHub Releases (`client-v*` tags) and skips third-party Armor HUD / Status Effect Bars when it works (`preset::install_first_party`).
+- ✅ (verified live against release `client-v0.1.0`) Launcher installs the first-party jar from GitHub Releases (`client-v*` tags) and skips third-party Armor HUD / Status Effect Bars when it works (`preset::install_first_party`).
 - ✅ CI: `client.yml` builds the mod and publishes the jar on `client-v*` tags.
 - ✅ Site updated (new screens, features, roadmap); GitHub Pages enabled (workflow build). Repo description/topics/homepage set.
 - ✅ `docs/SKILLS.md`: skills directory + how agents must use them. `AGENTS.md` extended.
