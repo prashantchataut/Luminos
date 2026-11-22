@@ -13,7 +13,12 @@ use luminos_app::{
     demo,
 };
 use luminos_core::{download::Progress, instances::Loader};
-use std::{collections::HashMap, path::PathBuf, sync::atomic::Ordering};
+use luminos_core::modrinth::{Project, SearchQuery};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{atomic::Ordering, OnceLock},
+};
 
 struct Tex {
     img: ColorImage,
@@ -202,6 +207,7 @@ fn shot(
     let ctx = egui::Context::default();
     ctx.set_pixels_per_point(ppp);
     let mut app = demo::app(&ctx);
+    enrich(&mut app, &ctx);
     setup(&mut app);
     let mut textures: HashMap<TextureId, Tex> = HashMap::new();
     let mut last = None;
@@ -234,6 +240,60 @@ fn shot(
     let path = out.join(format!("{name}.png"));
     img.save(&path).expect("save png");
     println!("wrote {}", path.display());
+}
+
+/// Live Modrinth content (real project icons + gallery art) so the screenshots show what users
+/// actually see. Falls back silently to the offline demo data when there is no network.
+fn live() -> &'static Option<(Vec<Project>, Vec<Project>)> {
+    static LIVE: OnceLock<Option<(Vec<Project>, Vec<Project>)>> = OnceLock::new();
+    LIVE.get_or_init(|| {
+        let q = |t: &str, n: u32| SearchQuery {
+            project_type: t.into(),
+            sort: "downloads".into(),
+            limit: n,
+            game_version: Some("1.21.4".into()),
+            ..Default::default()
+        };
+        let packs = luminos_core::modrinth::search(&q("modpack", 6)).ok()?.hits;
+        let mods = luminos_core::modrinth::search(&q("mod", 24)).ok()?.hits;
+        Some((packs, mods))
+    })
+}
+
+fn enrich(app: &mut App, ctx: &egui::Context) {
+    let Some((packs, mods)) = live() else { return };
+    let mut urls: Vec<String> = Vec::new();
+    for p in packs.iter().chain(mods.iter()) {
+        urls.extend(p.icon_url.clone());
+        urls.extend(p.featured_gallery.clone());
+    }
+    app.featured = luminos_app::app::Loadable::Ready(packs.iter().take(3).cloned().collect());
+    app.discover.results = luminos_app::app::Loadable::Ready(luminos_core::modrinth::SearchResult {
+        hits: mods.clone(),
+        total_hits: 9000,
+    });
+    for u in urls {
+        if app.icons.contains_key(&u) {
+            continue;
+        }
+        let img = luminos_core::http::get_bytes(&u)
+            .ok()
+            .and_then(|b| image::load_from_memory(&b).ok())
+            .map(|im| {
+                let im = if im.width() > 256 {
+                    im.resize(256, 256, image::imageops::FilterType::Triangle)
+                } else {
+                    im
+                };
+                let rgba = im.to_rgba8();
+                egui::ColorImage::from_rgba_unmultiplied(
+                    [rgba.width() as usize, rgba.height() as usize],
+                    rgba.as_raw(),
+                )
+            });
+        let tex = img.map(|i| ctx.load_texture(&u, i, egui::TextureOptions::LINEAR));
+        app.icons.insert(u, tex);
+    }
 }
 
 fn main() {

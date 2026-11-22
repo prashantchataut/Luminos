@@ -461,8 +461,8 @@ impl App {
                     .ok()
                     .and_then(|b| image::load_from_memory(&b).ok())
                     .map(|im| {
-                        let im = if im.width() > 256 {
-                            im.resize(256, 256, image::imageops::FilterType::Triangle)
+                        let im = if im.width() > 640 {
+                            im.resize(640, 640, image::imageops::FilterType::Triangle)
                         } else {
                             im
                         };

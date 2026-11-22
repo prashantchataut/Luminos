@@ -1,0 +1,82 @@
+name: Release Luminos
+# Tag `v0.2.0` (or run manually) -> builds the launcher and publishes Luminos-Setup.exe.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the leading v (e.g. 0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher
+      - name: Build launcher (release)
+        working-directory: launcher
+        run: cargo build --release -p luminos-app --bin luminos
+      - name: Ensure Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=${{ steps.v.outputs.version }}" installer\luminos.iss
+          Copy-Item launcher\target\release\luminos.exe dist\Luminos-Portable.exe
+          Get-FileHash dist\*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content dist\SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Luminos ${{ steps.v.outputs.version }}
+          generate_release_notes: true
+          body_path: docs/RELEASE_NOTES.md
+          files: |
+            dist/Luminos-Setup.exe
+            dist/Luminos-Portable.exe
+            dist/SHA256SUMS.txt
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher
+      - name: Build
+        working-directory: launcher
+        run: cargo build --release -p luminos-app --bin luminos
+      - name: Package
+        run: |
+          mkdir -p out && cp launcher/target/release/luminos out/luminos
+          cp brand/luminos-256.png out/luminos.png
+          tar -C out -czf Luminos-linux-x86_64.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: Luminos-linux-x86_64.tar.gz
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Luminos-linux-x86_64.tar.gz
