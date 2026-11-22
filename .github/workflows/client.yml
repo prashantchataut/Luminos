@@ -31,4 +31,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/client-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/libs/luminos-client-*[0-9].jar
+          files: client/build/libs/luminos-client-*.jar
