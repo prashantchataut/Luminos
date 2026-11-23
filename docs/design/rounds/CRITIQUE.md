@@ -57,3 +57,26 @@ Rule notes per screen (one line each):
 - mods: taste-skill [visual-empty, product-shown, real icons in their own colours]; ui-ux-pro-max (skeleton while loading).
 - skins: taste-skill [product-shown]; reanimate spring damping on the viewer (CSS turn only so far; spring not built).
 - servers / client / settings: taste-skill [one system, text-contrast, heading-scale]; vercel-web-design-guidelines (focus-visible, toggles named).
+
+# Session 12 (rounds 5-7; renders renamed from s12r1..3)
+Skills applied per screen (rule categories, not invented IDs): **fixing-accessibility** 1 names / 2 keyboard / 7 contrast and states;
+**fixing-motion-performance** 1 never-patterns / 5 paint (transform+opacity only); **taste-skill** anti-slop (product-shown, card-family,
+text-contrast, fold-cut); **hallmark** imagery + interaction-and-states; **ui-design-skill** pre-ship checklist; reanimate (state morph).
+`UI Hall` skill: not found, not used.
+
+## home (5, 6, 7)
+- r5 (baseline): generated scene covers, recoloured. Badge row on the moon fails contrast. Fail [product-shown], [text-contrast].
+- r6: real in-game cover wired in; badges got a solid backdrop (contrast now passes). New fail: the captured frame was the vanilla title
+  menu, so Minecraft's own Singleplayer/Multiplayer buttons showed behind my Play button (duplicate UI). Fixed in the client with a bare `CoverScreen`.
+- r7: hero is UI-free real art, badges legible. Open: capture is blurred by vanilla's menu blur; only 2 of 5 instances have a real cover.
+## instances (5, 6, 7)
+- r5: five cards that are the same scene recoloured. r6: first real cover appears. r7: two real covers with the legibility ramp; three generated
+  scenes remain, so the grid is visibly mixed. Chips now readable. Open: captures for 26.2, 26.1.2, 1.21.4 (no client build for them yet).
+## client (5, 6, 7)
+- r5: preview showed the old title menu through the HUD. r6: added Quick panel (real in-game capture) and Sync cards; copy said Right Shift/0.3.0.
+  r7: copy now Right Ctrl / 0.4.0; cards sit below the fold at 1280x800 (acceptable: it is a scrolling page).
+## In the game itself (CI captures, `docs/design/ingame/`)
+- panel r1 (26.3): footer hint overflowed the sidebar into "Esc closes"; titles truncated by a fixed badge reserve. Fixed (dynamic reserve, shorter hints).
+- title r1: menu overflowed a 240 px GUI (Quit off-screen, instance line missing). Fixed; r2 shows all six items, instance name and version.
+## Not met
+servers, skins, mods, settings, onboarding-* were re-rendered (rounds 5-7 exist) **without** a review-and-change loop. They do **not** meet "3 critique rounds".
