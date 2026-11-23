@@ -23,12 +23,17 @@ n=$(ls -1 .agents/skills 2>/dev/null | wc -l)
 sha=$(git rev-parse HEAD)
 auth=(); [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
 resp=$(curl -fsS "${auth[@]}" "https://api.github.com/repos/prashantchataut/Luminos/actions/runs?head_sha=$sha&per_page=50" 2>/dev/null || true)
-ci=$(printf '%s' "$resp" | python3 -c '
-import sys,json
-try: runs=json.load(sys.stdin)["workflow_runs"]
-except Exception: print("UNKNOWN: could not query GitHub"); sys.exit()
-if not runs: print("NONE: no workflow ran on this commit (push it)"); sys.exit()
-bad=[f"{r[\"name\"]}={r[\"conclusion\"] or r[\"status\"]}" for r in runs if r["conclusion"] not in ("success","skipped")]
-print("BAD: "+", ".join(bad) if bad else "OK")' 2>/dev/null)
+read -r -d '' PY <<'PYEOF'
+import sys, json
+try:
+    runs = json.load(sys.stdin)["workflow_runs"]
+except Exception as e:
+    print("UNKNOWN: could not read GitHub response (%s)" % e); sys.exit()
+if not runs:
+    print("NONE: no workflow ran on this commit (push it)"); sys.exit()
+bad = ["%s=%s" % (r["name"], r["conclusion"] or r["status"]) for r in runs if r["conclusion"] not in ("success", "skipped")]
+print("BAD: " + ", ".join(bad) if bad else "OK")
+PYEOF
+ci=$(printf '%s' "$resp" | python3 -c "$PY" 2>&1)
 case "$ci" in OK) ;; *) echo "CI on $sha: $ci"; fail=1;; esac
 exit $fail
