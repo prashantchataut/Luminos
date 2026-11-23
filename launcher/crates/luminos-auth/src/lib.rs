@@ -13,12 +13,13 @@
 //! * Persistence is a JSON file (users + profiles). Access/session tokens live in memory only, so a restart
 //!   signs everyone out. Swap `Store` for SQLite/Postgres before running at scale.
 
+pub use axum::Router;
 use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post, put},
-    Json, Router,
+    Json,
 };
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use rsa::{
@@ -110,6 +111,11 @@ pub struct Inner {
 }
 
 pub type AppState = Arc<Inner>;
+
+/// Serve `app` on `listener` (used by tests and embedders so they don't need their own axum dependency).
+pub async fn serve(listener: tokio::net::TcpListener, app: Router) {
+    let _ = axum::serve(listener, app).await;
+}
 
 const MAX_FAILS: u32 = 5;
 const LOCKOUT: Duration = Duration::from_secs(60);

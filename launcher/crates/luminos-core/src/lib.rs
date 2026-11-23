@@ -26,3 +26,8 @@ pub mod store;
 pub mod sys;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub mod compat;
+pub mod directory;
+pub mod joinlink;
+pub mod loginprobe;
+pub mod yggdrasil;

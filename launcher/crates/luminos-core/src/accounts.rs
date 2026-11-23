@@ -7,6 +7,25 @@ use serde::{Deserialize, Serialize};
 pub enum AccountKind {
     Offline,
     Microsoft,
+    /// Ely.by (Yggdrasil via authlib-injector).
+    Elyby,
+    /// A luminos-auth server (Yggdrasil via authlib-injector).
+    Luminos,
+}
+
+impl AccountKind {
+    /// Kinds whose game session is handled by authlib-injector.
+    pub fn uses_injector(&self) -> bool {
+        matches!(self, AccountKind::Elyby | AccountKind::Luminos)
+    }
+    pub fn label(&self) -> &'static str {
+        match self {
+            AccountKind::Offline => "OFFLINE",
+            AccountKind::Microsoft => "MICROSOFT",
+            AccountKind::Elyby => "ELY.BY",
+            AccountKind::Luminos => "LUMINOS",
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -16,6 +35,14 @@ pub struct Account {
     pub kind: AccountKind,
     /// Optional skin PNG saved in the skin library that belongs to this account.
     pub skin_id: Option<String>,
+    /// Yggdrasil API root for Ely.by / Luminos accounts.
+    #[serde(default)]
+    pub auth_server: Option<String>,
+    /// Session tokens. Stored in accounts.json (plain text, user-only file). TODO: OS keyring.
+    #[serde(default)]
+    pub access_token: Option<String>,
+    #[serde(default)]
+    pub client_token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -54,6 +81,9 @@ impl Account {
             uuid: offline_uuid(name),
             kind: AccountKind::Offline,
             skin_id: None,
+            auth_server: None,
+            access_token: None,
+            client_token: None,
         }
     }
 }
@@ -101,6 +131,24 @@ mod tests {
             offline_uuid("Notch"),
             "b50ad385-829d-3141-a216-7e7d7539ba7f"
         );
+    }
+
+    #[test]
+    fn offline_uuid_known_vanilla_values() {
+        // Computed with java.util.UUID.nameUUIDFromBytes(("OfflinePlayer:" + n).getBytes(UTF_8))
+        assert_eq!(offline_uuid("Notch"), "b50ad385-829d-3141-a216-7e7d7539ba7f");
+        // version nibble 3, variant 10xx
+        let u = offline_uuid("Steve");
+        assert_eq!(&u[14..15], "3");
+        assert!(matches!(&u[19..20], "8" | "9" | "a" | "b"));
+        // case matters: vanilla hashes the exact string
+        assert_ne!(offline_uuid("steve"), offline_uuid("Steve"));
+    }
+
+    #[test]
+    fn old_accounts_json_still_loads() {
+        let a: Account = serde_json::from_str(r#"{"username":"A_b","uuid":"x","kind":"offline","skin_id":null}"#).unwrap();
+        assert!(a.access_token.is_none() && !a.kind.uses_injector());
     }
 
     #[test]
