@@ -1,0 +1,58 @@
+{
+  "dropped_at_install": [
+    [
+      "Lithium",
+      "mc26.3-0.26.4-fabric - lithium needs mixinextras (>=0.5.5), which is not installed"
+    ],
+    [
+      "ModernFix",
+      "no build for Fabric on Minecraft 26.3"
+    ],
+    [
+      "ScalableLux",
+      "only beta builds exist for Minecraft 26.3 (turn on \"Allow beta mods\" to use them)"
+    ],
+    [
+      "Memory Leak Fix",
+      "no build for Fabric on Minecraft 26.3"
+    ],
+    [
+      "Better Ping Display",
+      "no build for Fabric on Minecraft 26.3"
+    ]
+  ],
+  "installed": [
+    "luminos-client-0.3.0-mc26.3.jar",
+    "Fabric API 0.166.2+26.3",
+    "Sodium mc26.3-0.9.3-fabric",
+    "Entity Culling 1.12.2",
+    "FerriteCore 9.0.0-fabric",
+    "ImmediatelyFast 1.17.1+26.3-fabric",
+    "9s6osm5g 26.3.159+fabric",
+    "More Culling 1.9.2",
+    "Dynamic FPS 3.11.10",
+    "Krypton 0.3.2",
+    "Sodium Extra mc26.3-0.9.6+fabric",
+    "Reese's Sodium Options mc26.3-2.2.6+fabric",
+    "BadOptimizations 2.4.1",
+    "AppleSkin 3.0.10+mc26.3",
+    "BetterF3 20.0.0",
+    "1eAoo2KR 3.9.7+26.3-fabric",
+    "Ha28R6CL 1.14.2+kotlin.2.4.21",
+    "Zoomify 2.16.3+26.3",
+    "Mouse Tweaks 26.3-2.31-fabric",
+    "CustomSkinLoader 15.1-Universal",
+    "eXts2L7r 3.2.0+26.3",
+    "Mod Menu 21.0.1",
+    "Crash Assistant 1.11.14"
+  ],
+  "minecraft": "26.3",
+  "notes": [],
+  "prelaunch": {
+    "checked": 23,
+    "dropped": [],
+    "notes": [],
+    "ok": true,
+    "replaced": []
+  }
+}

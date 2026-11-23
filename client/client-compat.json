@@ -2,13 +2,45 @@
   "schema": 1,
   "entries": [
     {
-      "minecraft": ["1.21.4"],
+      "minecraft": [
+        "26.3"
+      ],
+      "loader": "fabric",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/client-v0.3.0/luminos-client-0.3.0-mc26.3.jar",
+      "sha256": "acc1c5a2a42582b55a1cc7527315083ec72d5f81653abfc55878777f795f1860",
+      "client_version": "0.3.0",
+      "java": 25,
+      "required_mods": [
+        "fabric-api"
+      ],
+      "disabled_features": []
+    },
+    {
+      "minecraft": [
+        "1.21.11"
+      ],
+      "loader": "fabric",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/client-v0.3.0/luminos-client-0.3.0-mc1.21.11.jar",
+      "sha256": "0d4d8c92b99bff3c941c11e8bf53774515de11983530e83777ad719c626280d7",
+      "client_version": "0.3.0",
+      "java": 21,
+      "required_mods": [
+        "fabric-api"
+      ],
+      "disabled_features": []
+    },
+    {
+      "minecraft": [
+        "1.21.4"
+      ],
       "loader": "fabric",
       "url": "https://github.com/prashantchataut/Luminos/releases/download/client-v0.2.0/luminos-client-0.2.0.jar",
       "sha256": "a480a42f10a6b04e7c172c8a718d294ba362935bbb55e1971349e99b3f140895",
       "client_version": "0.2.0",
       "java": 21,
-      "required_mods": ["fabric-api"],
+      "required_mods": [
+        "fabric-api"
+      ],
       "disabled_features": []
     }
   ]

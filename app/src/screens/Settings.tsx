@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge, Icon, Row, Segmented, Slider, Toggle } from "../ui";
 import { SEED, call } from "../api";
 export default function Settings({ settings, setBeta, beta }: { settings: any; setBeta: (v: boolean) => void; beta: boolean }) {
-  const [mem, setMem] = useState(settings?.memory_mb || 4096); const [upd, setUpd] = useState(true); const [skins, setSkins] = useState(true); const [theme, setTheme] = useState("night"); const [motion, setMotion] = useState(true);
+  const [mem, setMem] = useState(settings?.memory_mb || 4096); const [upd, setUpd] = useState(true); const [skins, setSkins] = useState(true); const [theme, setTheme] = useState("night"); const [motion, setMotion] = useState(!document.documentElement.classList.contains("reduce"));
   const total = SEED.storage.reduce((a, b) => a + b.bytes, 0);
   const colors = ["#3b6cf0", "#8fb4ff", "#7fe0b0", "#ffd37a"];
   return (
@@ -19,7 +19,7 @@ export default function Settings({ settings, setBeta, beta }: { settings: any; s
             <Row title="Show my skin to the game" desc="A local server hands your skin and cape to Minecraft, so you see them even offline."><Toggle on={skins} onChange={setSkins} label="Skins" /></Row></section>
           <section className="panel p-5"><div className="font-semibold text-[16px] mb-1">Appearance</div>
             <Row title="Theme"><Segmented value={theme} onChange={setTheme} options={[{ v: "night", l: "Night" }, { v: "dusk", l: "Dusk" }, { v: "dawn", l: "Dawn" }]} /></Row>
-            <Row title="Animations" desc="Turn off for a still sky and instant transitions."><Toggle on={motion} onChange={(v) => { setMotion(v); document.documentElement.classList.toggle("reduce", !v); }} label="Animations" /></Row></section>
+            <Row title="Animations" desc="Turn off for a still sky and instant transitions."><Toggle on={motion} onChange={(v) => { setMotion(v); document.documentElement.classList.toggle("reduce", !v); localStorage.setItem("luminos.reduce", v ? "0" : "1"); call("set_setting", { key: "reduce_motion", value: !v }); }} label="Animations" /></Row></section>
         </div>
         <div className="grid gap-6">
           <section className="panel p-5"><div className="flex items-center justify-between mb-4"><div className="font-semibold text-[16px]">Storage</div><span className="num text-mute text-[13px]">{total.toFixed(1)} GB used</span></div>

@@ -1,0 +1,52 @@
+{
+  "dropped_at_install": [
+    [
+      "ModernFix",
+      "no build for Fabric on Minecraft 1.21.11"
+    ],
+    [
+      "Dynamic FPS",
+      "3.11.6 - dynamic_fps needs mixinextras (>=0.3.2), which is not installed"
+    ],
+    [
+      "Memory Leak Fix",
+      "no build for Fabric on Minecraft 1.21.11"
+    ]
+  ],
+  "installed": [
+    "luminos-client-0.3.0-mc1.21.11.jar",
+    "Fabric API 0.141.6+1.21.11",
+    "Sodium mc1.21.11-0.8.14-fabric",
+    "Lithium mc1.21.11-0.21.4-fabric",
+    "Entity Culling 1.12.2",
+    "FerriteCore 8.2.0-fabric",
+    "ImmediatelyFast 1.14.3+1.21.11-fabric",
+    "9s6osm5g 21.11.153+fabric",
+    "More Culling 1.6.2",
+    "Krypton 0.2.10",
+    "Sodium Extra mc1.21.11-0.9.5+fabric",
+    "Reese's Sodium Options mc1.21.11-2.2.4+fabric",
+    "BadOptimizations 2.4.1",
+    "ScalableLux 0.1.6+fabric.c25518a",
+    "AppleSkin 3.0.8+mc1.21.11",
+    "BetterF3 17.0.0",
+    "Better Ping Display 1.21.11-1.2.0",
+    "Ha28R6CL 1.14.2+kotlin.2.4.21",
+    "1eAoo2KR 3.8.2+1.21.11-fabric",
+    "Zoomify 2.15.2+1.21.11",
+    "Mouse Tweaks 1.21.11-2.30-fabric",
+    "CustomSkinLoader 15.1-Universal",
+    "eXts2L7r 2.8.2+1.21.10",
+    "Mod Menu 17.0.1",
+    "Crash Assistant 1.11.12"
+  ],
+  "minecraft": "1.21.11",
+  "notes": [],
+  "prelaunch": {
+    "checked": 25,
+    "dropped": [],
+    "notes": [],
+    "ok": true,
+    "replaced": []
+  }
+}

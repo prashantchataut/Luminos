@@ -35,8 +35,14 @@ jobs:
       fail-fast: false
       matrix:
         mc: ["26.3", "1.21.11"]
+        variant: [full]   # minimal / no-skin / no-render exist in the harness (LUMINOS_SMOKE_VARIANT) for bisecting a failure
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
+    # Only the real default preset ("full") gates the build; the other variants exist to bisect a failure.
+    continue-on-error: ${{ matrix.variant != 'full' }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -51,30 +57,35 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 libopenal1 libxrandr2 libxxf86vm1 libxcursor1 libxi6 libxinerama1 libpulse0 imagemagick x11-utils mesa-vulkan-drivers
       - name: Build the smoke harness
+        timeout-minutes: 20
         working-directory: launcher
         run: cargo build -p luminos-core --example smoke --release
       - name: Launch to the title screen
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
           GALLIUM_DRIVER: llvmpipe
+          MESA_VK_WSI_PRESENT_MODE: immediate
+          vblank_mode: "0"
           MESA_GL_VERSION_OVERRIDE: "4.6"
           MESA_GLSL_VERSION_OVERRIDE: "460"
           LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
+          LUMINOS_SMOKE_VARIANT: ${{ matrix.variant }}
         run: |
+          set -o pipefail   # without this the harness exit code was swallowed by `tee` (the gate was always green)
           export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc${{ matrix.mc }}.jar | head -1)"
           mkdir -p out
           # screenshot of the real title screen = cover art for this version (one frame, 4 s after the signal)
-          ( until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done; sleep 4; DISPLAY=:99 import -window root out/title-${{ matrix.mc }}.png ) &
-          xvfb-run -n 99 -s "-screen 0 1280x720x24" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
+          ( timeout 480 bash -c 'until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done' && sleep 4 && DISPLAY=:99 import -window root out/title-${{ matrix.mc }}-${{ matrix.variant }}.png ) >/dev/null 2>&1 &
+          xvfb-run -n 99 -s "-screen 0 1280x720x24 +extension GLX +render -noreset" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
       - name: Summary
         if: always()
         run: |
           cat out/result.json || true
-          echo '### Smoke ${{ matrix.mc }}' >> $GITHUB_STEP_SUMMARY
+          echo '### Smoke ${{ matrix.mc }} / ${{ matrix.variant }}' >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY; cat out/result.json >> $GITHUB_STEP_SUMMARY || true; echo '```' >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY; cat out/mod-report.json >> $GITHUB_STEP_SUMMARY || true; echo '```' >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-${{ matrix.mc }}
+          name: smoke-${{ matrix.mc }}-${{ matrix.variant }}
           path: out

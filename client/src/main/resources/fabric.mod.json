@@ -13,8 +13,7 @@
   "icon": "assets/luminos_client/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["dev.luminos.client.LuminosClient"],
-    "modmenu": ["dev.luminos.client.ModMenuIntegration"]
+    "client": ["dev.luminos.client.LuminosClient"]
   },
   "depends": {
     "fabricloader": ">=0.16.0",
