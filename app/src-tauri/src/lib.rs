@@ -166,7 +166,8 @@ async fn sync_run() -> R<Value> {
         let s = luminos_core::sync::Syncer::new(Default::default());
         let mut out = serde_json::Map::new();
         for i in instances::list() {
-            out.insert(i.name.clone(), serde_json::to_value(s.reconcile(&i.id, &i.game_dir())?)?);
+            let rep = s.reconcile(&i.id, &i.game_dir()).map_err(err)?;
+            out.insert(i.name.clone(), serde_json::to_value(rep).map_err(err)?);
         }
         Ok(Value::Object(out))
     })
@@ -175,12 +176,12 @@ async fn sync_run() -> R<Value> {
 
 #[tauri::command]
 async fn sync_export(path: String) -> R<usize> {
-    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(std::path::Path::new(&path))).await
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(std::path::Path::new(&path)).map_err(err)).await
 }
 
 #[tauri::command]
 async fn sync_import(path: String) -> R<usize> {
-    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(std::path::Path::new(&path))).await
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(std::path::Path::new(&path)).map_err(err)).await
 }
 
 #[tauri::command]
