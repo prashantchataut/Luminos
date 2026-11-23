@@ -24,6 +24,7 @@ def visit(n):
         d = re.sub(r"\(.*?\)", "", d.split("|")[0]).strip()
         if d: visit(d)
     order.append(n)
+visit("libc++")  # libandroid-spawn needs libc++_shared.so but does not declare it
 visit(want)
 print("packages:", order, flush=True)
 work = os.path.join(out, "_work"); os.makedirs(work, exist_ok=True)
