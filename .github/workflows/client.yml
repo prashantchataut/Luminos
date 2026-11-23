@@ -1,34 +1,45 @@
 name: Luminos Client (Fabric mod)
 on:
   push:
-    paths: ["client/**", ".github/workflows/client.yml"]
+    paths: ["client/**", "client26/**", ".github/workflows/client.yml"]
     tags: ["client-v*"]
   pull_request:
-    paths: ["client/**"]
+    paths: ["client/**", "client26/**", ".github/workflows/client.yml"]
 
 permissions:
   contents: write
 
 jobs:
   build:
+    # Loom 1.19 runs Gradle on Java 25 for both lines; the 1.21.x jar still targets Java 21 bytecode.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: "26.3", dir: client26 }
+          - { mc: "1.21.11", dir: client }
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: client
+        working-directory: ${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build --no-daemon
+      - name: Verify the jar's declared Minecraft range accepts this version
+        run: |
+          jar=$(ls build/libs/luminos-client-*-mc${{ matrix.mc }}.jar)
+          unzip -p "$jar" fabric.mod.json | tee /dev/stderr | grep -q '"minecraft"'
       - uses: actions/upload-artifact@v4
         with:
-          name: luminos-client
-          path: client/build/libs/*.jar
+          name: luminos-client-${{ matrix.mc }}
+          path: ${{ matrix.dir }}/build/libs/luminos-client-*-mc${{ matrix.mc }}.jar
       - name: Publish release asset
         if: startsWith(github.ref, 'refs/tags/client-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/libs/luminos-client-*.jar
+          files: ${{ matrix.dir }}/build/libs/luminos-client-*-mc${{ matrix.mc }}.jar

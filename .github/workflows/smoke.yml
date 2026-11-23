@@ -1,0 +1,80 @@
+name: Title-screen smoke (Fabric must accept the default preset)
+# Launches the default Luminos Client preset to the Minecraft title screen with the real engine
+# (dependency solver + offline skin server) under software OpenGL, on 26.3 and the latest 1.21.x.
+# Fails the build if Fabric reports any incompatibility or the title screen is never reached.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  client-jars:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: "26.3", dir: client26 }
+          - { mc: "1.21.11", dir: client }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew && ./gradlew build --no-daemon
+        working-directory: ${{ matrix.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-jar-${{ matrix.mc }}
+          path: ${{ matrix.dir }}/build/libs/luminos-client-*-mc${{ matrix.mc }}.jar
+
+  smoke:
+    needs: client-jars
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ["26.3", "1.21.11"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - uses: actions/download-artifact@v4
+        with:
+          name: smoke-jar-${{ matrix.mc }}
+          path: jar
+      - name: System libraries (software GL + X)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 libopenal1 libxrandr2 libxxf86vm1 libxcursor1 libxi6 libxinerama1 libpulse0 imagemagick x11-utils mesa-vulkan-drivers
+      - name: Build the smoke harness
+        working-directory: launcher
+        run: cargo build -p luminos-core --example smoke --release
+      - name: Launch to the title screen
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          GALLIUM_DRIVER: llvmpipe
+          MESA_GL_VERSION_OVERRIDE: "4.6"
+          MESA_GLSL_VERSION_OVERRIDE: "460"
+          LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
+        run: |
+          export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc${{ matrix.mc }}.jar | head -1)"
+          mkdir -p out
+          # screenshot of the real title screen = cover art for this version (one frame, 4 s after the signal)
+          ( until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done; sleep 4; DISPLAY=:99 import -window root out/title-${{ matrix.mc }}.png ) &
+          xvfb-run -n 99 -s "-screen 0 1280x720x24" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
+      - name: Summary
+        if: always()
+        run: |
+          cat out/result.json || true
+          echo '### Smoke ${{ matrix.mc }}' >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY; cat out/result.json >> $GITHUB_STEP_SUMMARY || true; echo '```' >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY; cat out/mod-report.json >> $GITHUB_STEP_SUMMARY || true; echo '```' >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.mc }}
+          path: out

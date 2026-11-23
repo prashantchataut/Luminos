@@ -30,6 +30,8 @@ pub struct Settings {
     pub last_update_check: i64,
     /// Serve the account's skin and cape to the game from a local server (offline accounts).
     pub offline_skins: bool,
+    /// Let the mod solver use beta/alpha builds. Off by default: stable builds only.
+    pub allow_beta_mods: bool,
 }
 
 impl Default for Settings {
@@ -54,6 +56,7 @@ impl Default for Settings {
             check_updates: true,
             last_update_check: 0,
             offline_skins: true,
+            allow_beta_mods: false,
         }
     }
 }

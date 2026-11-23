@@ -1,7 +1,7 @@
 //! The Luminos Client bundle: a curated, one-click set of open-source Fabric mods.
 //! Every slug below was verified against the live Modrinth API. Missing/incompatible
 //! mods are skipped gracefully so the bundle works across Minecraft versions.
-use crate::{content, instances::Instance};
+use crate::instances::Instance;
 use anyhow::{bail, Context, Result};
 
 #[derive(Clone, Copy, Debug)]
@@ -246,6 +246,7 @@ pub const LUMINOS_CLIENT: &[PresetMod] = &[
 pub struct InstallReport {
     pub ok: Vec<String>,
     pub skipped: Vec<(String, String)>,
+    pub notes: Vec<String>,
 }
 
 /// GitHub repository that publishes the first-party client mod as `client-v*` releases.
@@ -272,6 +273,15 @@ pub fn pick_client_asset(release: &serde_json::Value) -> Option<(String, String)
 /// Download the newest first-party `luminos-client` jar into the instance's `mods/` folder.
 /// Returns the file name. Errors (no release yet, offline) are non-fatal for the bundle.
 pub fn install_first_party(inst: &Instance) -> Result<String> {
+    // CI / development override: use a jar that was just built instead of the published manifest.
+    if let Ok(p) = std::env::var("LUMINOS_CLIENT_JAR") {
+        let src = std::path::PathBuf::from(p);
+        let mods = inst.game_dir().join("mods");
+        std::fs::create_dir_all(&mods)?;
+        let name = src.file_name().context("LUMINOS_CLIENT_JAR has no file name")?.to_string_lossy().to_string();
+        std::fs::copy(&src, mods.join(&name))?;
+        return Ok(name);
+    }
     // Resolve through the compatibility manifest: only a jar built and listed for this exact
     // Minecraft version + loader is installed, and its SHA-256 is verified. Anything else is a clear,
     // non-fatal "running without the client" message (never a version-range crash at launch).
@@ -307,6 +317,7 @@ pub fn install(
     let mut report = InstallReport {
         ok: vec![],
         skipped: vec![],
+        notes: vec![],
     };
     step(0, slugs.len() + 1, "Luminos Client");
     let first_party = match install_first_party(inst) {
@@ -322,15 +333,39 @@ pub fn install(
         }
     };
     let total = slugs.len() + 1;
-    for (i, m) in slugs.iter().enumerate() {
-        step(i + 1, total, m.name);
+    // Solve versions for the whole set at once (stable builds, dependency-checked against this
+    // Minecraft) instead of "newest of each", which is how a beta Sodium met a Sodium Extra that
+    // needs 0.9.3.
+    step(1, total, "Solving mod versions");
+    let mut wants: Vec<crate::resolve::Want> = vec![];
+    for m in slugs.iter() {
         if first_party && REPLACED_BY_FIRST_PARTY.contains(&m.slug) {
             continue;
         }
-        match content::install_project(inst, m.slug, content::Kind::Mod) {
-            Ok(names) => report.ok.extend(names),
-            Err(e) => report.skipped.push((m.name.to_string(), format!("{e:#}"))),
+        wants.push(crate::resolve::Want {
+            slug: m.slug.to_string(),
+            name: m.name.to_string(),
+            required: m.slug == "fabric-api",
+        });
+    }
+    wants.sort_by_key(|w| !w.required);
+    let allow_beta = crate::config::Settings::load().allow_beta_mods;
+    let major = crate::mojang::resolve(inst)
+        .ok()
+        .and_then(|v| v.java_version.map(|j| j.major_version))
+        .filter(|m| *m > 0)
+        .unwrap_or(21);
+    match crate::resolve::env_for(inst, major)
+        .and_then(|env| crate::resolve::install_wants(inst, &env, &wants, crate::resolve::Options { allow_beta }))
+    {
+        Ok(r) => {
+            report.ok.extend(r.installed);
+            report.notes.extend(r.notes);
+            for d in r.dropped {
+                report.skipped.push((d.name, d.reason));
+            }
         }
+        Err(e) => report.skipped.push(("Mods".to_string(), format!("{e:#}"))),
     }
     step(total, total, "Done");
     report

@@ -1,17 +1,21 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
 }
 
-version = project.mod_version
+version = "${project.mod_version}-mc${project.minecraft_version}"
 group = project.maven_group
 
 base {
 	archivesName = project.archives_base_name
 }
 
-repositories {
-	maven { url = "https://maven.terraformersmc.com/" }
+// shared/ is identical on every Minecraft line (config, modules, HUD logic); legacy/ is the 1.21.x adapter.
+// client26/ builds the same shared code for Minecraft 26.x with its own adapter.
+sourceSets {
+	main {
+		java.srcDirs = ['src/shared/java', 'src/legacy/java']
+	}
 }
 
 dependencies {
@@ -19,14 +23,13 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	// Mod Menu is optional at runtime: we only compile against its API.
-	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 processResources {
-	inputs.property "version", project.version
+	inputs.property "version", project.mod_version
+	inputs.property "minecraft_range", project.minecraft_range
 	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
+		expand "version": project.mod_version, "minecraft_range": project.minecraft_range, "java_min": "21"
 	}
 }
 

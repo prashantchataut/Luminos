@@ -37,3 +37,4 @@ pub mod namecheck;
 pub mod offlineskin;
 pub mod storage;
 pub mod update;
+pub mod resolve;
