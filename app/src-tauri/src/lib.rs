@@ -248,10 +248,23 @@ async fn check_update() -> R<Value> {
     .await
 }
 
+static STARTED: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
+/// The frontend calls this after its first painted frame. With LUMINOS_PERF_FILE set (CI only) the
+/// time since process start is written there, so cold start is measured, not guessed.
+#[tauri::command]
+fn app_ready() {
+    if let (Some(t), Ok(path)) = (STARTED.get(), std::env::var("LUMINOS_PERF_FILE")) {
+        let _ = std::fs::write(path, format!("{}", t.elapsed().as_millis()));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = STARTED.set(std::time::Instant::now());
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            app_ready,
             bootstrap,
             set_setting,
             name_check,

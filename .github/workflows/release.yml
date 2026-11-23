@@ -1,12 +1,15 @@
 name: Release Luminos
-# Tag `v0.2.0` (or run manually) -> builds the launcher and publishes Luminos-Setup.exe.
+# Tag `v0.6.0` (or run manually) -> builds the Tauri 2 app, installs it silently on a clean Windows runner,
+# measures cold start / installer size / idle RAM, screenshots the real window, and publishes Luminos-Setup.exe.
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    paths: ["app/**", "launcher/crates/luminos-core/**", ".github/workflows/release.yml", "scripts/perf-windows.ps1"]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version without the leading v (e.g. 0.2.0)"
+        description: "Version without the leading v"
         required: true
 
 permissions:
@@ -23,71 +26,47 @@ jobs:
         id: v
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="${GITHUB_REF_NAME#v}"; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; elif [ "${{ github.ref_type }}" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="0.6.0"; fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: app/package-lock.json }
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: launcher
-      - name: Build launcher (release)
-        working-directory: launcher
+        with: { workspaces: "app/src-tauri" }
+      - name: Build the installer (Tauri 2, NSIS)
+        working-directory: app
         env:
-          # static CRT: no Visual C++ redistributable needed, one self-contained exe
+          # static CRT: no Visual C++ redistributable needed on a clean machine
           RUSTFLAGS: "-C target-feature=+crt-static"
-        run: cargo build --release -p luminos-app --bin luminos
-      - name: Ensure Inno Setup
+        run: |
+          npm ci
+          npx tauri build --bundles nsis
+      - name: Collect
         shell: pwsh
         run: |
-          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
-      - name: Build installer
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $nsis = Get-ChildItem app\src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
+          Copy-Item $nsis.FullName dist\Luminos-Setup.exe
+          Get-FileHash dist\Luminos-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Luminos-Setup.exe" } | Set-Content dist\SHA256SUMS.txt
+          Get-Content dist\SHA256SUMS.txt
+      - name: Install, launch and measure (clean runner)
         shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          & $iscc "/DAppVersion=${{ steps.v.outputs.version }}" installer\luminos.iss
-          Copy-Item launcher\target\release\luminos.exe dist\Luminos-Portable.exe
-          Get-FileHash dist\*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content dist\SHA256SUMS.txt
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: |
-            dist/Luminos-Setup.exe
-            dist/Luminos-Portable.exe
+        run: ./scripts/perf-windows.ps1 -Installer dist\Luminos-Setup.exe
       - uses: actions/upload-artifact@v4
-        with:
-          name: windows
-          path: dist/*
+        if: always()
+        with: { name: perf, path: perf/* }
+      - name: Attest build provenance
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/attest-build-provenance@v2
+        with: { subject-path: dist/Luminos-Setup.exe }
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: dist/* }
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           name: Luminos ${{ steps.v.outputs.version }}
-          generate_release_notes: true
           body_path: docs/RELEASE_NOTES.md
           files: |
             dist/Luminos-Setup.exe
-            dist/Luminos-Portable.exe
             dist/SHA256SUMS.txt
-
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: launcher
-      - name: Build
-        working-directory: launcher
-        run: cargo build --release -p luminos-app --bin luminos
-      - name: Package
-        run: |
-          mkdir -p out && cp launcher/target/release/luminos out/luminos
-          cp brand/luminos-256.png out/luminos.png
-          tar -C out -czf Luminos-linux-x86_64.tar.gz .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux
-          path: Luminos-linux-x86_64.tar.gz
-      - name: Publish
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: Luminos-linux-x86_64.tar.gz
