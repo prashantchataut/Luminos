@@ -63,6 +63,8 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
           GALLIUM_DRIVER: llvmpipe
+          MESA_VK_WSI_PRESENT_MODE: immediate
+          vblank_mode: "0"
           MESA_GL_VERSION_OVERRIDE: "4.6"
           MESA_GLSL_VERSION_OVERRIDE: "460"
           LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
@@ -73,7 +75,7 @@ jobs:
           mkdir -p out
           # screenshot of the real title screen = cover art for this version (one frame, 4 s after the signal)
           ( until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done; sleep 4; DISPLAY=:99 import -window root out/title-${{ matrix.mc }}-${{ matrix.variant }}.png ) &
-          xvfb-run -n 99 -s "-screen 0 1280x720x24" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
+          xvfb-run -n 99 -s "-screen 0 1280x720x24 +extension GLX +render -noreset" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
       - name: Summary
         if: always()
         run: |
