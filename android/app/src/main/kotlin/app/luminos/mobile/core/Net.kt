@@ -30,7 +30,7 @@ object Net {
         HostRule("textures.minecraft.net", "Skin and cape image files", "nothing but the URL"),
         HostRule("api.modrinth.com", "Mod search and versions", "your search text, game version, loader"),
         HostRule("cdn.modrinth.com", "Mod jars and mod icons", "nothing but the URL"),
-        HostRule("github.com", "Java runtime download (OpenJDK build for Android)", "nothing but the URL"),
+        HostRule("github.com", "Java 21/25 runtime download (OpenJDK build for Android, from our releases)", "nothing but the URL"),
         HostRule("release-assets.githubusercontent.com", "GitHub's download CDN for the runtime", "nothing but the URL"),
         HostRule("objects.githubusercontent.com", "GitHub's download CDN for the runtime", "nothing but the URL"),
     )

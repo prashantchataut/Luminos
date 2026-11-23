@@ -16,42 +16,66 @@ data class JreAsset(val abi: String, val url: String, val sha256: String, val by
 data class EngineCheck(val ok: Boolean, val summary: String, val output: String, val millis: Long)
 
 /**
- * Engine stage 1: a Java runtime that really boots on the device. We download an OpenJDK 17 build for
- * Android (GPLv2 + Classpath Exception, built by the PojavLauncher team's public CI), verify its SHA-256,
- * unpack it into app-private storage and run `java -version` as a child process.
+ * Engine stage 1: a Java runtime that really boots on the device, matched to the Minecraft version
+ * (Java 21 for 1.20.5 to 1.21.x, Java 25 for 26.x). The runtimes are Termux's Android (bionic) OpenJDK builds,
+ * repackaged by our `android-runtimes` workflow (GPLv2 + Classpath Exception; every source .deb is SHA-256 checked
+ * against the Termux index in CI). We verify the SHA-256 of the archive again here, unpack it into app-private
+ * storage and run `java -version` as a child process.
  */
 object Engine {
-    private const val BASE = "https://github.com/PojavLauncherTeam/android-openjdk-build-multiarch/releases/download/jre17-ec28559"
+    private const val BASE = "https://github.com/prashantchataut/Luminos/releases/download/android-runtimes-v1"
+    const val DEFAULT_MAJOR = 21
+    val SUPPORTED_MAJORS = listOf(21, 25)
 
-    fun asset(): JreAsset? {
+    /** abi -> major -> (sha256, bytes); values copied from SHA256SUMS-runtimes.txt of release android-runtimes-v1. */
+    private val table = mapOf(
+        "arm64-v8a" to mapOf(
+            21 to Pair("e1586f55a1cfd894b6ddecbafc6994f5b3f8f830a053f88f6b2404a062decd3c", 40_000_348L),
+            25 to Pair("dfba6deccd754d07baeb554b30f1429e491b60577a6715f4dcb05e7a037a1119", 45_936_236L),
+        ),
+        "x86_64" to mapOf(
+            21 to Pair("195575f8305fa515ee6d9c05b0e5ac79d46858cc8048f57acba2815b56a9c095", 41_028_232L),
+            25 to Pair("bf7b78e99591ec39ae0bd6510c5573cf23d841e2faaec296761271eb83376294", 47_233_592L),
+        ),
+    )
+
+    /** Which Java major a Minecraft id needs when we have not read Mojang's version JSON yet. 26.x and 26w snapshots: 25. */
+    fun majorForId(id: String?): Int {
+        val lead = id?.takeWhile { it.isDigit() }?.toIntOrNull() ?: return DEFAULT_MAJOR
+        return if (lead >= 26) 25 else DEFAULT_MAJOR
+    }
+
+    /** Authoritative: Mojang's version JSON says which Java it was built for. Older Javas run on 21; 25+ needs 25. */
+    fun majorFor(meta: org.json.JSONObject): Int =
+        if ((meta.optJSONObject("javaVersion")?.optInt("majorVersion", 17) ?: 17) >= 25) 25 else DEFAULT_MAJOR
+
+    fun asset(major: Int = DEFAULT_MAJOR): JreAsset? {
         for (abi in Build.SUPPORTED_ABIS) {
-            when (abi) {
-                "arm64-v8a" -> return JreAsset(abi, "$BASE/jre17-arm64-20210825-release.tar.xz",
-                    "c64583ac2e0ec8857e43456fa9adcf482c6a8e454a7133173bf15692d2478b8d", 38_065_004)
-                "x86_64" -> return JreAsset(abi, "$BASE/jre17-x86_64-20210825-release.tar.xz",
-                    "ebbdf75ab864a83671a108032c30e67174f79cc19596cfc1d7bfb71be26b6e71", 39_230_848)
-            }
+            val e = table[abi]?.get(major) ?: continue
+            val arch = if (abi == "arm64-v8a") "aarch64" else abi
+            return JreAsset(abi, "$BASE/luminos-jre$major-$arch.tar.xz", e.first, e.second)
         }
         return null
     }
 
-    fun home(ctx: Context) = File(ctx.filesDir, "runtime/jre17")
-    fun javaBin(ctx: Context): File? = File(home(ctx), "bin/java").takeIf { it.exists() && it.canExecute() }
-    fun installed(ctx: Context) = javaBin(ctx) != null
+    fun home(ctx: Context, major: Int) = File(ctx.filesDir, "runtime/jre$major")
+    fun javaBin(ctx: Context, major: Int): File? = File(home(ctx, major), "bin/java").takeIf { it.exists() && it.canExecute() }
+    fun installed(ctx: Context, major: Int) = javaBin(ctx, major) != null
 
     /** Download (verified) + unpack. [onProgress] gets 0..1 across both steps. */
     @Throws(IOException::class)
-    fun install(ctx: Context, onProgress: (Float) -> Unit) {
-        val a = asset() ?: throw IOException("No Java runtime for this CPU (${Build.SUPPORTED_ABIS.joinToString()}). Supported: arm64-v8a, x86_64.")
-        val tar = File(ctx.cacheDir, "jre17.tar.xz")
+    fun install(ctx: Context, major: Int, onProgress: (Float) -> Unit) {
+        val a = asset(major) ?: throw IOException("No Java $major runtime for this CPU (${Build.SUPPORTED_ABIS.joinToString()}). Supported: arm64-v8a, x86_64.")
+        val tar = File(ctx.cacheDir, "jre$major.tar.xz")
         var got = 0L
         Net.download(a.url, tar, "SHA-256", a.sha256) { n ->
             got += n
             onProgress(0.6f * (got.toFloat() / a.bytes).coerceAtMost(1f))
         }
-        val dest = home(ctx)
+        val dest = home(ctx, major)
         dest.deleteRecursively()
         dest.mkdirs()
+        File(ctx.filesDir, "runtime/jre17").deleteRecursively() // 0.1.0 shipped a Java 17 runtime; it is no longer used
         val total = tar.length().toFloat()
         FileInputStream(tar).use { raw ->
             val counted = object : java.io.FilterInputStream(BufferedInputStream(raw, 1 shl 16)) {
@@ -62,13 +86,13 @@ object Engine {
             extractTarXz(counted, dest) { onProgress(0.6f + 0.4f * (counted.n / total).coerceAtMost(1f)) }
         }
         tar.delete()
-        if (javaBin(ctx) == null) throw IOException("Runtime unpacked but bin/java is missing")
+        if (javaBin(ctx, major) == null) throw IOException("Runtime unpacked but bin/java is missing")
     }
 
     @Throws(IOException::class)
-    fun check(ctx: Context): EngineCheck {
-        val java = javaBin(ctx) ?: return EngineCheck(false, "Runtime not installed", "", 0)
-        val h = home(ctx)
+    fun check(ctx: Context, major: Int): EngineCheck {
+        val java = javaBin(ctx, major) ?: return EngineCheck(false, "Java $major runtime not installed", "", 0)
+        val h = home(ctx, major)
         val pb = ProcessBuilder(java.absolutePath, "-Xshare:off", "-XX:+UseSerialGC", "-Xmx128m", "-XshowSettings:properties", "-version")
         pb.redirectErrorStream(true)
         pb.environment()["JAVA_HOME"] = h.absolutePath

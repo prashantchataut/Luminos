@@ -138,7 +138,7 @@ fun Onboarding(vm: AppVm) {
                                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Fact("CPU", Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown", if (asset != null) "Java runtime available" else "No Java runtime for this CPU yet", asset != null)
                                     Fact("Memory", "$ram MB", "Game memory is capped at 75% = ${ram * 3 / 4} MB, because Android kills apps above that.", true)
-                                    Fact("Download", "~${(asset?.bytes ?: 0) / 1_000_000} MB runtime", "OpenJDK 17, SHA-256 checked, fetched from GitHub when you first press Prepare.", true)
+                                    Fact("Download", "~${(asset?.bytes ?: 0) / 1_000_000} MB runtime", "OpenJDK 21 or 25 to match the Minecraft version, SHA-256 checked, fetched from GitHub when you first press Prepare.", true)
                                 }
                             }
                             when {

@@ -85,6 +85,8 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     var toast by mutableStateOf<String?>(null)
 
     val selected: Instance? get() = instances.firstOrNull { it.id == selectedId }
+    /** Java major the selected instance needs (heuristic until Mojang's version JSON is read in [prepare]). */
+    val javaMajor: Int get() = Engine.majorForId(selected?.mc)
 
     init {
         viewModelScope.launch {
@@ -92,7 +94,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             onboarded = p.onboarded; account = p.account; instances = p.instances
             selectedId = p.selected ?: p.instances.firstOrNull()?.id; settings = p.settings
             withContext(Dispatchers.IO) { reloadSkin() }
-            jreInstalled = Engine.installed(ctx)
+            jreInstalled = Engine.installed(ctx, javaMajor)
             refreshLaunch(); refreshMods()
             loaded = true
             loadCatalog()
@@ -239,8 +241,12 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------- engine ----------
+    private var engineMajor = 0
+
     fun refreshLaunch() {
         val i = selected
+        jreInstalled = Engine.installed(ctx, javaMajor)
+        if (engineMajor != javaMajor) engineCheck = null // a check for another Java major says nothing about this instance
         launch = if (i != null && Installer.isPrepared(ctx, i.mc) && engineCheck?.ok == true) Launch.Verified else Launch.Ready
     }
 
@@ -251,14 +257,16 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 launch = Launch.Working("Preparing", 0f)
-                if (!Engine.installed(ctx)) {
-                    withContext(Dispatchers.IO) { Engine.install(ctx) { p -> launch = Launch.Working("Downloading Java runtime", p * 0.2f) } }
+                val ver = versions.firstOrNull { it.id == inst.mc } ?: throw IOException("Minecraft ${inst.mc} is not in Mojang's manifest (offline?)")
+                val major = withContext(Dispatchers.IO) { Engine.majorFor(Net.json(ver.url)) }
+                if (!Engine.installed(ctx, major)) {
+                    withContext(Dispatchers.IO) { Engine.install(ctx, major) { p -> launch = Launch.Working("Downloading Java $major runtime", p * 0.2f) } }
                 }
                 jreInstalled = true
-                val ver = versions.firstOrNull { it.id == inst.mc } ?: throw IOException("Minecraft ${inst.mc} is not in Mojang's manifest (offline?)")
                 Installer.prepare(ctx, ver) { label, f -> launch = Launch.Working(label, 0.2f + f * 0.7f) }
-                launch = Launch.Working("Booting the Java runtime", 0.93f)
-                val chk = withContext(Dispatchers.IO) { Engine.check(ctx) }
+                launch = Launch.Working("Booting Java $major", 0.93f)
+                val chk = withContext(Dispatchers.IO) { Engine.check(ctx, major) }
+                engineMajor = major
                 engineCheck = chk
                 launch = if (chk.ok) Launch.Verified else Launch.Failed(chk.summary)
             } catch (e: Exception) {
@@ -272,7 +280,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 engineBusy = "Downloading runtime 0%"
-                withContext(Dispatchers.IO) { Engine.install(ctx) { p -> engineBusy = "Downloading runtime ${(p * 100).toInt()}%" } }
+                withContext(Dispatchers.IO) { Engine.install(ctx, javaMajor) { p -> engineBusy = "Downloading Java $javaMajor ${(p * 100).toInt()}%" } }
                 jreInstalled = true
                 runCheck()
             } catch (e: Exception) {
@@ -287,7 +295,8 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun runCheck() {
-        val chk = withContext(Dispatchers.IO) { Engine.check(ctx) }
+        val chk = withContext(Dispatchers.IO) { Engine.check(ctx, javaMajor) }
+        engineMajor = javaMajor
         engineCheck = chk
         Log.i("Luminos", (if (chk.ok) "LUMINOS_ENGINE_OK " else "LUMINOS_ENGINE_FAIL ") + chk.summary + " in ${chk.millis} ms")
         if (!chk.ok) Log.w("Luminos", chk.output)
@@ -305,7 +314,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             }
             if (engine) {
                 try {
-                    if (!Engine.installed(ctx)) withContext(Dispatchers.IO) { Engine.install(ctx) { } }
+                    if (!Engine.installed(ctx, javaMajor)) withContext(Dispatchers.IO) { Engine.install(ctx, javaMajor) { } }
                     jreInstalled = true
                 } catch (e: Exception) { Log.e("Luminos", "LUMINOS_ENGINE_FAIL install: ${e.message}") }
                 runCheck()
