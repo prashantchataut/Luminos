@@ -1,7 +1,7 @@
 ; Luminos Launcher — Windows installer (Inno Setup 6)
 ; Build: iscc /DAppVersion=0.2.0 installer\luminos.iss   (expects target\release\luminos.exe)
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.4.0"
 #endif
 #ifndef BinDir
   #define BinDir "..\launcher\target\release"
