@@ -23,6 +23,13 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 9: one product, honest basics, plan for 10-14 (launcher 0.5.0, PR #9)
+Handover: `docs/START_HERE.md`. Plan: `docs/PLAN_SESSIONS.md`. Parity list: `docs/ONECLIENT_PARITY.md`.
+- Verified: v0.5.0 installer checksum; live updater path; 59 core tests (10 new); static network audit; CI green on PR and main; screenshots viewed (skins, client, settings, setup).
+- Built: `update.rs`, `storage.rs`, `namecheck.rs`, `offlineskin.rs`, `cosmetics.rs` (core); `maint.rs`, `pages/client.rs` (app); `tools/make_skins.py`.
+- Not verified: silent install on a real PC; skin visible in a running game; whether the skin server changes anything for mods that read the profile (watch for launch regressions; setting "Show my skin and cape in game" turns it off).
+- Open: everything marked "Not solved" in START_HERE.
+
 ## Session 8: first releases confirmed, Android engine stage 1b (branch `feat/android`)
 Read `docs/START_HERE.md` first; it is the current handover. Owner directives and reference list: `.agents/context/OWNER_CONTEXT.md`.
 - Verified `v0.4.0` (Windows): downloaded `Luminos-Setup.exe`, SHA-256 matches `SHA256SUMS.txt`. Unsigned.

@@ -1,44 +1,54 @@
-# START HERE (handover written at the end of session 8)
+# START HERE (handover written at the end of session 9)
 
-You will not remember anything. Read this, then `.agents/context/OWNER_CONTEXT.md` (owner directives + references + OneClient feature checklist), then `docs/BRIEF.md`, `docs/LEDGER.md`, `CONTINUITY.md`, `AGENTS.md`.
+You will not remember anything. Read in this order: this file, `.agents/context/OWNER_CONTEXT.md`, `.agents/context/REFERENCES.md` (owner's reference list, kept low-key on purpose), `docs/PLAN_SESSIONS.md` (sessions 10-14 are already planned), `docs/ONECLIENT_PARITY.md`, `docs/LEDGER.md`, `CONTINUITY.md`, `AGENTS.md`, `docs/BRIEF.md`.
 
 ## Shipped (releases)
 | What | Release | Verified how |
 |---|---|---|
-| Windows launcher 0.4.0 (installer, portable exe, SHA256SUMS; unsigned) | https://github.com/prashantchataut/Luminos/releases/tag/v0.4.0 | Downloaded `Luminos-Setup.exe`; SHA-256 equals `SHA256SUMS.txt`. Built by `release.yml`; earlier sessions ran core tests. **Nobody has installed it on a real Windows PC in this project's record.** |
-| Android 0.1.0 (APK) | https://github.com/prashantchataut/Luminos/releases/tag/android-v0.1.0 | CI built it, installed it on an Android 11 x86_64 emulator, drove the UI, screenshots. APK SHA-256 re-checked against `SHA256SUMS-android.txt`. |
-| Android 0.2.0 (APK; Java matched to game) | https://github.com/prashantchataut/Luminos/releases/tag/android-v0.2.0 | Same emulator job; the home screenshot shows OpenJDK 25.0.5.1 booted for Minecraft 26.3. (Check the release exists before trusting this row; see "Verified / not verified".) |
-| Android runtimes (Java 21/25, x86_64 + aarch64) | https://github.com/prashantchataut/Luminos/releases/tag/android-runtimes-v1 | x86_64 booted in CI. aarch64 packaged identically, never run. |
+| **Windows launcher 0.5.0** (installer, portable exe, linux tarball, SHA256SUMS; unsigned) | https://github.com/prashantchataut/Luminos/releases/tag/v0.5.0 | Built by `release.yml`. Downloaded `Luminos-Setup.exe` (5,127,856 bytes): SHA-256 `81cd4f61...c6645` equals `SHA256SUMS.txt`. Ran the app's own updater code against the live API as "0.4.0": it offered 0.5.0, downloaded and verified it, and did not offer 0.5.0 to 0.5.0. **The installer has still never been run on a real Windows PC in this project's record.** |
+| Windows 0.4.0 | https://github.com/prashantchataut/Luminos/releases/tag/v0.4.0 | Checksum re-verified in session 9. |
+| Android 0.2.0 (APK) | https://github.com/prashantchataut/Luminos/releases/tag/android-v0.2.0 | Checksum re-verified in session 9 (APK SHA-256 matches). Built and booted on the CI emulator in session 8. **Not touched in session 9.** Minecraft does not start on Android yet. |
+| Android runtimes (Java 21/25) | https://github.com/prashantchataut/Luminos/releases/tag/android-runtimes-v1 | x86_64 booted in CI; aarch64 never run. |
 | Client mod | `client-v0.2.0` | 1.21.4 only. |
-Screenshots of onboarding, home, library, skins, settings: `docs/screenshots/android/`.
 
-## What works
-- Windows: Rust/egui launcher with instances, Mojang/Fabric/Quilt, Modrinth, skins studio, servers page (login-mode probe), network-activity audit (no telemetry), authlib-injector accounts, luminos-auth server crate.
-- Android: install/open, onboarding with real offline UUID, real skin + cape lookup rendered as a rotating 3D model, instances with Mojang artwork, Modrinth mod browser/installer (SHA-512), Mojang file download with SHA-1, version-matched Java 21/25 download + boot, network allow-list screen, haptics, dither sky.
+## What session 9 did
+Research (all written down): `.agents/context/research/onelauncher-teardown.md` (OneLauncher architecture + 2,695 UI strings mapped to features + OneClient mod list), `docs/research/offline-skins-and-multiplayer.md` (how HMCL / PCL-CE / Zalith / SkinsRestorer / authlib-injector really work, with sources), Resourcify licence (LGPL-3.0) and Modrinth availability, Polyfrost licences (GPL/AGPL: behaviour only).
+Built in 0.5.0 (see `docs/RELEASE_NOTES.md`): auto-update, storage + data reset, honest username check, offline skin + cape server, 4 original skins + Moon cape (new default skin), Client page (launcher and client edit one config), optional mods (Resourcify, Iris, Zoomify, Controlify, Status Effect Bars; slugs checked live), real About text, spacing fix in setting rows. 10 new unit tests; 59 core tests pass; CI (3 OSes) green.
 
-## What does NOT work (do not claim otherwise)
-- **Minecraft does not start on Android.** No OpenGL layer, no window/input layer. The home screen says so.
-- Windows build is unsigned (SmartScreen warning). Microsoft sign-in not wired (needs an Azure app id). No `luminos://` handler, no relay/host-a-world, no cosmetics service, no multi-version client, no real in-game cover-art capture (the Android cards use Mojang's official patch-note art), Windows cards still not real captures.
-- Android: arm64 untested on any device; debug-signed APK; no touch/gamepad controls; no servers screen.
+## Owner complaints -> honest status
+| Complaint | Status |
+|---|---|
+| UI/UX "AI slop", onboarding bad, home looks like a demo | **Not solved.** Only incremental fixes (skin art, spacing, Client page, username step, storage/update sections). The shell redesign (top nav, real cover-art carousel, state-morph launch button, 4-step onboarding) is session 10. |
+| Ugly default skin | **Done**: original skins, new default. Not downloaded from skin libraries on purpose (third-party skins have no clear licence). |
+| Skins not shown in multiplayer | **Partly.** Your own view: offline skin server (unit-tested, **not seen in a running game**). Others' view needs D4/C7 (plan session 12). |
+| Username "is it real?" | **Done honestly**: format reasons + premium-name lookup; offline names are never "taken". |
+| Game doesn't start | **Not proven fixed.** Needs a Windows CI job that launches to the title screen (session 10 first task). The skin server falls back to a plain offline launch on any error. |
+| No auto update / clear data / update tracker | **Done** (update tracker = Updates card + Home banner). |
+| Launcher and client should be one | **v1**: shared config + Client page + optional mods. In-game menu parity is session 11. |
+| Resourcify-class built-in pack browser | **Interim**: Resourcify installable/toggleable from the Client page. Own optimised browser = session 11. |
+| Store-style cosmetics, free + original | Cape + 4 skins now; full categories = session 12. |
+| FPS faster than OneClient | **Unmeasured.** Same lever (Sodium stack) is default. `docs/PERF.md` with CI numbers is session 10. |
+| Cover art from real in-game captures | Not done (session 10). |
+| Android (engine, UI, controls) | Not advanced this session. |
+| Use every skill | Honest: skills were read (taste-skill, reanimate, rea, ui-ux-pro-max headers; kotlin/fabric not needed yet). They target web stacks (Bun/Playwright), so rules were applied by hand to egui; the reanimate spec-table method is planned for the launch-button morph in session 10. No design skill was run as a tool. |
 
-## Exact next steps (in order)
-1. **Verify `android-v0.2.0`** exists with APK + checksum (curl the release API, compare SHA-256). If the tag build failed, read the log, fix, retag `android-v0.2.1`.
-2. **Android engine stage 2.5 (cheap, high value):** run the *vanilla dedicated server* jar on the emulator with the Java 21/25 runtimes and assert "Done (" in the log. Add as a CI job. This proves Minecraft code runs on Android before the GL work.
-3. **Engine stage 3:** GL + window. Candidates: GLFW shim + ANGLE (Apache-2.0) or gl4es (MIT) + LWJGL natives rebuilt for bionic (LWJGL is BSD-3). PojavLauncher is LGPL-3.0: study it, do not link or copy it into a proprietary app without a legal decision from the owner (record in `docs/BLOCKERS.md`). Milestone: title screen screenshot in CI.
-4. Windows: B1 real cover art. CI job with xvfb + Mesa llvmpipe launches the client per version and captures panoramas; store in `docs/ASSETS.md` with credit; use on cards and site. Then A2 signing wiring, A3 token storage, A4 hash verification.
-5. Create `docs/ONECLIENT_PARITY.md` from the checklist in OWNER_CONTEXT, then work it down. Resourcify-style built-in pack browser (toggleable) belongs in the client mod. Original free cosmetics set with Luminos branding (D2).
-6. C-items: offline account join tests on 5 versions in CI (C1/C2), Skins Bridge plugin (C7), relay (C5).
-7. Keep going down `docs/LEDGER.md`. The gate (`bash scripts/gate.sh`) exits non-zero until every item is truly done and CI is green on HEAD; a non-zero gate is correct today.
+## What works / what does not
+Works: everything in 0.4.0 plus the 0.5.0 list above. Does not: see the table. Unsigned installer (SmartScreen). No Microsoft sign-in (needs an Azure app id). No `luminos://` handler, relay, cosmetics service, multi-version client, motion beyond tokens.
 
-## How to work in this environment
-- The sandbox given to the agent is a tiny Next.js scaffold, not the repo. Clone the repo into /tmp and push with a one-off header: `git -c http.extraHeader="Authorization: Basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)" push ...`. Never write the token to disk or a remote URL.
-- No Rust/Android SDK locally: push, then poll `https://api.github.com/repos/prashantchataut/Luminos/actions/runs?head_sha=<sha>` and read job logs. A Kotlin change costs one ~7 min CI round trip.
-- Release tags: `vX.Y.Z` Windows, `android-vX.Y.Z` APK, `android-runtimes-vN` Java runtimes, `client-vX.Y.Z` mod.
+## Exact next steps (session 10, in order)
+1. Windows CI job: install `Luminos-Setup.exe` silently on windows-latest, launch vanilla 1.21.4 with an offline account **with the skin server on** to the title screen under software GL, assert the log. Fix every failure. (Closes K8, answers "game doesn't start".)
+2. `docs/PERF.md`: cold start, idle RAM, installer size measured in CI.
+3. Shell redesign per `docs/PLAN_SESSIONS.md` session 10, rendering with `luminos-shots` and looking at every PNG.
+4. Cover-art capture job, then use it on cards.
+5. Tag `v0.6.0`, verify checksum, update this file.
+
+## How to work here
+- The agent sandbox is a tiny React scaffold. Clone the repo to `/home/user/luminos` and push with a one-off header: `git -c http.extraheader="Authorization: Basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)" push ...`. Never write the token anywhere.
+- The file tools only reach the sandbox root: `ln -s /home/user/luminos /home/user/sandbox/lum`, edit via `lum/...`, remove the link at the end (and view images by copying PNGs into the root).
+- Rust: install with rustup (works), `cargo build -j2` with `CARGO_INCREMENTAL=0`; first build ~7 min, then ~10 s. `luminos-shots <dir>` renders every screen. Workflows run on PRs and main, not on feature branches: open a PR to get CI, merge by API, tag by API (`POST /git/refs`) to trigger `release.yml`.
+- rustfmt is not installed in the sandbox (`rustup component add rustfmt` if needed; CI fmt is non-blocking).
 
 ## Owner actions needed
-- **Revoke the GitHub PAT that was pasted in chat** (again) and use a fine-grained token or `gh auth login`.
-- Windows signing (see `docs/WINDOWS_SECURITY.md`), Azure app id for Microsoft sign-in, an Android release keystore.
-- This repo is public. `.agents/context/` is only unobtrusive, not private. Make the repo private if the reference list should be hidden.
-
-## Licence stance
-Reference projects (OneLauncher, OneClient, Polyfrost mods) are GPL-3.0 and Luminos is proprietary: study behaviour, write original code, never copy source. The Java runtimes are OpenJDK (GPLv2 + Classpath Exception) redistributed unmodified from Termux builds; sources linked in the runtimes release notes.
+- **Revoke the GitHub PAT pasted in chat** (third time). It has very broad scopes (repo, workflow, write:packages, delete:packages, ...). Use a fine-grained token limited to this repo.
+- Windows signing (`docs/WINDOWS_SECURITY.md`), Azure app id for Microsoft sign-in, an Android release keystore.
+- The repo is public: `.agents/context/` is obscure, not private. Make the repo private if the reference list must be hidden.
