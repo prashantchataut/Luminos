@@ -1,0 +1,30 @@
+name: android-jvm-smoke
+# Engine proof: boots an OpenJDK build for Android on an x86_64 emulator and runs `java -version`.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [feat/android]
+    paths: [".github/workflows/android-jvm-smoke.yml", "android/ci/**"]
+jobs:
+  jvm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Fetch JRE (OpenJDK 17 for Android, x86_64)
+        run: |
+          curl -fsSL -o /tmp/jre.tar.xz https://github.com/PojavLauncherTeam/android-openjdk-build-multiarch/releases/download/jre17-ec28559/jre17-x86_64-20210825-release.tar.xz
+          sha256sum /tmp/jre.tar.xz
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash android/ci/jvm_smoke.sh /tmp/jre.tar.xz
