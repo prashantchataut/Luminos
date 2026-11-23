@@ -23,7 +23,7 @@ export default function Mods({ mc, allowBeta }: { mc: string; allowBeta: boolean
         <div className="grid grid-cols-2 gap-4 stagger">
           {list.map((m: any) => (
             <div key={m.slug} className="lift panel p-4 flex gap-4 items-start">
-              <Tile name={m.title} hue={m.hue ?? 210} size={56} />
+              {m.icon || m.icon_url ? <img src={m.icon || m.icon_url} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-[14px] hair bg-ink-2" style={{ imageRendering: "auto" }} loading="lazy" /> : <Tile name={m.title} hue={m.hue ?? 210} size={56} />}
               <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-[15.5px] truncate">{m.title}</span>{m.builtin && <Badge tone="accent">Recommended</Badge>}</div>
                 <div className="text-[12.5px] text-mute">by {m.author}</div><p className="text-[13px] text-fg/80 mt-1.5 leading-snug line-clamp-2">{m.desc}</p>
                 <div className="flex items-center gap-2 mt-3"><Badge>{m.cat}</Badge><Badge><Icon n="download" s={11} />{fmt(m.downloads || 0)}</Badge>{m.beta ? <Badge tone="warn">Beta only</Badge> : <Badge tone="ok"><Icon n="check" s={11} />Stable {m.ver}</Badge>}</div></div>

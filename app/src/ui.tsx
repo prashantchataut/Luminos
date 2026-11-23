@@ -197,3 +197,11 @@ export function Modal({ onClose, children, w = 560 }: { onClose: () => void; chi
     </div>
   );
 }
+
+/** Card hover parallax: writes -1..1 pointer offsets as CSS variables; the cover layer drifts opposite the cursor. */
+export function tilt(e: React.MouseEvent<HTMLElement>) {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--tx", String(((e.clientX - r.left) / r.width - 0.5) * 2));
+  e.currentTarget.style.setProperty("--ty", String(((e.clientY - r.top) / r.height - 0.5) * 2));
+}
+export function untilt(e: React.MouseEvent<HTMLElement>) { e.currentTarget.style.setProperty("--tx", "0"); e.currentTarget.style.setProperty("--ty", "0"); }

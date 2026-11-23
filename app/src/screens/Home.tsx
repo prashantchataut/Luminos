@@ -77,7 +77,7 @@ export default function Home({ insts, sel, setSel, nav, demo }: { insts: Inst[];
   const days = SEED.playtime.daily; const maxD = Math.max(...days.map((d) => d[1]));
   return (
     <div className="page-in h-full overflow-y-auto">
-      <section className="relative h-[430px] overflow-hidden">
+      <section className="relative h-[344px] overflow-hidden">
         <div className="absolute inset-0 zoom" key={cur.mc} style={{ animation: "fade var(--dur-slow) both" }}><Cover version={cur.mc} /></div>
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(5,10,31,.25) 0%, rgba(5,10,31,.1) 35%, rgba(5,10,31,.92) 92%, #050a1f 100%), linear-gradient(90deg, rgba(5,10,31,.72) 0%, transparent 62%)" }} />
         <div className="relative h-full flex flex-col justify-end px-12 pb-10 max-w-[1280px]">

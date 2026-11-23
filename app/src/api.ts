@@ -1,3 +1,4 @@
+import MR from "./modrinth-meta.json";
 // One call layer: real Tauri commands in the app, seeded believable data in a plain browser (screenshots, dev).
 export const isTauri = typeof window !== "undefined" && !!(window as any).__TAURI_INTERNALS__;
 
@@ -85,4 +86,19 @@ export async function onLaunch(cb: (e: any) => void): Promise<() => void> {
   const { listen } = await import("@tauri-apps/api/event");
   const un = await listen("launch", (e) => cb(e.payload));
   return un;
+}
+
+// Real Modrinth projects (icons + download counts fetched from the Modrinth API at design time, see docs/ASSETS.md).
+{
+  const meta = MR as Record<string, { title: string; icon: string; downloads: number; desc: string }>;
+  for (const m of SEED.mods as any[]) { const r = meta[m.slug]; if (r) { m.icon = r.icon; m.downloads = r.downloads; } }
+  const extra: [string, string, string, string, string][] = [
+    ["fabric-api", "FabricMC", "Performance", "0.166.2", "Hooks and APIs most Fabric mods rely on."],
+    ["immediatelyfast", "RaphiMC", "Performance", "1.17.1", "Faster immediate-mode rendering for menus, HUD and text."],
+    ["moreculling", "FxMorin", "Performance", "1.9.2", "Skips drawing block faces you can never see."],
+    ["dynamic-fps", "juliand665", "Utility", "3.11.10", "Drops the frame rate when the window is in the background."],
+    ["betterf3", "TreyRuffy", "HUD", "20.0.0", "A cleaner, colour-coded debug screen."],
+    ["modmenu", "Prospector", "Utility", "21.0.1", "See and configure every installed mod in one list."],
+  ];
+  for (const [slug, author, cat, ver, desc] of extra) { const r = meta[slug]; if (r) (SEED.mods as any[]).push({ slug, title: r.title, author, cat, ver, desc, downloads: r.downloads, icon: r.icon, hue: 210 }); }
 }
