@@ -2,15 +2,16 @@ import { useEffect } from "react";
 import { Wordmark } from "./ui";
 import { REPO_URL } from "../lib/useRelease";
 
-const hosts: [string, string][] = [
-  ["piston-meta.mojang.com, launchercontent.mojang.com, libraries.minecraft.net, resources.download.minecraft.net", "Version manifest, game files, libraries, assets and Minecraft news."],
-  ["meta.fabricmc.net, meta.quiltmc.org", "Loader versions and profiles."],
-  ["api.modrinth.com", "Mod, pack and shader search, downloads and update checks."],
-  ["api.adoptium.net", "Java runtime downloads, only when no fitting Java is found."],
-  ["api.github.com, github.com", "Checking for and downloading Luminos Client releases."],
-  ["minotar.net, mc-heads.net", "Skin images, only when you fetch a skin by player name."],
-  ["login.microsoftonline.com, xboxlive.com, api.minecraftservices.com", "Microsoft sign-in. The code exists but isn’t connected to the interface yet."],
-];
+// Generated from launcher/crates/luminos-core/src/netaudit.rs; the same list the launcher enforces at runtime.
+// Regenerate: cargo run -q -p luminos-core --example hosts_json > site/src/lib/hosts.json
+import registry from "../lib/hosts.json";
+
+type Host = { host: string; purpose: string; sends: string; required_to_play: boolean; category_label: string };
+const hosts = registry.hosts as Host[];
+const groups = Array.from(new Set(hosts.map((h) => h.category_label))).map((label) => ({
+  label,
+  items: hosts.filter((h) => h.category_label === label),
+}));
 
 export default function Legal({ page }: { page: "privacy" | "license" }) {
   useEffect(() => {
@@ -35,18 +36,37 @@ export default function Legal({ page }: { page: "privacy" | "license" }) {
             <h1 className="display text-[clamp(2.6rem,6vw,4rem)]">Privacy</h1>
             <p className="mt-6 text-base leading-relaxed text-mute">
               Luminos has no account system and no telemetry code. Nothing about you or your computer is sent to the
-              Luminos project. This page lists every host the launcher talks to, so you can check that against a
+              Luminos project. This page is generated from the launcher's own host list, so you can check it against a
               firewall log.
             </p>
-            <h2 className="mt-12 text-lg font-medium">Hosts the launcher contacts</h2>
-            <dl className="mt-4 divide-y divide-line border-y border-line">
-              {hosts.map(([h, w]) => (
-                <div key={h} className="grid gap-1 py-4 md:grid-cols-[1fr_1fr] md:gap-8">
-                  <dt className="break-words font-mono text-[0.8125rem] text-fg">{h}</dt>
-                  <dd className="text-[0.9375rem] text-mute">{w}</dd>
-                </div>
-              ))}
-            </dl>
+            <h2 className="mt-12 text-lg font-medium">Hosts the launcher contacts ({hosts.length})</h2>
+            <p className="mt-3 text-base leading-relaxed text-mute">
+              The launcher refuses any request to a host that is not on this list, checks every redirect hop, and lets you
+              switch each host off under Settings, Network activity. Ads: {registry.ads}. Analytics: {registry.analytics}.
+            </p>
+            {groups.map((g) => (
+              <section key={g.label} aria-label={g.label} className="mt-8">
+                <h3 className="text-sm font-medium uppercase tracking-[0.14em] text-accent">{g.label}</h3>
+                <dl className="mt-3 divide-y divide-line border-y border-line">
+                  {g.items.map((h) => (
+                    <div key={h.host} className="grid gap-1 py-4 md:grid-cols-[1fr_1.4fr] md:gap-8">
+                      <dt className="break-words font-mono text-[0.8125rem] text-fg">
+                        {h.host}
+                        {h.required_to_play && (
+                          <span className="ml-2 rounded-sm border border-line px-1.5 py-0.5 align-middle font-sans text-[0.6875rem] text-mute">
+                            needed to play
+                          </span>
+                        )}
+                      </dt>
+                      <dd className="text-[0.9375rem] text-mute">
+                        {h.purpose}.
+                        <span className="mt-1 block text-[0.8125rem]">Sends: {h.sends}</span>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
             <h2 className="mt-12 text-lg font-medium">What stays on your machine</h2>
             <p className="mt-3 text-base leading-relaxed text-mute">
               Instances, settings, skins, worlds, backups and playtime are stored in the Luminos data folder on your

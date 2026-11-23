@@ -2,6 +2,7 @@ pub mod discover;
 pub mod home;
 pub mod instance;
 pub mod library;
+pub mod network;
 pub mod servers;
 pub mod settings;
 pub mod setup;

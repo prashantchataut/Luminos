@@ -1,0 +1,176 @@
+[
+  {
+    "group": "versions",
+    "name": "v1-21-4",
+    "svg": "svg/versions-v1-21-4.svg",
+    "png": "png/versions-v1-21-4.png"
+  },
+  {
+    "group": "versions",
+    "name": "v1-21-11",
+    "svg": "svg/versions-v1-21-11.svg",
+    "png": "png/versions-v1-21-11.png"
+  },
+  {
+    "group": "versions",
+    "name": "v26-1-2",
+    "svg": "svg/versions-v26-1-2.svg",
+    "png": "png/versions-v26-1-2.png"
+  },
+  {
+    "group": "versions",
+    "name": "v26-2",
+    "svg": "svg/versions-v26-2.svg",
+    "png": "png/versions-v26-2.png"
+  },
+  {
+    "group": "versions",
+    "name": "v26-3",
+    "svg": "svg/versions-v26-3.svg",
+    "png": "png/versions-v26-3.png"
+  },
+  {
+    "group": "loaders",
+    "name": "vanilla",
+    "svg": "svg/loaders-vanilla.svg",
+    "png": "png/loaders-vanilla.png"
+  },
+  {
+    "group": "loaders",
+    "name": "fabric",
+    "svg": "svg/loaders-fabric.svg",
+    "png": "png/loaders-fabric.png"
+  },
+  {
+    "group": "loaders",
+    "name": "quilt",
+    "svg": "svg/loaders-quilt.svg",
+    "png": "png/loaders-quilt.png"
+  },
+  {
+    "group": "loaders",
+    "name": "forge",
+    "svg": "svg/loaders-forge.svg",
+    "png": "png/loaders-forge.png"
+  },
+  {
+    "group": "loaders",
+    "name": "neoforge",
+    "svg": "svg/loaders-neoforge.svg",
+    "png": "png/loaders-neoforge.png"
+  },
+  {
+    "group": "modes",
+    "name": "survival",
+    "svg": "svg/modes-survival.svg",
+    "png": "png/modes-survival.png"
+  },
+  {
+    "group": "modes",
+    "name": "creative",
+    "svg": "svg/modes-creative.svg",
+    "png": "png/modes-creative.png"
+  },
+  {
+    "group": "modes",
+    "name": "adventure",
+    "svg": "svg/modes-adventure.svg",
+    "png": "png/modes-adventure.png"
+  },
+  {
+    "group": "modes",
+    "name": "spectator",
+    "svg": "svg/modes-spectator.svg",
+    "png": "png/modes-spectator.png"
+  },
+  {
+    "group": "items",
+    "name": "sword",
+    "svg": "svg/items-sword.svg",
+    "png": "png/items-sword.png"
+  },
+  {
+    "group": "items",
+    "name": "pickaxe",
+    "svg": "svg/items-pickaxe.svg",
+    "png": "png/items-pickaxe.png"
+  },
+  {
+    "group": "items",
+    "name": "apple",
+    "svg": "svg/items-apple.svg",
+    "png": "png/items-apple.png"
+  },
+  {
+    "group": "items",
+    "name": "potion",
+    "svg": "svg/items-potion.svg",
+    "png": "png/items-potion.png"
+  },
+  {
+    "group": "items",
+    "name": "torch",
+    "svg": "svg/items-torch.svg",
+    "png": "png/items-torch.png"
+  },
+  {
+    "group": "items",
+    "name": "chest",
+    "svg": "svg/items-chest.svg",
+    "png": "png/items-chest.png"
+  },
+  {
+    "group": "items",
+    "name": "diamond",
+    "svg": "svg/items-diamond.svg",
+    "png": "png/items-diamond.png"
+  },
+  {
+    "group": "categories",
+    "name": "performance",
+    "svg": "svg/categories-performance.svg",
+    "png": "png/categories-performance.png"
+  },
+  {
+    "group": "categories",
+    "name": "visuals",
+    "svg": "svg/categories-visuals.svg",
+    "png": "png/categories-visuals.png"
+  },
+  {
+    "group": "categories",
+    "name": "utility",
+    "svg": "svg/categories-utility.svg",
+    "png": "png/categories-utility.png"
+  },
+  {
+    "group": "categories",
+    "name": "worldgen",
+    "svg": "svg/categories-worldgen.svg",
+    "png": "png/categories-worldgen.png"
+  },
+  {
+    "group": "categories",
+    "name": "decoration",
+    "svg": "svg/categories-decoration.svg",
+    "png": "png/categories-decoration.png"
+  },
+  {
+    "group": "categories",
+    "name": "library",
+    "svg": "svg/categories-library.svg",
+    "png": "png/categories-library.png"
+  },
+  {
+    "group": "categories",
+    "name": "technology",
+    "svg": "svg/categories-technology.svg",
+    "png": "png/categories-technology.png"
+  },
+  {
+    "group": "categories",
+    "name": "magic",
+    "svg": "svg/categories-magic.svg",
+    "png": "png/categories-magic.png"
+  }
+]

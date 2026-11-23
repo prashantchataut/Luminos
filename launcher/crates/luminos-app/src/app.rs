@@ -64,6 +64,7 @@ pub enum Page {
     Servers,
     Stats,
     Settings,
+    Network,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -1247,7 +1248,7 @@ impl App {
             r,
             Icon::Gear,
             "Settings",
-            self.page == Page::Settings,
+            matches!(self.page, Page::Settings | Page::Network),
             accent,
             30,
         ) {
@@ -1684,6 +1685,7 @@ impl App {
                             Page::Servers => crate::pages::servers::ui(self, ui),
                             Page::Stats => crate::pages::stats::ui(self, ui),
                             Page::Settings => crate::pages::settings::ui(self, ui),
+                            Page::Network => crate::pages::network::ui(self, ui),
                         }
                     });
             },

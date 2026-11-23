@@ -133,6 +133,21 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         });
     });
 
+    widgets::subheading(ui, "Privacy");
+    widgets::card(ui, |ui| {
+        ui.set_width(ui.available_width());
+        widgets::setting_row(
+            ui,
+            "Network activity",
+            "See every host Luminos can contact, why, and switch any of them off. No ads, no analytics, no telemetry.",
+            |ui| {
+                if widgets::button(ui, accent, "Open", Some(Icon::Link), Btn::Secondary, true).clicked() {
+                    app.goto(crate::app::Page::Network);
+                }
+            },
+        );
+    });
+
     widgets::subheading(ui, "Content & downloads");
     widgets::card(ui, |ui| {
         ui.set_width(ui.available_width());
