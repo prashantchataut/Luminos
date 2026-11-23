@@ -6,13 +6,22 @@ use std::{fs, path::Path};
 /// Literals that are *not* requests made by Luminos. Keep this list short and justified.
 const NOT_A_REQUEST: &[(&str, &str)] = &[
     ("www.w3.org", "SVG xml namespace string"),
-    ("auth.xboxlive.com", "Xbox relying-party identifier inside a JSON body, not a request target"),
-    ("microsoft.com", "verification URL the user opens in their browser (shown in a unit test / UI)"),
+    (
+        "auth.xboxlive.com",
+        "Xbox relying-party identifier inside a JSON body, not a request target",
+    ),
+    (
+        "microsoft.com",
+        "verification URL the user opens in their browser (shown in a unit test / UI)",
+    ),
     ("www.minecraft.net", "link opened in the user's browser"),
     ("x", "placeholder host in unit-test fixtures"),
     ("join", "luminos://join parser test fixture"),
     ("your-luminos-auth.example", "UI hint text"),
-    ("auth.luminos.invalid", "placeholder API root; `.invalid` never resolves"),
+    (
+        "auth.luminos.invalid",
+        "placeholder API root; `.invalid` never resolves",
+    ),
 ];
 
 /// RFC 2606 names reserved for documentation/tests; they can never be a real tracker.
@@ -42,7 +51,11 @@ fn every_url_literal_host_is_registered() {
     for c in ["luminos-core", "luminos-app", "luminos-auth"] {
         walk(&crates.join(c).join("src"), &mut files);
     }
-    assert!(files.len() > 20, "scan found too few files: {}", files.len());
+    assert!(
+        files.len() > 20,
+        "scan found too few files: {}",
+        files.len()
+    );
 
     let mut offenders = vec![];
     let mut seen = 0;
@@ -61,10 +74,14 @@ fn every_url_literal_host_is_registered() {
                     continue;
                 }
                 let end = cand
-                    .find(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '\\' | ')' | '>' | '<' | '`'))
+                    .find(|c: char| {
+                        c.is_whitespace() || matches!(c, '"' | '\'' | '\\' | ')' | '>' | '<' | '`')
+                    })
                     .unwrap_or(cand.len());
                 let url = &cand[..end];
-                let Some(host) = netaudit::host_of(url) else { continue };
+                let Some(host) = netaudit::host_of(url) else {
+                    continue;
+                };
                 if host.contains('{') || netaudit::is_loopback(&host) {
                     continue; // templated host or loopback
                 }
@@ -78,8 +95,15 @@ fn every_url_literal_host_is_registered() {
             }
         }
     }
-    assert!(seen > 15, "scan saw only {seen} URLs; the scanner is broken");
-    assert!(offenders.is_empty(), "unregistered hosts in source:\n{}", offenders.join("\n"));
+    assert!(
+        seen > 15,
+        "scan saw only {seen} URLs; the scanner is broken"
+    );
+    assert!(
+        offenders.is_empty(),
+        "unregistered hosts in source:\n{}",
+        offenders.join("\n")
+    );
 }
 
 #[test]

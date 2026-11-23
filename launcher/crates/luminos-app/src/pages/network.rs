@@ -45,27 +45,64 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
     let off = app.settings.net_disabled.len();
     ui.horizontal_wrapped(|ui| {
         for (label, value, color) in [
-            ("Allowed hosts", format!("{}", netaudit::REGISTRY.len() - off), theme::GOOD),
-            ("Switched off", format!("{off}"), if off > 0 { theme::WARN } else { theme::MUTED }),
+            (
+                "Allowed hosts",
+                format!("{}", netaudit::REGISTRY.len() - off),
+                theme::GOOD,
+            ),
+            (
+                "Switched off",
+                format!("{off}"),
+                if off > 0 { theme::WARN } else { theme::MUTED },
+            ),
             ("Ad / analytics hosts", "0".to_string(), theme::GOOD),
-            ("Requests this session", format!("{total_req}"), theme::TEXT),
-            ("Refused this session", format!("{refused}"), if refused > 0 { theme::BAD } else { theme::MUTED }),
+            ("Requests", format!("{total_req}"), theme::TEXT),
+            (
+                "Refused",
+                format!("{refused}"),
+                if refused > 0 {
+                    theme::BAD
+                } else {
+                    theme::MUTED
+                },
+            ),
         ] {
             widgets::card(ui, |ui| {
                 ui.set_min_width(120.0);
                 widgets::eyebrow(ui, label);
-                ui.label(RichText::new(value).font(FontId::new(24.0, theme::bold())).color(color));
+                ui.label(
+                    RichText::new(value)
+                        .font(FontId::new(24.0, theme::bold()))
+                        .color(color),
+                );
             });
         }
     });
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        if widgets::button(ui, accent, "Copy host list (JSON)", Some(Icon::Link), Btn::Secondary, true).clicked() {
+        if widgets::button(
+            ui,
+            accent,
+            "Copy host list (JSON)",
+            Some(Icon::Link),
+            Btn::Secondary,
+            true,
+        )
+        .clicked()
+        {
             ui.ctx().copy_text(netaudit::registry_json());
             app.toast("Host list copied", ToastKind::Good);
         }
         if !app.settings.net_disabled.is_empty()
-            && widgets::button(ui, accent, "Switch everything back on", None, Btn::Ghost, true).clicked()
+            && widgets::button(
+                ui,
+                accent,
+                "Switch everything back on",
+                None,
+                Btn::Ghost,
+                true,
+            )
+            .clicked()
         {
             app.settings.net_disabled.clear();
         }
@@ -76,7 +113,10 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         widgets::subheading(ui, cat.label());
         widgets::card(ui, |ui| {
             ui.set_width(ui.available_width());
-            let rules: Vec<_> = netaudit::REGISTRY.iter().filter(|r| r.category == cat).collect();
+            let rules: Vec<_> = netaudit::REGISTRY
+                .iter()
+                .filter(|r| r.category == cat)
+                .collect();
             for (i, r) in rules.iter().enumerate() {
                 if i > 0 {
                     ui.add_space(6.0);
@@ -137,7 +177,9 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             ui.set_width(ui.available_width());
             for a in mine {
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new(&a.host).font(FontId::new(13.5, egui::FontFamily::Monospace)));
+                    ui.label(
+                        RichText::new(&a.host).font(FontId::new(13.5, egui::FontFamily::Monospace)),
+                    );
                     widgets::pill(ui, "YOUR SERVER", theme::MUTED);
                     widgets::pill(ui, &format!("{} REQ", a.requests), theme::GOOD);
                 });
@@ -156,7 +198,9 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             ui.set_width(ui.available_width());
             for a in unlisted {
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new(&a.host).font(FontId::new(13.5, egui::FontFamily::Monospace)));
+                    ui.label(
+                        RichText::new(&a.host).font(FontId::new(13.5, egui::FontFamily::Monospace)),
+                    );
                     widgets::pill(ui, &format!("{} REFUSED", a.blocked), theme::BAD);
                 });
             }

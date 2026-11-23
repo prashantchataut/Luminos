@@ -227,7 +227,9 @@ pub fn check_user_configured(url: &str) -> Result<()> {
     }
     if url.starts_with("http://") && !is_private_host(&host) {
         touch(&host, true, true);
-        bail!("refusing plain-HTTP to {host}: use https:// (plain HTTP is only allowed on your LAN)");
+        bail!(
+            "refusing plain-HTTP to {host}: use https:// (plain HTTP is only allowed on your LAN)"
+        );
     }
     touch(&host, false, true);
     Ok(())
@@ -273,7 +275,8 @@ pub fn registry_json() -> String {
         category_label: &'static str,
     }
     let out = Out {
-        generated_by: "luminos-core/src/netaudit.rs (cargo run -p luminos-core --example hosts_json)",
+        generated_by:
+            "luminos-core/src/netaudit.rs (cargo run -p luminos-core --example hosts_json)",
         analytics: "none: Luminos contains no analytics or telemetry code and no host for it",
         ads: "none",
         hosts: REGISTRY
@@ -293,8 +296,14 @@ mod tests {
 
     #[test]
     fn host_parsing() {
-        assert_eq!(host_of("https://API.Modrinth.com/v2/x?a=b").as_deref(), Some("api.modrinth.com"));
-        assert_eq!(host_of("https://user:pw@example.org:8443/p").as_deref(), Some("example.org"));
+        assert_eq!(
+            host_of("https://API.Modrinth.com/v2/x?a=b").as_deref(),
+            Some("api.modrinth.com")
+        );
+        assert_eq!(
+            host_of("https://user:pw@example.org:8443/p").as_deref(),
+            Some("example.org")
+        );
         assert_eq!(host_of("http://[::1]:25565/").as_deref(), Some("::1"));
         assert_eq!(host_of("ftp://x/y"), None);
         assert_eq!(host_of("https:///nohost"), None);
@@ -322,7 +331,9 @@ mod tests {
     fn disabled_host_is_blocked_then_restored() {
         // `authserver.ely.by` is not contacted by any other unit test in this crate.
         set_disabled(&["authserver.ely.by".to_string()]);
-        let err = check("https://authserver.ely.by/x").unwrap_err().to_string();
+        let err = check("https://authserver.ely.by/x")
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("turned off"), "{err}");
         assert!(check("https://minotar.net/skin/Steve").is_ok());
         set_disabled(&[]);
@@ -342,8 +353,15 @@ mod tests {
     #[test]
     fn registry_has_no_analytics_ads_or_duplicates_and_every_host_is_explained() {
         let banned = [
-            "analytics", "telemetry", "doubleclick", "adservice", "sentry", "segment", "mixpanel",
-            "amplitude", "bugsnag",
+            "analytics",
+            "telemetry",
+            "doubleclick",
+            "adservice",
+            "sentry",
+            "segment",
+            "mixpanel",
+            "amplitude",
+            "bugsnag",
         ];
         let mut seen = HashSet::new();
         for r in REGISTRY {
@@ -354,7 +372,11 @@ mod tests {
                 r.host
             );
             for b in banned {
-                assert!(!r.host.contains(b), "{} looks like an analytics host", r.host);
+                assert!(
+                    !r.host.contains(b),
+                    "{} looks like an analytics host",
+                    r.host
+                );
             }
         }
     }

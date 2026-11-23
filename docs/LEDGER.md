@@ -3,24 +3,24 @@ Open: `- [ ] ID title`. Done: `- [x] ID title — evidence: <path or URL>`. An i
 Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 
 ## Boot
-- [ ] BOOT1 docs/BRIEF.md saved
-- [ ] BOOT2 scripts/gate.sh created
-- [ ] BOOT3 >= 8 skills installed in .agents/skills
-- [ ] BOOT3b docs/DESIGN_RULES.md distilled per skill
-- [ ] BOOT4 docs/LEDGER.md expanded to 120+ lines
-- [ ] BOOT5 draft PR opened on first push
-- [ ] BOOT6 docs/research/USER_PAIN.md seeded and extended with sources actually read
-- [ ] BOOT7 docs/BLOCKERS.md written
+- [x] BOOT1 docs/BRIEF.md saved — evidence: docs/BRIEF.md
+- [x] BOOT2 scripts/gate.sh created — evidence: scripts/gate.sh
+- [x] BOOT3 >= 8 skills installed in .agents/skills — evidence: .agents/skills/PROVENANCE.md
+- [x] BOOT3b docs/DESIGN_RULES.md distilled per skill — evidence: docs/DESIGN_RULES.md
+- [x] BOOT4 docs/LEDGER.md expanded to 120+ lines — evidence: docs/LEDGER.md
+- [x] BOOT5 draft PR opened on first push — evidence: https://github.com/prashantchataut/Luminos/pull/6
+- [x] BOOT6 docs/research/USER_PAIN.md seeded and extended with sources actually read — evidence: docs/research/USER_PAIN.md
+- [x] BOOT7 docs/BLOCKERS.md written — evidence: docs/BLOCKERS.md
 
 ## A. Trust
-- [ ] A1 No ads / bundled software / analytics OFF by default
-- [ ] A1a Host registry in luminos-core (every outbound host + purpose + category)
-- [ ] A1b Per-host toggles persisted in settings and ENFORCED by http layer
-- [ ] A1c Unlisted hosts refused at runtime
-- [ ] A1d In-app "Network activity" screen (hosts, purpose, toggles, live request counts)
-- [ ] A1e Screenshot of Network activity screen rendered from real UI
-- [ ] A1f CI/static test fails on source URLs whose host is not in the registry
-- [ ] A1g CI test that records real traffic and fails on unlisted hosts
+- [x] A1 No ads / bundled software / analytics OFF by default — evidence: launcher/crates/luminos-core/src/netaudit.rs
+- [x] A1a Host registry in luminos-core (every outbound host + purpose + category) — evidence: launcher/crates/luminos-core/src/netaudit.rs
+- [x] A1b Per-host toggles persisted in settings and ENFORCED by http layer — evidence: launcher/crates/luminos-core/src/http.rs
+- [x] A1c Unlisted hosts refused at runtime — evidence: launcher/crates/luminos-core/src/netaudit.rs
+- [x] A1d In-app "Network activity" screen (hosts, purpose, toggles, live request counts) — evidence: launcher/crates/luminos-app/src/pages/network.rs
+- [x] A1e Screenshot of Network activity screen rendered from real UI — evidence: docs/screenshots/21-network-activity.png
+- [x] A1f CI/static test fails on source URLs whose host is not in the registry — evidence: launcher/crates/luminos-core/tests/netaudit_static.rs
+- [x] A1g CI test that records real traffic and fails on unlisted hosts — evidence: launcher/crates/luminos-core/tests/network_audit_live.rs
 - [ ] A2 Installer + signing + SHA256SUMS + winget
 - [ ] A2a Inno Setup installer with version resources
 - [ ] A2b No packers/obfuscation (documented + CI check)
@@ -40,10 +40,10 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] A4b Unknown jars flagged in UI
 - [ ] A4c Update checks never auto-install unknown/unsigned files
 - [ ] A4d Tests
-- [ ] A5 Site /privacy page generated from A1's host list
-- [ ] A5a Generator emits JSON from the registry (single source of truth)
-- [ ] A5b Site renders /privacy from generated JSON
-- [ ] A5c CI step regenerates and fails on drift
+- [x] A5 Site /privacy page generated from A1's host list — evidence: site/src/lib/hosts.json
+- [x] A5a Generator emits JSON from the registry (single source of truth) — evidence: launcher/crates/luminos-core/examples/hosts_json.rs
+- [x] A5b Site renders /privacy from generated JSON — evidence: site/src/components/Legal.tsx
+- [x] A5c CI step regenerates and fails on drift — evidence: .github/workflows/ci.yml
 
 ## B. Minecraft imagery
 - [ ] B1 Per-version cover art from real headless client captures
@@ -52,14 +52,14 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] B1c Attribution in docs/ASSETS.md
 - [ ] B1d Home hero, instance cards, library header, site use them
 - [ ] B2 Original voxel icon set
-- [ ] B2a Versions icons
-- [ ] B2b Loader icons
-- [ ] B2c Game-mode icons
-- [ ] B2d Item icons
-- [ ] B2e Mod-category icons
-- [ ] B2f SVG + PNG outputs and a contact sheet
+- [x] B2a Versions icons — evidence: brand/icons/svg/versions-v1-21-4.svg
+- [x] B2b Loader icons — evidence: brand/icons/svg/loaders-fabric.svg
+- [x] B2c Game-mode icons — evidence: brand/icons/svg/modes-survival.svg
+- [x] B2d Item icons — evidence: brand/icons/svg/items-sword.svg
+- [x] B2e Mod-category icons — evidence: brand/icons/svg/categories-performance.svg
+- [x] B2f SVG + PNG outputs and a contact sheet — evidence: brand/icons/sheet.png
 - [ ] B2g Mojang Brand and Asset Guidelines summary in docs/ASSETS.md
-- [ ] B2h Generator script is deterministic and tested
+- [x] B2h Generator script is deterministic and tested — evidence: tools/test_icons.py
 - [ ] B2i Icons wired into the launcher UI
 - [ ] B3 3D skin/bust renders
 - [ ] B3a Premium skin via API

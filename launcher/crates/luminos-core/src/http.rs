@@ -32,7 +32,11 @@ fn resolve_location(base: &str, loc: &str) -> Result<String> {
         return Ok(loc.to_string());
     }
     let host = netaudit::host_of(base).context("redirect from a URL without a host")?;
-    let scheme = if base.starts_with("https://") { "https" } else { "http" };
+    let scheme = if base.starts_with("https://") {
+        "https"
+    } else {
+        "http"
+    };
     if let Some(path) = loc.strip_prefix('/') {
         return Ok(format!("{scheme}://{host}/{path}"));
     }
@@ -136,8 +140,9 @@ mod tests {
         // Fails in `check`, before any socket is opened.
         let e = get_bytes("https://tracker.example.net/ping").unwrap_err();
         assert!(format!("{e:#}").contains("not on Luminos' network list"));
-        let e = post_json::<serde_json::Value>("https://tracker.example.net/p", &serde_json::json!({}))
-            .unwrap_err();
+        let e =
+            post_json::<serde_json::Value>("https://tracker.example.net/p", &serde_json::json!({}))
+                .unwrap_err();
         assert!(format!("{e:#}").contains("not on Luminos' network list"));
     }
 }

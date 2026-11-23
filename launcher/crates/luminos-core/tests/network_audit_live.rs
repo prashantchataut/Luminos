@@ -35,7 +35,10 @@ fn every_contacted_host_is_registered() {
     let act = netaudit::activity();
     eprintln!("contacted hosts:");
     for a in &act {
-        eprintln!("  {:<42} requests={} blocked={}", a.host, a.requests, a.blocked);
+        eprintln!(
+            "  {:<42} requests={} blocked={}",
+            a.host, a.requests, a.blocked
+        );
     }
     assert!(act.len() >= 6, "expected several hosts, got {act:?}");
     for a in &act {

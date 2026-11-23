@@ -369,6 +369,21 @@ fn main() {
     shot("13-settings", &out, size, ppp, &settle, |a| {
         a.page = Page::Settings
     });
+    // Real requests through the audited HTTP layer, so the counters on the screen are genuine.
+    // Offline machines simply show 0 requests.
+    for u in [
+        "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+        "https://meta.fabricmc.net/v2/versions/loader/1.21.4",
+        "https://api.modrinth.com/v2/tag/game_version",
+        "https://launchercontent.mojang.com/v2/javaPatchNotes.json",
+        "https://raw.githubusercontent.com/prashantchataut/Luminos/main/client/client-compat.json",
+    ] {
+        let _ = luminos_core::http::get_bytes(u);
+    }
+    let _ = luminos_core::http::get_bytes("https://analytics.example.net/collect"); // refused by design
+    shot("21-network-activity", &out, size, ppp, &settle, |a| {
+        a.page = Page::Network
+    });
     shot("14-new-instance", &out, size, ppp, &settle, |a| {
         a.page = Page::Library;
         a.create = Some(CreateState {
