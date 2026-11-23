@@ -20,6 +20,9 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      # Signing is a one-command switch: add the secrets listed in docs/SIGNING.md and these become true. No secrets, no signing, installer still built.
+      HAVE_AZURE_SIGNING: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Resolve version
@@ -49,6 +52,28 @@ jobs:
           Copy-Item $nsis.FullName dist\Luminos-Setup.exe
           Get-FileHash dist\Luminos-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Luminos-Setup.exe" } | Set-Content dist\SHA256SUMS.txt
           Get-Content dist\SHA256SUMS.txt
+      - name: Sign installer (Azure Trusted Signing, only when secrets exist)
+        if: ${{ env.HAVE_AZURE_SIGNING == 'true' }}
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Checksums (after signing, so they match the published file)
+        shell: pwsh
+        run: |
+          Get-FileHash dist\Luminos-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Luminos-Setup.exe" } | Set-Content dist\SHA256SUMS.txt
+          Get-Content dist\SHA256SUMS.txt
+          $sig = Get-AuthenticodeSignature dist\Luminos-Setup.exe
+          "Authenticode status: $($sig.Status)  (NotSigned is expected until docs/SIGNING.md is done)"
       - name: Install, launch and measure (clean runner)
         shell: pwsh
         run: ./scripts/perf-windows.ps1 -Installer dist\Luminos-Setup.exe
