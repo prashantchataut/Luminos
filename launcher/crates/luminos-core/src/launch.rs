@@ -305,6 +305,8 @@ pub fn build_command_ext(
     let mut cmd = Command::new(&prep.java);
     crate::sys::quiet(&mut cmd);
     cmd.current_dir(&game_dir);
+    // The Luminos Client title screen shows which instance this is.
+    cmd.env("LUMINOS_INSTANCE", &inst.name);
     cmd.arg(format!("-Xmx{mem}M"))
         .arg(format!("-Xms{}M", (mem / 4).max(256)));
     let base_flags = crate::jvmflags::effective(&settings.jvm_args, prep.java_major);
@@ -409,6 +411,12 @@ pub fn spawn_ext(
     prep: &Prepared,
     quick_join: Option<&str>,
 ) -> Result<GameHandle> {
+    // Keybinds, options, HUD layout and the server list follow the player between instances (set LUMINOS_NO_SYNC to skip).
+    if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
+        if let Err(e) = crate::sync::Syncer::new(crate::sync::Policy::default()).reconcile(&inst.id, &inst.game_dir()) {
+            eprintln!("sync before launch failed (continuing): {e:#}");
+        }
+    }
     // Offline accounts: serve the chosen skin and cape to the game from a local Yggdrasil server.
     let (session_account, skin_server) = if settings.offline_skins {
         offline_skin_session(account)

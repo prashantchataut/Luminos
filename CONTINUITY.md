@@ -257,3 +257,9 @@ cargo test -p luminos-core --test live -- --ignored --test-threads=1   # live AP
 cargo run -p luminos-app --release --bin luminos-shots -- ../docs/screenshots   # re-render screenshots
 ```
 Linux build deps for the windowing stack are loaded dynamically (X11/Wayland); no `-dev` packages are required to compile.
+
+## Session 12: client 0.4.0, sync, real covers (branch `feat/session-12-premium-app-and-client`, PR #12)
+Handover: `docs/START_HERE.md` (VERIFIED / UNVERIFIED / NOT DONE). Teardown: `docs/research/ONECLIENT_TEARDOWN.md`. Critique log: `docs/design/rounds/CRITIQUE.md`.
+- Built: quick panel (Right Ctrl, Right Shift = search), Luminos title screen, 8 new HUD modules, snapping editor, profiles, compliance mode, `sync.rs`, signing step + `docs/SIGNING.md`.
+- Fixed: CI capture (Xauthority), title/panel layout bugs found from real captures.
+- Lesson: llvmpipe frames lag the game by seconds; hold the scene and wait before `import`.

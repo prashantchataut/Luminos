@@ -2,7 +2,7 @@ package dev.luminos.client;
 
 import net.minecraft.client.Minecraft;
 
-/** Draws every enabled module at its configured place; also the editor's hit-testing and drag state. */
+/** Draws every enabled module at its configured place; also the editor's hit-testing, snapping and drag state. */
 public final class Hud {
 	private Hud() {}
 
@@ -15,8 +15,8 @@ public final class Hud {
 
 	public static void drawOne(Gfx g, Minecraft mc, HudModule m, Config.ModuleCfg c, boolean preview) {
 		int w = (int) (m.width(mc) * c.scale), h = (int) (m.height(mc) * c.scale);
-		int x = Math.max(0, Math.min(c.x, g.width() - w));
-		int y = Math.max(0, Math.min(c.y, g.height() - h));
+		int x = m.centered() ? (g.width() - w) / 2 : Math.max(0, Math.min(c.x, g.width() - w));
+		int y = m.centered() ? (g.height() - h) / 2 : Math.max(0, Math.min(c.y, g.height() - h));
 		g.push(x, y, c.scale);
 		m.render(g, mc, preview);
 		g.pop();
@@ -25,11 +25,14 @@ public final class Hud {
 	// ---- editor logic (no Minecraft screen types, so every version's Screen just delegates) ----
 	private static HudModule dragging;
 	private static int grabX, grabY;
+	private static int guideX = -1, guideY = -1;
+	private static final int GRID = 4, MAGNET = 5;
 
 	public static HudModule at(Minecraft mc, double mx, double my) {
 		for (int i = Modules.ALL.size() - 1; i >= 0; i--) {
 			HudModule m = Modules.ALL.get(i);
 			Config.ModuleCfg c = Config.get().of(m);
+			if (m.centered()) continue;
 			if (mx >= c.x && mx <= c.x + m.width(mc) * c.scale && my >= c.y && my <= c.y + m.height(mc) * c.scale) return m;
 		}
 		return null;
@@ -50,17 +53,49 @@ public final class Hud {
 		return true;
 	}
 
-	public static boolean drag(double mx, double my) {
+	public static boolean drag(Minecraft mc, double mx, double my) {
 		if (dragging == null) return false;
 		Config.ModuleCfg c = Config.get().of(dragging);
-		c.x = Math.max(0, (int) mx - grabX);
-		c.y = Math.max(0, (int) my - grabY);
+		int w = (int) (dragging.width(mc) * c.scale), h = (int) (dragging.height(mc) * c.scale);
+		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
+		int nx = Math.max(0, (int) mx - grabX), ny = Math.max(0, (int) my - grabY);
+		guideX = -1;
+		guideY = -1;
+		if (Config.get().snap) {
+			int[] xs = {0, (sw - w) / 2, sw - w}, ys = {0, (sh - h) / 2, sh - h};
+			int bx = nx, by = ny, dx = MAGNET + 1, dy = MAGNET + 1;
+			for (int t : xs) if (Math.abs(nx - t) < dx) { dx = Math.abs(nx - t); bx = t; guideX = t == (sw - w) ? sw - 1 : t == 0 ? 0 : sw / 2; }
+			for (int t : ys) if (Math.abs(ny - t) < dy) { dy = Math.abs(ny - t); by = t; guideY = t == (sh - h) ? sh - 1 : t == 0 ? 0 : sh / 2; }
+			for (HudModule o : Modules.ALL) {
+				if (o == dragging || o.centered()) continue;
+				Config.ModuleCfg oc = Config.get().of(o);
+				if (!oc.enabled) continue;
+				int ow = (int) (o.width(mc) * oc.scale), oh = (int) (o.height(mc) * oc.scale);
+				for (int t : new int[]{oc.x, oc.x + ow - w, oc.x + ow, oc.x - w}) if (Math.abs(nx - t) < dx) { dx = Math.abs(nx - t); bx = t; guideX = t == oc.x + ow - w ? oc.x + ow : t == oc.x ? oc.x : t < oc.x ? oc.x : oc.x + ow; }
+				for (int t : new int[]{oc.y, oc.y + oh - h, oc.y + oh, oc.y - h}) if (Math.abs(ny - t) < dy) { dy = Math.abs(ny - t); by = t; guideY = t == oc.y + oh - h ? oc.y + oh : t == oc.y ? oc.y : t < oc.y ? oc.y : oc.y + oh; }
+			}
+			if (dx > MAGNET) { bx = Math.round(nx / (float) GRID) * GRID; guideX = -1; }
+			if (dy > MAGNET) { by = Math.round(ny / (float) GRID) * GRID; guideY = -1; }
+			nx = bx;
+			ny = by;
+		}
+		c.x = Math.max(0, Math.min(nx, sw - w));
+		c.y = Math.max(0, Math.min(ny, sh - h));
 		return true;
+	}
+
+	/** Alignment guides while dragging with snap on. */
+	public static void drawGuides(Gfx g) {
+		if (dragging == null) return;
+		if (guideX >= 0) g.fill(guideX, 0, guideX + 1, g.height(), 0xAA4F8CFF);
+		if (guideY >= 0) g.fill(0, guideY, g.width(), guideY + 1, 0xAA4F8CFF);
 	}
 
 	public static void release() {
 		if (dragging != null) Config.save();
 		dragging = null;
+		guideX = -1;
+		guideY = -1;
 	}
 
 	public static boolean scroll(Minecraft mc, double mx, double my, double dy) {

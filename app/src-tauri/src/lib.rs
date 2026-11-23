@@ -145,12 +145,48 @@ async fn launch_instance(app: AppHandle, id: String) -> R<()> {
             Ok(h) => {
                 emit(json!({ "id": inst.id, "phase": "running" }));
                 let code = launch::wait_and_record(&h);
-                emit(json!({ "id": inst.id, "phase": "exited", "code": code, "log": h.log_tail(60) }));
+                // Push whatever the player changed in this session (keybinds, HUD layout, servers) to the shared store.
+                let synced = if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
+                    luminos_core::sync::Syncer::new(Default::default()).reconcile(&inst.id, &inst.game_dir()).ok()
+                } else {
+                    None
+                };
+                emit(json!({ "id": inst.id, "phase": "exited", "code": code, "log": h.log_tail(60), "sync": serde_json::to_value(&synced).unwrap_or(Value::Null) }));
             }
             Err(e) => emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
         }
     });
     Ok(())
+}
+
+/// Empty path means the default `sync-export` folder inside the Luminos data directory.
+fn sync_dir(p: &str) -> std::path::PathBuf {
+    if p.is_empty() { luminos_core::paths::root().join("sync-export") } else { std::path::PathBuf::from(p) }
+}
+
+/// Reconcile every instance with the shared store now; returns one report per instance.
+#[tauri::command]
+async fn sync_run() -> R<Value> {
+    blocking(|| {
+        let s = luminos_core::sync::Syncer::new(Default::default());
+        let mut out = serde_json::Map::new();
+        for i in instances::list() {
+            let rep = s.reconcile(&i.id, &i.game_dir()).map_err(err)?;
+            out.insert(i.name.clone(), serde_json::to_value(rep).map_err(err)?);
+        }
+        Ok(Value::Object(out))
+    })
+    .await
+}
+
+#[tauri::command]
+async fn sync_export(path: String) -> R<usize> {
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(&sync_dir(&path)).map_err(err)).await
+}
+
+#[tauri::command]
+async fn sync_import(path: String) -> R<usize> {
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(&sync_dir(&path)).map_err(err)).await
 }
 
 #[tauri::command]
@@ -271,6 +307,9 @@ pub fn run() {
             create_account,
             create_instance,
             launch_instance,
+            sync_run,
+            sync_export,
+            sync_import,
             mod_report,
             modrinth_search,
             install_mod,
