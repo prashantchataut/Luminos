@@ -13,7 +13,10 @@ fn real_server_login_mode_matches_expectation() {
     let addr = std::env::var("LUMINOS_TEST_SERVER").expect("LUMINOS_TEST_SERVER");
     let expect = std::env::var("LUMINOS_TEST_EXPECT").expect("LUMINOS_TEST_EXPECT");
     let st = servers::ping(&addr).expect("status ping");
-    println!("server: {} protocol {} motd {:?} latency {} ms", st.version, st.protocol, st.motd, st.latency_ms);
+    println!(
+        "server: {} protocol {} motd {:?} latency {} ms",
+        st.version, st.protocol, st.motd, st.latency_ms
+    );
     let mode = loginprobe::probe(&addr, st.protocol, "LuminosTest").expect("login probe");
     println!("login mode: {mode:?}");
     match expect.as_str() {

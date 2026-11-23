@@ -18,7 +18,8 @@ pub const INJECTOR_URL: &str =
     "https://github.com/yushijinhun/authlib-injector/releases/download/v1.2.8/authlib-injector-1.2.8.jar";
 /// Pinned: verified when downloaded. authlib-injector is AGPL-3.0, shipped as a separate downloaded jar
 /// (never linked into Luminos), see THIRD_PARTY_NOTICES.md.
-pub const INJECTOR_SHA256: &str = "9c7f4343e6c82034958ffb48c14a2cb0c85928be7283103ce17da00c6d5a7b10";
+pub const INJECTOR_SHA256: &str =
+    "9c7f4343e6c82034958ffb48c14a2cb0c85928be7283103ce17da00c6d5a7b10";
 
 fn agent() -> ureq::Agent {
     let cfg = ureq::Agent::config_builder()
@@ -63,7 +64,12 @@ fn server_error(v: &Value) -> String {
 }
 
 /// Sign in. Returns a ready-to-store account.
-pub fn authenticate(kind: AccountKind, api_root: &str, login: &str, password: &str) -> Result<Account> {
+pub fn authenticate(
+    kind: AccountKind,
+    api_root: &str,
+    login: &str,
+    password: &str,
+) -> Result<Account> {
     let root = api_root.trim_end_matches('/');
     let (status, v) = post(
         &format!("{root}/authserver/authenticate"),
@@ -79,7 +85,9 @@ pub fn authenticate(kind: AccountKind, api_root: &str, login: &str, password: &s
     }
     let p = &v["selectedProfile"];
     let (id, name) = (
-        p["id"].as_str().ok_or_else(|| anyhow!("no profile on this account"))?,
+        p["id"]
+            .as_str()
+            .ok_or_else(|| anyhow!("no profile on this account"))?,
         p["name"].as_str().unwrap_or(login),
     );
     Ok(Account {
@@ -151,7 +159,11 @@ pub fn injector_path() -> PathBuf {
 /// Download authlib-injector if missing; always verify the SHA-256.
 pub fn ensure_injector() -> Result<PathBuf> {
     let p = injector_path();
-    if p.exists() && compat::sha256_file(&p).map(|h| h == INJECTOR_SHA256).unwrap_or(false) {
+    if p.exists()
+        && compat::sha256_file(&p)
+            .map(|h| h == INJECTOR_SHA256)
+            .unwrap_or(false)
+    {
         return Ok(p);
     }
     std::fs::create_dir_all(p.parent().unwrap())?;

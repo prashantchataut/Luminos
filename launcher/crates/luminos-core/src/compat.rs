@@ -47,7 +47,9 @@ pub struct Manifest {
 pub enum Resolution<'a> {
     Match(&'a Entry),
     /// No jar for this combination. `reason` is shown to the user; the instance runs without the client.
-    Fallback { reason: String },
+    Fallback {
+        reason: String,
+    },
 }
 
 pub fn parse(json: &str) -> Result<Manifest> {
@@ -69,11 +71,9 @@ pub fn fetch() -> Result<Manifest> {
 
 /// Pick the entry for `(mc_version, loader)`.
 pub fn resolve<'a>(m: &'a Manifest, mc_version: &str, loader: &str) -> Resolution<'a> {
-    if let Some(e) = m
-        .entries
-        .iter()
-        .find(|e| e.loader.eq_ignore_ascii_case(loader) && e.minecraft.iter().any(|v| v == mc_version))
-    {
+    if let Some(e) = m.entries.iter().find(|e| {
+        e.loader.eq_ignore_ascii_case(loader) && e.minecraft.iter().any(|v| v == mc_version)
+    }) {
         return Resolution::Match(e);
     }
     let known: Vec<&str> = m
@@ -83,7 +83,9 @@ pub fn resolve<'a>(m: &'a Manifest, mc_version: &str, loader: &str) -> Resolutio
         .flat_map(|e| e.minecraft.iter().map(|s| s.as_str()))
         .collect();
     let reason = if !loader.eq_ignore_ascii_case("fabric") {
-        format!("Luminos Client is built for Fabric; this instance uses {loader}. Running without it.")
+        format!(
+            "Luminos Client is built for Fabric; this instance uses {loader}. Running without it."
+        )
     } else if known.is_empty() {
         "No Luminos Client build is published yet. Running with the performance mods only.".into()
     } else {
@@ -123,7 +125,10 @@ pub fn install(e: &Entry, dest_dir: &Path) -> Result<std::path::PathBuf> {
     let got = sha256_file(&tmp)?;
     if !got.eq_ignore_ascii_case(&e.sha256) {
         let _ = std::fs::remove_file(&tmp);
-        bail!("checksum mismatch for {name}: expected {}, got {got}. Not installing it.", e.sha256);
+        bail!(
+            "checksum mismatch for {name}: expected {}, got {got}. Not installing it.",
+            e.sha256
+        );
     }
     std::fs::rename(&tmp, &dest)?;
     Ok(dest)
@@ -148,7 +153,10 @@ mod tests {
             Resolution::Match(e) => assert_eq!(e.java, 25),
             r => panic!("{r:?}"),
         }
-        assert!(matches!(resolve(&m, "1.21.4", "Fabric"), Resolution::Match(_)));
+        assert!(matches!(
+            resolve(&m, "1.21.4", "Fabric"),
+            Resolution::Match(_)
+        ));
     }
 
     #[test]
@@ -156,7 +164,11 @@ mod tests {
         let m = parse(SAMPLE).unwrap();
         match resolve(&m, "26.3", "fabric") {
             Resolution::Fallback { reason } => {
-                assert!(reason.contains("26.3") && reason.contains("1.21.4") && reason.contains("performance mods"));
+                assert!(
+                    reason.contains("26.3")
+                        && reason.contains("1.21.4")
+                        && reason.contains("performance mods")
+                );
             }
             r => panic!("{r:?}"),
         }

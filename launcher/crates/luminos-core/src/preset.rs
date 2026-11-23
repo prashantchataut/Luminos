@@ -255,22 +255,20 @@ pub fn pick_client_asset(release: &serde_json::Value) -> Option<(String, String)
 /// Download the newest first-party `luminos-client` jar into the instance's `mods/` folder.
 /// Returns the file name. Errors (no release yet, offline) are non-fatal for the bundle.
 pub fn install_first_party(inst: &Instance) -> Result<String> {
-    let url = format!("https://api.github.com/repos/{CLIENT_REPO}/releases?per_page=20");
-    let releases: Vec<serde_json::Value> =
-        http::get_json(&url).context("looking for Luminos Client releases")?;
-    let Some(rel) = releases.iter().find(|r| {
-        r["tag_name"]
-            .as_str()
-            .is_some_and(|t| t.starts_with("client-v"))
-            && r["draft"] != true
-    }) else {
-        bail!("no Luminos Client release published yet");
-    };
-    let Some((name, dl)) = pick_client_asset(rel) else {
-        bail!("release has no mod jar")
+    // Resolve through the compatibility manifest: only a jar built and listed for this exact
+    // Minecraft version + loader is installed, and its SHA-256 is verified. Anything else is a clear,
+    // non-fatal "running without the client" message (never a version-range crash at launch).
+    let manifest = crate::compat::fetch()
+        .or_else(|_| crate::compat::parse(include_str!("../../../../client/client-compat.json")))
+        .context("reading the Luminos Client compatibility manifest")?;
+    let entry = match crate::compat::resolve(&manifest, &inst.mc_version, inst.loader.label()) {
+        crate::compat::Resolution::Match(e) => e.clone(),
+        crate::compat::Resolution::Fallback { reason } => bail!("{reason}"),
     };
     let mods = inst.game_dir().join("mods");
     std::fs::create_dir_all(&mods)?;
+    let jar = crate::compat::install(&entry, &mods)?;
+    let name = jar.file_name().unwrap().to_string_lossy().to_string();
     // replace older copies so updates don't leave two versions behind
     for e in std::fs::read_dir(&mods)?.flatten() {
         let n = e.file_name().to_string_lossy().to_string();
@@ -278,7 +276,6 @@ pub fn install_first_party(inst: &Instance) -> Result<String> {
             let _ = std::fs::remove_file(e.path());
         }
     }
-    http::download_to(&dl, &mods.join(&name))?;
     Ok(name)
 }
 

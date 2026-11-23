@@ -71,3 +71,11 @@ Reverse-engineering/research tasks: study public behaviour and docs (Mojang laun
 - **Brand assets come from one place**: edit `brand.rs`, run `luminos-brand`; don't hand-edit SVG/ICO/BMP/`Logo.java`.
 - **Design language**: flat ink panels, 1px hairlines, 2–6 px radii, mono uppercase micro-labels, Bayer dither used as *texture at edges* (never full-screen noise, no glow rings, no gradient buttons, no pill chips, no emoji). Look at `docs/screenshots` after any UI change (`luminos-shots`) and fix what looks generic.
 - Never put tokens in files or git config; push with a one-off auth header.
+
+## Skills used per task (session 6, honest)
+| Task | Skills actually applied |
+|---|---|
+| Servers page | Manual anti-slop pass on the real render (found and fixed a badge/button collision). The named skills (taste-skill, ui-ux-pro-max, UI Hall) were **not** installed: no skill runtime here. |
+| Motion | Tokens from the brief encoded in `motion.rs`; Reanimate not used. |
+| Auth / probe / compat | Protocol and API docs only (authlib-injector Yggdrasil spec, Mojang manifest, Modrinth API); verified against a real server. |
+Rule: never write "verified" in docs unless a command was run and its output is in `docs/TEST_REPORT.md`.

@@ -128,9 +128,16 @@ pub fn classify_disconnect(reason: &str) -> LoginMode {
         LoginMode::Whitelisted
     } else if l.contains("banned") {
         LoginMode::Banned
-    } else if l.contains("outdated") || l.contains("incompatible") || l.contains("unsupported") || l.contains("protocol") {
+    } else if l.contains("outdated")
+        || l.contains("incompatible")
+        || l.contains("unsupported")
+        || l.contains("protocol")
+    {
         LoginMode::VersionMismatch(reason.to_string())
-    } else if l.contains("failed to verify username") || l.contains("authenticat") || l.contains("invalid session") {
+    } else if l.contains("failed to verify username")
+        || l.contains("authenticat")
+        || l.contains("invalid session")
+    {
         LoginMode::OnlineRequired
     } else {
         LoginMode::Rejected(reason.to_string())
@@ -168,7 +175,8 @@ pub fn probe(address: &str, protocol: i64, name: &str) -> Result<LoginMode> {
                 let mut c = &body[..];
                 let n = read_varint(&mut c)? as usize;
                 let txt = String::from_utf8_lossy(&c[..n.min(c.len())]).to_string();
-                let v: serde_json::Value = serde_json::from_str(&txt).unwrap_or(serde_json::Value::String(txt));
+                let v: serde_json::Value =
+                    serde_json::from_str(&txt).unwrap_or(serde_json::Value::String(txt));
                 let flat = crate::servers::strip_formatting(&crate::servers::flatten_chat(&v));
                 return Ok(classify_disconnect(&flat));
             }
@@ -229,7 +237,10 @@ mod tests {
         write_varint(&mut body, 3);
         body.extend_from_slice(&[1, 2, 3]);
         let addr = fake(frame(0x01, &body));
-        assert_eq!(probe(&addr, 769, "Probe").unwrap(), LoginMode::OnlineRequired);
+        assert_eq!(
+            probe(&addr, 769, "Probe").unwrap(),
+            LoginMode::OnlineRequired
+        );
     }
 
     #[test]
@@ -255,17 +266,32 @@ mod tests {
     #[test]
     fn whitelist_disconnect_is_classified() {
         let mut body = vec![];
-        put_string(&mut body, r#"{"text":"You are not white-listed on this server!"}"#);
+        put_string(
+            &mut body,
+            r#"{"text":"You are not white-listed on this server!"}"#,
+        );
         let addr = fake(frame(0x00, &body));
         assert_eq!(probe(&addr, 769, "Probe").unwrap(), LoginMode::Whitelisted);
     }
 
     #[test]
     fn classify_known_messages() {
-        assert_eq!(classify_disconnect("Failed to verify username!"), LoginMode::OnlineRequired);
-        assert_eq!(classify_disconnect("You are banned from this server"), LoginMode::Banned);
-        assert!(matches!(classify_disconnect("Outdated client! Please use 1.21.4"), LoginMode::VersionMismatch(_)));
-        assert!(matches!(classify_disconnect("Maintenance"), LoginMode::Rejected(_)));
+        assert_eq!(
+            classify_disconnect("Failed to verify username!"),
+            LoginMode::OnlineRequired
+        );
+        assert_eq!(
+            classify_disconnect("You are banned from this server"),
+            LoginMode::Banned
+        );
+        assert!(matches!(
+            classify_disconnect("Outdated client! Please use 1.21.4"),
+            LoginMode::VersionMismatch(_)
+        ));
+        assert!(matches!(
+            classify_disconnect("Maintenance"),
+            LoginMode::Rejected(_)
+        ));
     }
 
     #[test]

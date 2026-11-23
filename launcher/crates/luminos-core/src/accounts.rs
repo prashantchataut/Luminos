@@ -136,7 +136,10 @@ mod tests {
     #[test]
     fn offline_uuid_known_vanilla_values() {
         // Computed with java.util.UUID.nameUUIDFromBytes(("OfflinePlayer:" + n).getBytes(UTF_8))
-        assert_eq!(offline_uuid("Notch"), "b50ad385-829d-3141-a216-7e7d7539ba7f");
+        assert_eq!(
+            offline_uuid("Notch"),
+            "b50ad385-829d-3141-a216-7e7d7539ba7f"
+        );
         // version nibble 3, variant 10xx
         let u = offline_uuid("Steve");
         assert_eq!(&u[14..15], "3");
@@ -147,7 +150,10 @@ mod tests {
 
     #[test]
     fn old_accounts_json_still_loads() {
-        let a: Account = serde_json::from_str(r#"{"username":"A_b","uuid":"x","kind":"offline","skin_id":null}"#).unwrap();
+        let a: Account = serde_json::from_str(
+            r#"{"username":"A_b","uuid":"x","kind":"offline","skin_id":null}"#,
+        )
+        .unwrap();
         assert!(a.access_token.is_none() && !a.kind.uses_injector());
     }
 

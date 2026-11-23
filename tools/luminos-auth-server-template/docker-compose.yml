@@ -1,0 +1,25 @@
+# Minecraft server + luminos-auth, both behind your own reverse proxy (HTTPS in front of port 8787).
+services:
+  auth:
+    build:
+      context: ../../launcher
+      dockerfile: ../tools/luminos-auth-server-template/Dockerfile
+    environment:
+      LUMINOS_AUTH_ADDR: 0.0.0.0:8787
+      LUMINOS_AUTH_PUBLIC_URL: https://auth.example.org
+      LUMINOS_AUTH_SKIN_DOMAINS: cdn.example.org
+      LUMINOS_AUTH_DATA: /data
+      LUMINOS_AUTH_REGISTRATION: open   # set to "closed" after your friends have registered
+    volumes: ["auth-data:/data"]
+    ports: ["127.0.0.1:8787:8787"]
+    restart: unless-stopped
+  minecraft:
+    image: eclipse-temurin:21-jre
+    working_dir: /srv
+    environment: { AUTH_URL: https://auth.example.org, SERVER_JAR: paper.jar }
+    volumes: [".:/srv/template:ro", "./server:/srv"]
+    command: ["bash", "/srv/template/start.sh"]
+    ports: ["25565:25565"]
+    depends_on: [auth]
+volumes:
+  auth-data:

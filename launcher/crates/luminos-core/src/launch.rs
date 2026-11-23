@@ -207,7 +207,13 @@ pub fn build_command(
 
 /// Minecraft 1.20+ (and the 26.x line) understands `--quickPlayMultiplayer`; older versions use `--server/--port`.
 pub fn supports_quick_play(mc: &str) -> bool {
-    let mut it = mc.split('.').map(|p| p.split('-').next().unwrap_or("").parse::<u32>().unwrap_or(0));
+    let mut it = mc.split('.').map(|p| {
+        p.split('-')
+            .next()
+            .unwrap_or("")
+            .parse::<u32>()
+            .unwrap_or(0)
+    });
     let (major, minor) = (it.next().unwrap_or(0), it.next().unwrap_or(0));
     major > 1 || (major == 1 && minor >= 20)
 }
@@ -287,7 +293,9 @@ pub fn build_command_ext(
 
     if account.kind.uses_injector() {
         // authlib-injector must come before -cp/-jar so it can instrument authlib.
-        if let Some(a) = crate::yggdrasil::javaagent_arg(account, &crate::yggdrasil::injector_path()) {
+        if let Some(a) =
+            crate::yggdrasil::javaagent_arg(account, &crate::yggdrasil::injector_path())
+        {
             cmd.arg(a);
         }
     }

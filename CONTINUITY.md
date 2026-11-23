@@ -23,6 +23,36 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 6: multiplayer core, auth service, compat manifest (branch `feat/session-6-multiplayer-compat-tests`)
+The sandbox now had Rust (rustup works) and a JRE, so core and UI could be built and run. Still no GPU, display, Windows, Android SDK, 1 GB RAM.
+Full table: [`docs/AUDIT.md`](docs/AUDIT.md). Test evidence: [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
+
+### Done and verified (ran it)
+- ✅ `luminos-auth` (axum Yggdrasil, authlib-injector compatible): 9 conformance tests incl. RSA-SHA1 signature check.
+- ✅ Launcher Yggdrasil client ↔ live `luminos-auth` over TCP (`yggdrasil_e2e`).
+- ✅ Login-mode probe against a **real vanilla 1.21.4 server**: `online-mode=false` → OfflineOk, `true` → OnlineRequired (`tools/ci/server-login-test.sh`).
+- ✅ Compat manifest resolver + hash-verified install; `preset::install_first_party` no longer installs a jar for the wrong Minecraft version.
+- ✅ Servers page: favourites, login-mode badges, version fit, direct connect, invite-link copy, human online-mode message. Rendered and checked.
+- ✅ Motion tokens (`motion.rs`, 4 tests) + staggered rows on Servers, honouring Reduce motion.
+- ✅ 54 workspace tests pass. Java 25 / no-mappings for all 26.x confirmed from Mojang's version JSONs. Modrinth + Fabric availability confirmed for all candidate versions.
+
+### Written but NOT run (🟡)
+- Quick-join (`--quickPlayMultiplayer` / `--server`), authlib-injector `-javaagent` in a real game, Ely.by sign-in with real credentials, session refresh before launch.
+- `tests.yml` matrix for 1.21.4/1.21.11/26.1.2/26.2/26.3 (never observed in CI).
+
+### NOT done
+- ❌ P0-B skins/capes/cosmetics service (design only: `docs/COSMETICS_SERVICE.md`); ❌ multi-version client build (Stonecutter); ❌ client features per version; utility wheel; ❌ headless smoke per version; ❌ Windows installer tests; ❌ code signing (owner action); ❌ LAN/host-a-world relay (evaluation in `docs/MULTIPLAYER.md`); ❌ directory UI page; ❌ `luminos://` URL handler; ❌ Microsoft sign-in wiring (needs Azure app id); ❌ motion beyond tokens + list stagger; ❌ Android (design only); ❌ recommendations list; ❌ cargo-deny run; ❌ teardown research; ❌ named skills not installed/used (see AUDIT).
+
+### Next steps, in order
+1. Run `tests.yml` on the PR; fix whatever the 26.x server jobs show.
+2. Stonecutter multi-version client + `title_screen_reached.json` hook, then headless smoke matrix.
+3. Wire Microsoft sign-in (Azure id), register `luminos://` handler, directory page.
+4. Cosmetics service from `docs/COSMETICS_SERVICE.md`, then the skins tab rebuild.
+5. Motion: launch-button morph, page transitions, animated sky with moon/clouds, pause on blur.
+
+### Security note
+The owner pasted a GitHub PAT in chat again. It was used only through one-off HTTP headers (never written to git config or files). **Revoke it** and use a fine-grained token.
+
 ## Session 5: website rebuilt (branch `feat/session-5-site-rebuild`)
 Brief was the full rebuild (Rust app, client matrix, signing, cosmetics service, onboarding...). **This sandbox had no Rust,
 Java, display or Windows**, so only the website could be built and checked. Nothing in `launcher/` or `client/` changed.

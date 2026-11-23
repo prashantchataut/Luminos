@@ -276,8 +276,8 @@ async fn join_then_has_joined_with_verifiable_signature() {
 
     // The signature must verify against the public key published at "/".
     let (_, meta) = call(&a, Method::GET, "/", None, None).await;
-    let pk = RsaPublicKey::from_public_key_pem(meta["signaturePublickey"].as_str().unwrap())
-        .unwrap();
+    let pk =
+        RsaPublicKey::from_public_key_pem(meta["signaturePublickey"].as_str().unwrap()).unwrap();
     let vk = VerifyingKey::<sha1::Sha1>::new(pk);
     let sig = Signature::try_from(
         B64.decode(prop["signature"].as_str().unwrap())

@@ -83,7 +83,10 @@ pub fn verify_alive(entries: Vec<Entry>) -> Vec<(Entry, servers::Status)> {
             })
         })
         .collect();
-    handles.into_iter().filter_map(|h| h.join().ok().flatten()).collect()
+    handles
+        .into_iter()
+        .filter_map(|h| h.join().ok().flatten())
+        .collect()
 }
 
 pub fn report_url(e: &Entry) -> String {
@@ -91,7 +94,11 @@ pub fn report_url(e: &Entry) -> String {
         "https://github.com/prashantchataut/Luminos/issues/new?labels=directory-report&title={}",
         e.name
             .bytes()
-            .map(|b| if b.is_ascii_alphanumeric() { (b as char).to_string() } else { format!("%{b:02X}") })
+            .map(|b| if b.is_ascii_alphanumeric() {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            })
             .collect::<String>()
             .replacen("", "Report%3A%20", 1)
     )
@@ -113,26 +120,52 @@ mod tests {
     #[test]
     fn filters_by_version_offline_and_mode() {
         let all = d();
-        let f = Filter { version: Some("1.21.4".into()), ..Default::default() };
+        let f = Filter {
+            version: Some("1.21.4".into()),
+            ..Default::default()
+        };
         let names: Vec<_> = filter(&all, &f).iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, ["Alpha", "Gamma"]); // Gamma: no version list = any
-        let f = Filter { offline_friendly: true, ..Default::default() };
+        let f = Filter {
+            offline_friendly: true,
+            ..Default::default()
+        };
         assert_eq!(filter(&all, &f).len(), 1);
-        let f = Filter { gamemode: Some("creative".into()), ..Default::default() };
+        let f = Filter {
+            gamemode: Some("creative".into()),
+            ..Default::default()
+        };
         assert_eq!(filter(&all, &f)[0].name, "Beta");
-        let f = Filter { text: "smp".into(), ..Default::default() };
+        let f = Filter {
+            text: "smp".into(),
+            ..Default::default()
+        };
         assert_eq!(filter(&all, &f)[0].name, "Gamma");
     }
 
     #[test]
     fn dead_servers_are_never_listed() {
-        let dead = Entry { name: "Dead".into(), address: "127.0.0.1:1".into(), description: String::new(), versions: vec![], gamemodes: vec![], offline_friendly: true };
+        let dead = Entry {
+            name: "Dead".into(),
+            address: "127.0.0.1:1".into(),
+            description: String::new(),
+            versions: vec![],
+            gamemodes: vec![],
+            offline_friendly: true,
+        };
         assert!(verify_alive(vec![dead]).is_empty());
     }
 
     #[test]
     fn report_url_is_encoded() {
-        let e = Entry { name: "A&B x".into(), address: "x".into(), description: String::new(), versions: vec![], gamemodes: vec![], offline_friendly: false };
+        let e = Entry {
+            name: "A&B x".into(),
+            address: "x".into(),
+            description: String::new(),
+            versions: vec![],
+            gamemodes: vec![],
+            offline_friendly: false,
+        };
         let u = report_url(&e);
         assert!(!u.contains(' ') && !u.contains("A&B"));
     }

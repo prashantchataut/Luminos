@@ -19,7 +19,9 @@ fn pct_decode(s: &str) -> Result<String> {
     while i < b.len() {
         match b[i] {
             b'%' => {
-                let h = s.get(i + 1..i + 3).ok_or_else(|| anyhow::anyhow!("bad escape"))?;
+                let h = s
+                    .get(i + 1..i + 3)
+                    .ok_or_else(|| anyhow::anyhow!("bad escape"))?;
                 out.push(u8::from_str_radix(h, 16)?);
                 i += 3;
             }
@@ -61,7 +63,10 @@ fn valid_host(addr: &str) -> bool {
 }
 
 fn valid_version(v: &str) -> bool {
-    !v.is_empty() && v.len() <= 24 && v.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
+    !v.is_empty()
+        && v.len() <= 24
+        && v.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
 }
 
 pub fn parse(link: &str) -> Result<JoinLink> {
@@ -71,7 +76,9 @@ pub fn parse(link: &str) -> Result<JoinLink> {
         .ok_or_else(|| anyhow::anyhow!("not a luminos://join link"))?;
     let (mut server, mut version, mut name) = (None, None, None);
     for kv in rest.split('&') {
-        let Some((k, v)) = kv.split_once('=') else { continue };
+        let Some((k, v)) = kv.split_once('=') else {
+            continue;
+        };
         let v = pct_decode(v)?;
         match k {
             "server" => server = Some(v),
@@ -94,7 +101,11 @@ pub fn parse(link: &str) -> Result<JoinLink> {
             bail!("link has an invalid label");
         }
     }
-    Ok(JoinLink { server, version, name })
+    Ok(JoinLink {
+        server,
+        version,
+        name,
+    })
 }
 
 pub fn build(l: &JoinLink) -> String {
@@ -140,6 +151,9 @@ mod tests {
 
     #[test]
     fn default_port_and_ipv4() {
-        assert_eq!(parse("luminos://join?server=127.0.0.1").unwrap().server, "127.0.0.1");
+        assert_eq!(
+            parse("luminos://join?server=127.0.0.1").unwrap().server,
+            "127.0.0.1"
+        );
     }
 }

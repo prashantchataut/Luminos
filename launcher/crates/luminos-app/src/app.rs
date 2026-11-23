@@ -99,6 +99,9 @@ pub enum Msg {
         from_wizard: bool,
     },
     Ping(String, Result<luminos_core::servers::Status, String>),
+    LoginMode(String, Result<luminos_core::loginprobe::LoginMode, String>),
+    SignedIn(Result<Account, String>),
+    AccountUpdated(Account),
 }
 
 /// Cheap, cloneable handle that worker threads use to talk to the UI.
@@ -186,6 +189,10 @@ pub struct ServersState {
     pub name: String,
     pub addr: String,
     pub pinged: bool,
+    pub modes: HashMap<String, Result<luminos_core::loginprobe::LoginMode, String>>,
+    pub checking: std::collections::HashSet<String>,
+    /// Time the page was first shown (egui seconds); drives the staggered entrance. Negative = not yet shown.
+    pub t0: f64,
 }
 
 pub struct Editor {
@@ -223,6 +230,11 @@ pub struct App {
     pub page_t0: f64,
     pub account_menu: bool,
     pub new_account: String,
+    pub acct_kind: u8,
+    pub acct_login: String,
+    pub acct_pass: String,
+    pub acct_api: String,
+    pub acct_busy: bool,
     backdrop: Option<TextureHandle>,
     backdrop_key: (usize, usize, i64),
     pub rail_tex: Option<TextureHandle>,
@@ -280,6 +292,11 @@ impl App {
             page_t0: 0.0,
             account_menu: false,
             new_account: String::new(),
+            acct_kind: 0,
+            acct_login: String::new(),
+            acct_pass: String::new(),
+            acct_api: String::new(),
+            acct_busy: false,
             backdrop: None,
             backdrop_key: (0, 0, -1),
             rail_tex: None,
@@ -334,6 +351,9 @@ impl App {
                 name: String::new(),
                 addr: String::new(),
                 pinged: false,
+                modes: HashMap::new(),
+                checking: Default::default(),
+                t0: -1.0,
             },
             java_list: Loadable::Idle,
             game: None,
@@ -503,6 +523,11 @@ impl App {
     }
 
     pub fn play(&mut self, id: &str) {
+        self.play_ext(id, None);
+    }
+
+    /// Launch `id`, optionally joining `quick` (host[:port]) after a login pre-flight.
+    pub fn play_ext(&mut self, id: &str, quick: Option<String>) {
         if self.game.is_some() || self.launching.is_some() {
             self.toast("A game is already running", ToastKind::Info);
             return;
@@ -537,8 +562,24 @@ impl App {
                 progress.set_stage("Checking for mod updates…");
                 let _ = content::update_all(&inst);
             }
+            let mut acc = acc;
+            if acc.kind.uses_injector() {
+                progress.set_stage("Refreshing your session…");
+                if let Err(e) = luminos_core::yggdrasil::ensure_fresh(&mut acc) {
+                    bg.send(Msg::Launched(Err(format!("{e:#}"))));
+                    return;
+                }
+                bg.send(Msg::AccountUpdated(acc.clone()));
+            }
+            if let Some(addr) = &quick {
+                progress.set_stage("Checking that the server accepts your account…");
+                if let Err(m) = preflight(addr, &acc) {
+                    bg.send(Msg::Launched(Err(m)));
+                    return;
+                }
+            }
             match launch::prepare(&inst, &settings, &progress)
-                .and_then(|p| launch::spawn(&inst, &settings, &acc, &p))
+                .and_then(|p| launch::spawn_ext(&inst, &settings, &acc, &p, quick.as_deref()))
             {
                 Ok(h) => {
                     bg.send(Msg::Launched(Ok(h.clone())));
@@ -565,6 +606,29 @@ impl App {
         });
     }
 
+    /// Ask the server whether it would accept the active account (a real login handshake; never bypasses online-mode).
+    pub fn check_mode(&mut self, addr: &str) {
+        if !self.persist {
+            return;
+        }
+        self.servers.checking.insert(addr.to_string());
+        let name = self
+            .accounts
+            .active()
+            .map(|a| a.username.clone())
+            .unwrap_or_else(|| "LuminosCheck".into());
+        let (bg, a) = (self.bg(), addr.to_string());
+        std::thread::spawn(move || {
+            let r = luminos_core::servers::ping(&a)
+                .map_err(|e| format!("Can't reach the server: {e:#}"))
+                .and_then(|st| {
+                    luminos_core::loginprobe::probe(&a, st.protocol, &name)
+                        .map_err(|e| format!("{e:#}"))
+                });
+            bg.send(Msg::LoginMode(a, r));
+        });
+    }
+
     pub fn ping_all(&mut self) {
         let addrs: Vec<String> = self
             .servers
@@ -579,6 +643,53 @@ impl App {
 
     fn handle(&mut self, m: Msg) {
         match m {
+            Msg::LoginMode(addr, r) => {
+                self.servers.checking.remove(&addr);
+                match &r {
+                    Ok(m) => {
+                        let tag = match m {
+                            luminos_core::loginprobe::LoginMode::OfflineOk => "offline-ok",
+                            luminos_core::loginprobe::LoginMode::OnlineRequired => {
+                                "online-required"
+                            }
+                            luminos_core::loginprobe::LoginMode::Whitelisted => "whitelisted",
+                            _ => "other",
+                        };
+                        if let Some(sv) = self.servers.list.iter_mut().find(|s| s.address == addr) {
+                            sv.login_mode = Some(tag.into());
+                        }
+                        if self.persist {
+                            let _ = luminos_core::servers::save(&self.servers.list);
+                        }
+                    }
+                    Err(e) => self.toast(e.clone(), ToastKind::Bad),
+                }
+                self.servers.modes.insert(addr, r);
+            }
+            Msg::SignedIn(r) => {
+                self.acct_busy = false;
+                match r {
+                    Ok(acc) => {
+                        self.toast(format!("Signed in as {}", acc.username), ToastKind::Good);
+                        self.accounts.add(acc);
+                        self.accounts.save();
+                        self.acct_pass.clear();
+                        self.acct_login.clear();
+                    }
+                    Err(e) => self.toast(format!("Sign-in failed: {e}"), ToastKind::Bad),
+                }
+            }
+            Msg::AccountUpdated(acc) => {
+                if let Some(a) = self
+                    .accounts
+                    .accounts
+                    .iter_mut()
+                    .find(|a| a.username == acc.username && a.kind == acc.kind)
+                {
+                    *a = acc;
+                    self.accounts.save();
+                }
+            }
             Msg::Ping(addr, r) => {
                 self.servers.status.insert(
                     addr,
@@ -978,16 +1089,7 @@ impl App {
         let (name, kind) = self
             .accounts
             .active()
-            .map(|a| {
-                (
-                    a.username.clone(),
-                    if a.kind == accounts::AccountKind::Offline {
-                        "OFFLINE"
-                    } else {
-                        "MICROSOFT"
-                    },
-                )
-            })
+            .map(|a| (a.username.clone(), a.kind.label()))
             .unwrap_or_else(|| ("No account".into(), "—"));
         let tex = self
             .accounts
@@ -1258,11 +1360,7 @@ impl App {
                                     egui::RichText::new(&a.username)
                                         .font(FontId::new(14.5, theme::bold())),
                                 );
-                                let kind = if a.kind == accounts::AccountKind::Offline {
-                                    "Offline account"
-                                } else {
-                                    "Microsoft account"
-                                };
+                                let kind = format!("{} account", a.kind.label().to_lowercase());
                                 ui.label(
                                     egui::RichText::new(if i == self.accounts.active {
                                         format!("{kind} · active")
@@ -1324,10 +1422,76 @@ impl App {
                             self.new_account.clear();
                         }
                     });
+                    ui.add_space(4.0);
                     ui.label(
-                        egui::RichText::new("Microsoft sign-in is on the roadmap.")
-                            .size(12.0)
+                        egui::RichText::new("Sign in with an Ely.by or Luminos account")
+                            .size(12.5)
                             .color(theme::MUTED),
+                    );
+                    ui.horizontal(|ui| {
+                        ui.selectable_value(&mut self.acct_kind, 0, "Ely.by");
+                        ui.selectable_value(&mut self.acct_kind, 1, "Luminos");
+                    });
+                    if self.acct_kind == 1 {
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.acct_api)
+                                .hint_text("https://your-luminos-auth.example")
+                                .desired_width(280.0),
+                        );
+                    }
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.acct_login)
+                            .hint_text("Username or email")
+                            .desired_width(280.0),
+                    );
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.acct_pass)
+                            .password(true)
+                            .hint_text("Password")
+                            .desired_width(280.0),
+                    );
+                    let ready = !self.acct_login.trim().is_empty()
+                        && !self.acct_pass.is_empty()
+                        && (self.acct_kind == 0 || self.acct_api.starts_with("http"))
+                        && !self.acct_busy;
+                    let label = if self.acct_busy {
+                        "Signing in…"
+                    } else {
+                        "Sign in"
+                    };
+                    if widgets::button(ui, accent, label, Some(Icon::Check), Btn::Primary, ready)
+                        .clicked()
+                    {
+                        self.acct_busy = true;
+                        let (kind, api) = if self.acct_kind == 0 {
+                            (
+                                accounts::AccountKind::Elyby,
+                                luminos_core::yggdrasil::ELY_API_ROOT.to_string(),
+                            )
+                        } else {
+                            (
+                                accounts::AccountKind::Luminos,
+                                self.acct_api.trim().to_string(),
+                            )
+                        };
+                        let (login, pass, bg) = (
+                            self.acct_login.trim().to_string(),
+                            self.acct_pass.clone(),
+                            self.bg(),
+                        );
+                        std::thread::spawn(move || {
+                            let r =
+                                luminos_core::yggdrasil::authenticate(kind, &api, &login, &pass)
+                                    .map_err(|e| format!("{e:#}"));
+                            bg.send(Msg::SignedIn(r));
+                        });
+                    }
+                    ui.label(
+                        egui::RichText::new(
+                            "Microsoft sign-in needs an Azure app id and is not wired yet.",
+                        )
+                        .size(11.5)
+                        .color(theme::MUTED),
                     );
                 });
             });
@@ -1337,7 +1501,7 @@ impl App {
                 .map(|p| {
                     Rect::from_min_size(
                         pos,
-                        vec2(320.0, 260.0 + self.accounts.accounts.len() as f32 * 48.0),
+                        vec2(320.0, 480.0 + self.accounts.accounts.len() as f32 * 48.0),
                     )
                     .contains(p)
                         || side.contains(p)
@@ -1565,5 +1729,20 @@ impl eframe::App for App {
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         [0.016, 0.027, 0.07, 1.0]
+    }
+}
+
+/// Before quick-joining: ping + login handshake with the active account's name.
+/// Blocks only when the server clearly can't accept this account; anything uncertain proceeds.
+fn preflight(addr: &str, acc: &Account) -> Result<(), String> {
+    use luminos_core::loginprobe::{self, LoginMode};
+    let st = luminos_core::servers::ping(addr).map_err(|e| format!("Can't reach {addr}: {e:#}"))?;
+    let offline = acc.kind == accounts::AccountKind::Offline;
+    match loginprobe::probe(addr, st.protocol, &acc.username) {
+        Ok(m @ LoginMode::OnlineRequired) if offline => Err(loginprobe::explain(&m, true)),
+        Ok(m @ (LoginMode::Whitelisted | LoginMode::Banned | LoginMode::VersionMismatch(_))) => {
+            Err(loginprobe::explain(&m, offline))
+        }
+        _ => Ok(()),
     }
 }

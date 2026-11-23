@@ -1,0 +1,66 @@
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - name: cargo test (core, auth, app)
+        working-directory: launcher
+        shell: bash
+        run: cargo test --workspace 2>&1 | tee ../test-report-${{ matrix.os }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report-${{ matrix.os }}
+          path: test-report-${{ matrix.os }}.txt
+
+  # Real vanilla server, offline-mode and online-mode, checked with Luminos' login probe.
+  server-login:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: "1.21.4",  java: "21" }
+          - { mc: "1.21.11", java: "21" }
+          - { mc: "26.1.2",  java: "25" }
+          - { mc: "26.2",    java: "25" }
+          - { mc: "26.3",    java: "25" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "${{ matrix.java }}" }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - name: boot server (online-mode=false and true) and probe it
+        env: { WORK: "${{ runner.temp }}/mc-${{ matrix.mc }}" }
+        run: bash tools/ci/server-login-test.sh "${{ matrix.mc }}" 1024 2>&1 | tee login-${{ matrix.mc }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-login-${{ matrix.mc }}
+          path: |
+            login-${{ matrix.mc }}.txt
+            ${{ runner.temp }}/mc-${{ matrix.mc }}/server-*.log
+
+  # Honest placeholder list of what is NOT automated yet, so a green run isn't misread.
+  not-yet-automated:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Not automated yet: headless client smoke (xvfb + llvmpipe) per version,"
+          echo "Windows installer silent-install / no-console-window / single-instance / uninstall / upgrade."
+          echo "See docs/AUDIT.md."

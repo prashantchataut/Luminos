@@ -309,7 +309,10 @@ pub fn router(state: AppState) -> Router {
         .route("/authserver/invalidate", post(invalidate))
         .route("/authserver/signout", post(signout))
         .route("/sessionserver/session/minecraft/join", post(join))
-        .route("/sessionserver/session/minecraft/hasJoined", get(has_joined))
+        .route(
+            "/sessionserver/session/minecraft/hasJoined",
+            get(has_joined),
+        )
         .route(
             "/sessionserver/session/minecraft/profile/{uuid}",
             get(profile_by_uuid),

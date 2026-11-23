@@ -27,17 +27,25 @@ async fn axum_serve(l: tokio::net::TcpListener, app: luminos_auth::Router) {
 #[test]
 fn register_login_validate_refresh_and_launch_arg() {
     let root = start_server();
-    yggdrasil::register_luminos(&root, "steve@example.com", "correct horse battery", "Steve").unwrap();
+    yggdrasil::register_luminos(&root, "steve@example.com", "correct horse battery", "Steve")
+        .unwrap();
 
     // duplicate registration is refused with the server's own message
-    let dup = yggdrasil::register_luminos(&root, "other@example.com", "correct horse battery", "steve");
+    let dup =
+        yggdrasil::register_luminos(&root, "other@example.com", "correct horse battery", "steve");
     assert!(dup.unwrap_err().to_string().contains("already taken"));
 
     // wrong password surfaces the server message, not a bare "403"
     let bad = yggdrasil::authenticate(AccountKind::Luminos, &root, "steve@example.com", "wrong");
     assert!(bad.unwrap_err().to_string().contains("Invalid credentials"));
 
-    let mut acc = yggdrasil::authenticate(AccountKind::Luminos, &root, "steve@example.com", "correct horse battery").unwrap();
+    let mut acc = yggdrasil::authenticate(
+        AccountKind::Luminos,
+        &root,
+        "steve@example.com",
+        "correct horse battery",
+    )
+    .unwrap();
     assert_eq!(acc.username, "Steve");
     // UUID is the vanilla offline UUID, so worlds persist between offline-mode and luminos-auth servers
     assert_eq!(acc.uuid, luminos_core::accounts::offline_uuid("Steve"));
