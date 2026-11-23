@@ -1,0 +1,31 @@
+name: android-jre-probe
+# Engine proof 1b: Android-native OpenJDK 21 and 25 (Termux builds, SHA-256 verified) boot on an x86_64 emulator.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [feat/android]
+    paths: [".github/workflows/android-jre-probe.yml", "android/ci/jre_probe.sh", "android/ci/fetch_termux_jre.py"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Java 21 + 25 (verified against the Termux repo index)
+        run: |
+          mkdir -p /tmp/jre
+          python3 android/ci/fetch_termux_jre.py 21 x86_64 /tmp/jre/21
+          python3 android/ci/fetch_termux_jre.py 25 x86_64 /tmp/jre/25
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          disk-size: 6G
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash android/ci/jre_probe.sh /tmp/jre

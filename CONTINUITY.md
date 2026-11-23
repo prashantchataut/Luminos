@@ -23,6 +23,14 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 8: first releases confirmed, Android engine stage 1b (branch `feat/android`)
+Read `docs/START_HERE.md` first; it is the current handover. Owner directives and reference list: `.agents/context/OWNER_CONTEXT.md`.
+- Verified `v0.4.0` (Windows): downloaded `Luminos-Setup.exe`, SHA-256 matches `SHA256SUMS.txt`. Unsigned.
+- Shipped `android-v0.1.0` (APK + checksums) and `android-v0.2.0`; both built and installed on the CI emulator.
+- Java 21 and 25 (Termux bionic OpenJDK) boot on the emulator; `android-runtimes-v1` release packages them for x86_64 + aarch64. aarch64 not run on a device.
+- App now picks the Java major from Mojang's version JSON. Minecraft itself still does not start on Android (needs GL + window layer).
+- `scripts/gate.sh` now checks every workflow on the exact HEAD commit. It still fails on purpose: ledger has ~117 open items.
+
 ## Session 7: trust layer + icon set (branch `feat/marathon-trust-and-icons`, PR #6)
 Brief: `docs/BRIEF.md` (marathon v8; token line redacted). Per-item state: `docs/LEDGER.md`. Skills: `.agents/skills/` (+ `docs/DESIGN_RULES.md`).
 ### Done and verified (ran it in the sandbox)

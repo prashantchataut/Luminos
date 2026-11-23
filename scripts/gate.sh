@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Done-gate. Exit 0 only when: ledger has no open items, every ticked item has real non-empty evidence,
+# no stub markers, >= 8 skills, and EVERY workflow run on the exact HEAD commit succeeded.
 set -u
 fail=0; L=docs/LEDGER.md
 [ -f "$L" ] || { echo "no ledger"; exit 1; }
@@ -9,22 +11,29 @@ while IFS= read -r line; do
   case "$ev" in
     "") echo "NO EVIDENCE: $line"; fail=1;;
     http*) ;;
-    *) [ -e "$ev" ] || { echo "MISSING EVIDENCE: $ev"; fail=1; };;
+    *) if [ -d "$ev" ]; then [ -n "$(ls -A "$ev")" ] || { echo "EMPTY EVIDENCE DIR: $ev"; fail=1; }
+       elif [ -s "$ev" ]; then :; else echo "MISSING/EMPTY EVIDENCE: $ev"; fail=1; fi;;
   esac
 done < <(grep '^- \[x\]' "$L")
-stubs=$(grep -rnIE 'todo!\(|unimplemented!\(|lorem ipsum|coming soon|FIXME|TODO\(' --exclude-dir={node_modules,target,.git,.agents,docs,scripts} . | wc -l)
+stubs=$(grep -rnIE 'todo!\(|unimplemented!\(|lorem ipsum|coming soon|FIXME|TODO\(' --exclude-dir={node_modules,target,.git,.agents,docs,scripts,build,dist} . | wc -l)
 [ "$stubs" -gt 0 ] && { echo "STUB MARKERS: $stubs"; fail=1; }
 n=$(ls -1 .agents/skills 2>/dev/null | wc -l)
 [ "$n" -ge 8 ] || { echo "SKILLS: only $n installed"; fail=1; }
-b=$(git branch --show-current)
-# CI status of the current branch: gh if present, else the public REST API (GH_TOKEN optional).
-c=""
-if command -v gh >/dev/null 2>&1; then
-  c=$(gh run list --branch "$b" --limit 1 --json conclusion -q '.[0].conclusion' 2>/dev/null)
-else
-  auth=(); [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
-  c=$(curl -fsS "${auth[@]}" "https://api.github.com/repos/prashantchataut/Luminos/actions/runs?branch=$b&per_page=1" 2>/dev/null \
-      | python3 -c 'import sys,json;r=json.load(sys.stdin)["workflow_runs"];print(r[0]["conclusion"] if r else "")' 2>/dev/null)
-fi
-[ "$c" = "success" ] || { echo "CI not green: '$c'"; fail=1; }
+# CI on the exact HEAD commit (all workflows). Needs the commit pushed. GH_TOKEN optional.
+sha=$(git rev-parse HEAD)
+auth=(); [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
+resp=$(curl -fsS "${auth[@]}" "https://api.github.com/repos/prashantchataut/Luminos/actions/runs?head_sha=$sha&per_page=50" 2>/dev/null || true)
+read -r -d '' PY <<'PYEOF'
+import sys, json
+try:
+    runs = json.load(sys.stdin)["workflow_runs"]
+except Exception as e:
+    print("UNKNOWN: could not read GitHub response (%s)" % e); sys.exit()
+if not runs:
+    print("NONE: no workflow ran on this commit (push it)"); sys.exit()
+bad = ["%s=%s" % (r["name"], r["conclusion"] or r["status"]) for r in runs if r["conclusion"] not in ("success", "skipped")]
+print("BAD: " + ", ".join(bad) if bad else "OK")
+PYEOF
+ci=$(printf '%s' "$resp" | python3 -c "$PY" 2>&1)
+case "$ci" in OK) ;; *) echo "CI on $sha: $ci"; fail=1;; esac
 exit $fail

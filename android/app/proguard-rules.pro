@@ -1,0 +1,2 @@
+-keep class app.luminos.mobile.core.** { *; }
+-dontwarn org.tukaani.xz.**
