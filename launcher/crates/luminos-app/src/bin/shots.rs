@@ -366,8 +366,11 @@ fn main() {
     shot("12-playtime", &out, size, ppp, &settle, |a| {
         a.page = Page::Stats
     });
-    shot("13-settings", &out, size, ppp, &settle, |a| {
+    shot("13-settings", &out, (1280.0, 2500.0), ppp, &settle, |a| {
         a.page = Page::Settings
+    });
+    shot("22-client", &out, size, ppp, &settle, |a| {
+        a.page = Page::Client
     });
     // Real requests through the audited HTTP layer, so the counters on the screen are genuine.
     // Offline machines simply show 0 requests.

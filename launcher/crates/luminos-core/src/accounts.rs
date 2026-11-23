@@ -43,6 +43,9 @@ pub struct Account {
     pub access_token: Option<String>,
     #[serde(default)]
     pub client_token: Option<String>,
+    /// Built-in cape id (see `cosmetics::CAPES`) worn by an offline account.
+    #[serde(default)]
+    pub cape_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -80,10 +83,12 @@ impl Account {
             username: name.to_string(),
             uuid: offline_uuid(name),
             kind: AccountKind::Offline,
-            skin_id: None,
+            // New offline accounts wear the original Luminos Pilot skin, not Steve.
+            skin_id: Some(crate::cosmetics::DEFAULT_SKIN_ID.to_string()),
             auth_server: None,
             access_token: None,
             client_token: None,
+            cape_id: None,
         }
     }
 }

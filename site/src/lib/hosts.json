@@ -100,6 +100,14 @@
       "category_label": "Game files"
     },
     {
+      "host": "api.github.com",
+      "purpose": "Checks whether a newer Luminos release exists (one request on start; switch it off here or in Settings)",
+      "category": "luminos",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "News & updates"
+    },
+    {
       "host": "github.com",
       "purpose": "Java runtime download, authlib-injector, Luminos Client releases",
       "category": "game",
@@ -165,10 +173,10 @@
     },
     {
       "host": "api.minecraftservices.com",
-      "purpose": "Minecraft profile and session for Microsoft accounts",
+      "purpose": "Minecraft profile for Microsoft accounts, and the \"is this name premium?\" check when you type a username",
       "category": "accounts",
       "required_to_play": false,
-      "sends": "Your Minecraft access token, to read your profile.",
+      "sends": "Your Minecraft access token (Microsoft accounts only), or the username you typed.",
       "category_label": "Sign-in"
     },
     {

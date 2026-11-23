@@ -62,6 +62,7 @@ pub enum Page {
     Instance(String),
     Skins,
     Servers,
+    Client,
     Stats,
     Settings,
     Network,
@@ -103,6 +104,7 @@ pub enum Msg {
     LoginMode(String, Result<luminos_core::loginprobe::LoginMode, String>),
     SignedIn(Result<Account, String>),
     AccountUpdated(Account),
+    Maint(crate::maint::MaintMsg),
 }
 
 /// Cheap, cloneable handle that worker threads use to talk to the UI.
@@ -257,6 +259,8 @@ pub struct App {
     icon_inflight: HashSet<String>,
     applied_accent: Option<u8>,
     pub maximized: bool,
+    pub maint: crate::maint::Maint,
+    pub client: crate::pages::client::ClientState,
 }
 
 impl App {
@@ -365,9 +369,11 @@ impl App {
             icon_inflight: HashSet::new(),
             applied_accent: None,
             maximized: false,
+            maint: Default::default(),
+            client: Default::default(),
         };
         if persist {
-            app.skins.lib = skins::load();
+            app.skins.lib = skins::ensure_builtin();
             app.start_background_loads();
         }
         app
@@ -469,6 +475,9 @@ impl App {
         });
         self.java_list = Loadable::Loading;
         std::thread::spawn(move || bg.send(Msg::Java(luminos_core::java::detect())));
+        if self.persist && self.settings.check_updates {
+            self.check_update(false);
+        }
     }
 
     /// Lazily fetch and cache a remote icon/image as a texture.
@@ -726,6 +735,7 @@ impl App {
                 self.icons.insert(url, tex);
             }
             Msg::Toast(t, k) => self.toast(t, k),
+            Msg::Maint(m) => self.handle_maint(m),
             Msg::Instances => self.reload_instances(),
             Msg::Content => {
                 self.discover.installing.clear();
@@ -1127,6 +1137,7 @@ impl App {
             (Icon::Grid, "Library", Page::Library),
             (Icon::Server, "Servers", Page::Servers),
             (Icon::Shirt, "Skins", Page::Skins),
+            (Icon::Bolt, "Client", Page::Client),
             (Icon::Chart, "Playtime", Page::Stats),
         ];
         let mut y = acct.bottom() + 12.0;
@@ -1683,6 +1694,7 @@ impl App {
                             Page::Instance(id) => crate::pages::instance::ui(self, ui, &id),
                             Page::Skins => crate::pages::skins::ui(self, ui),
                             Page::Servers => crate::pages::servers::ui(self, ui),
+                            Page::Client => crate::pages::client::ui(self, ui),
                             Page::Stats => crate::pages::stats::ui(self, ui),
                             Page::Settings => crate::pages::settings::ui(self, ui),
                             Page::Network => crate::pages::network::ui(self, ui),

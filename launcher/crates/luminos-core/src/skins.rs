@@ -56,6 +56,32 @@ pub fn save(name: &str, png: &[u8], slim: bool, source: &str) -> Result<SkinEntr
     Ok(e)
 }
 
+/// Make sure the built-in Luminos skins are in the library (idempotent). Returns the library.
+pub fn ensure_builtin() -> SkinLibrary {
+    let mut lib = load();
+    let mut changed = false;
+    for b in crate::cosmetics::SKINS {
+        if !png_path(b.id).exists() {
+            let _ = fs::create_dir_all(paths::skins_dir());
+            let _ = fs::write(png_path(b.id), b.png);
+        }
+        if !lib.skins.iter().any(|s| s.id == b.id) {
+            lib.skins.push(SkinEntry {
+                id: b.id.into(),
+                name: b.name.into(),
+                slim: b.slim,
+                source: "Luminos original".into(),
+                added: 0,
+            });
+            changed = true;
+        }
+    }
+    if changed {
+        let _ = store::write_json(&lib_file(), &lib);
+    }
+    lib
+}
+
 pub fn delete(id: &str) {
     let mut lib = load();
     lib.skins.retain(|s| s.id != id);

@@ -5,6 +5,7 @@ pub mod brand;
 pub mod demo;
 pub mod dither;
 pub mod icons;
+pub mod maint;
 pub mod motion;
 pub mod pages;
 pub mod theme;

@@ -24,6 +24,12 @@ pub struct Settings {
     pub fullscreen: bool,
     /// Registry hosts (see `netaudit::REGISTRY`) the user switched off in Network activity.
     pub net_disabled: Vec<String>,
+    /// Look for a new Luminos release on start (one request to api.github.com).
+    pub check_updates: bool,
+    /// Unix time of the last update check.
+    pub last_update_check: i64,
+    /// Serve the account's skin and cape to the game from a local server (offline accounts).
+    pub offline_skins: bool,
 }
 
 impl Default for Settings {
@@ -45,6 +51,9 @@ impl Default for Settings {
             game_height: 0,
             fullscreen: false,
             net_disabled: Vec::new(),
+            check_updates: true,
+            last_update_check: 0,
+            offline_skins: true,
         }
     }
 }

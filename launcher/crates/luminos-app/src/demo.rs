@@ -402,48 +402,58 @@ pub fn app(ctx: &egui::Context) -> App {
         ),
         entry("My Custom Tweaks", "", "", true, false),
     ];
-    a.skins.lib.skins = vec![
-        luminos_core::skins::SkinEntry {
-            id: "demo-a".into(),
-            name: "Luminos Blue".into(),
-            slim: false,
-            source: "Studio".into(),
+    // The real built-in skins, exactly as the app ships them.
+    a.skins.lib.skins = luminos_core::cosmetics::SKINS
+        .iter()
+        .map(|b| luminos_core::skins::SkinEntry {
+            id: b.id.into(),
+            name: b.name.into(),
+            slim: b.slim,
+            source: "Luminos original".into(),
             added: 0,
-        },
-        luminos_core::skins::SkinEntry {
-            id: "demo-b".into(),
-            name: "Notch".into(),
-            slim: false,
-            source: "Minotar".into(),
-            added: 0,
-        },
-        luminos_core::skins::SkinEntry {
-            id: "demo-c".into(),
-            name: "Alex Mix".into(),
-            slim: true,
-            source: "MC-Heads".into(),
-            added: 0,
-        },
-    ];
-    for (i, id) in ["demo-a", "demo-b", "demo-c"].iter().enumerate() {
-        let px: Vec<egui::Color32> = crate::pages::skins::default_skin()
-            .into_iter()
-            .map(|c| match i {
-                1 => egui::Color32::from_rgba_premultiplied(c.b(), c.g(), c.r(), c.a()),
-                2 => egui::Color32::from_rgba_premultiplied(c.g(), c.b(), c.r(), c.a()),
-                _ => c,
-            })
-            .collect();
+        })
+        .collect();
+    for b in luminos_core::cosmetics::SKINS {
+        let px = crate::pages::skins::decode(b.png).unwrap_or_default();
         a.skins.tex.insert(
-            id.to_string(),
+            b.id.to_string(),
             ctx.load_texture(
-                format!("demo-skin-{id}"),
+                format!("demo-skin-{}", b.id),
                 egui::ColorImage::new([64, 64], px),
                 egui::TextureOptions::NEAREST,
             ),
         );
     }
-    a.skins.selected = Some("demo-a".into());
+    if let Some(acc) = a.accounts.accounts.get_mut(0) {
+        acc.skin_id = Some("luminos-pilot".into());
+        acc.cape_id = Some("luminos-moon-cape".into());
+    }
+    // Client page: pretend the Luminos Client instance is installed, with a few optional mods present.
+    if let Some(inst) = a.instances.iter().find(|i| i.id == "luminos-client").cloned() {
+        let mk = |file: &str, on: bool| luminos_core::content::Entry {
+            file: file.into(),
+            display_name: file.into(),
+            version: String::new(),
+            enabled: on,
+            linked: true,
+            project_id: None,
+            icon_url: None,
+            description: String::new(),
+            size: 0,
+        };
+        a.client.mods = vec![mk("luminos-client-0.2.0.jar", true), mk("resourcify-1.21.4.jar", true), mk("zoomify-2.14.jar", false)];
+        a.client.cfg = serde_json::json!({"modules": {"cps": {"enabled": false}}, "toggleSprint": true, "zoomFov": 24});
+        a.client.instance = Some(inst);
+        a.client.loaded_for = a.page_t0;
+    }
+    a.maint.storage = crate::app::Loadable::Ready(vec![
+        luminos_core::storage::Area { name: "Instances", detail: "Worlds, mods and settings.", path: Default::default(), bytes: 3_400_000_000, reclaimable: false },
+        luminos_core::storage::Area { name: "Minecraft files", detail: "Re-downloaded when needed.", path: Default::default(), bytes: 1_150_000_000, reclaimable: true },
+        luminos_core::storage::Area { name: "Java runtimes", detail: "Re-downloaded when needed.", path: Default::default(), bytes: 610_000_000, reclaimable: true },
+        luminos_core::storage::Area { name: "Downloads cache", detail: "Temporary downloads.", path: Default::default(), bytes: 24_000_000, reclaimable: true },
+        luminos_core::storage::Area { name: "Skins", detail: "Your skin library.", path: Default::default(), bytes: 90_000, reclaimable: false },
+    ]);
+    a.skins.selected = Some("luminos-pilot".into());
     a.detail.tab = DTab::Content;
     a.page = Page::Home;
     a

@@ -28,54 +28,18 @@ pub fn new_state() -> SkinState {
             tex: None,
             dirty: true,
             slim: false,
-            name: "Luminos Blue".into(),
+            name: "Luminos Pilot".into(),
         },
     }
 }
 
-fn fr(px: &mut [Color32], x: usize, y: usize, w: usize, h: usize, c: Color32) {
-    for yy in y..y + h {
-        for xx in x..x + w {
-            px[yy * 64 + xx] = c;
-        }
-    }
-}
 
-/// A friendly starter skin in the Luminos palette (original artwork, not a Mojang texture).
+/// The default skin: "Luminos Pilot", original artwork drawn by `tools/make_skins.py`.
 pub fn default_skin() -> Vec<Color32> {
-    let mut px = vec![Color32::TRANSPARENT; 64 * 64];
-    let skin = Color32::from_rgb(236, 190, 152);
-    let hair = Color32::from_rgb(28, 40, 96);
-    let shirt = Color32::from_rgb(59, 130, 246);
-    let shirt_dk = Color32::from_rgb(37, 99, 235);
-    let pants = Color32::from_rgb(30, 41, 90);
-    let shoes = Color32::from_rgb(15, 23, 52);
-    fr(&mut px, 0, 8, 32, 8, skin);
-    fr(&mut px, 8, 0, 8, 8, hair);
-    fr(&mut px, 16, 0, 8, 8, skin);
-    fr(&mut px, 8, 8, 8, 2, hair);
-    fr(&mut px, 0, 8, 8, 3, hair);
-    fr(&mut px, 16, 8, 8, 3, hair);
-    fr(&mut px, 24, 8, 8, 8, hair);
-    fr(&mut px, 9, 12, 1, 1, Color32::WHITE);
-    fr(&mut px, 10, 12, 1, 1, Color32::from_rgb(34, 211, 238));
-    fr(&mut px, 13, 12, 1, 1, Color32::from_rgb(34, 211, 238));
-    fr(&mut px, 14, 12, 1, 1, Color32::WHITE);
-    fr(&mut px, 11, 14, 2, 1, Color32::from_rgb(190, 120, 110));
-    fr(&mut px, 16, 16, 24, 16, shirt);
-    fr(&mut px, 20, 16, 8, 4, shirt_dk);
-    fr(&mut px, 28, 16, 8, 4, shirt_dk);
-    fr(&mut px, 40, 16, 16, 16, skin);
-    fr(&mut px, 44, 16, 4, 4, shirt);
-    fr(&mut px, 40, 20, 16, 5, shirt);
-    fr(&mut px, 32, 48, 16, 16, skin);
-    fr(&mut px, 36, 48, 4, 4, shirt);
-    fr(&mut px, 32, 52, 16, 5, shirt);
-    fr(&mut px, 0, 16, 16, 16, pants);
-    fr(&mut px, 0, 28, 16, 4, shoes);
-    fr(&mut px, 16, 48, 16, 16, pants);
-    fr(&mut px, 16, 60, 16, 4, shoes);
-    px
+    let b = luminos_core::cosmetics::skin(luminos_core::cosmetics::DEFAULT_SKIN_ID)
+        .map(|s| s.png)
+        .unwrap_or(&[]);
+    decode(b).unwrap_or_else(|| vec![Color32::TRANSPARENT; 64 * 64])
 }
 
 fn flip_copy(px: &mut [Color32], sx: usize, sy: usize, w: usize, h: usize, dx: usize, dy: usize) {
@@ -402,6 +366,36 @@ fn preview(app: &mut App, ui: &mut Ui) {
         {
             wear(app);
         }
+        ui.add_space(8.0);
+        widgets::eyebrow(ui, "Cape");
+        ui.horizontal(|ui| {
+            let cur = app.accounts.active().and_then(|a| a.cape_id.clone());
+            let mut pick: Option<Option<&'static str>> = None;
+            if widgets::chip(ui, accent, "None", None, cur.is_none()).clicked() {
+                pick = Some(None);
+            }
+            for c in luminos_core::cosmetics::CAPES {
+                if widgets::chip(ui, accent, c.name, None, cur.as_deref() == Some(c.id))
+                    .on_hover_text(c.blurb)
+                    .clicked()
+                {
+                    pick = Some(Some(c.id));
+                }
+            }
+            if let Some(p) = pick {
+                let active = app.accounts.active;
+                if let Some(a) = app.accounts.accounts.get_mut(active) {
+                    a.cape_id = p.map(String::from);
+                }
+                if app.persist {
+                    app.accounts.save();
+                }
+            }
+        });
+        widgets::muted(
+            ui,
+            "You always see your skin and cape in game. Other players see them only on servers with skin support (Luminos Client sharing arrives in a later update).",
+        );
         ui.horizontal(|ui| {
             if widgets::button_sized(
                 ui,

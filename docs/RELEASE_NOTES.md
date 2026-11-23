@@ -1,20 +1,17 @@
-## Luminos 0.4.0 — trust layer, accounts and multiplayer groundwork
+## Luminos 0.5.0
 
-Windows x64 installer (`Luminos-Setup.exe`), a portable exe and `SHA256SUMS.txt`. **Not code-signed yet**, so Windows SmartScreen will show an "unknown publisher" warning (see `docs/WINDOWS_SECURITY.md`). Verify your download against `SHA256SUMS.txt`; the build also carries a GitHub provenance attestation.
+Windows launcher. **Unsigned**: Windows SmartScreen will warn ("More info" > "Run anyway"). Check the download against `SHA256SUMS.txt`.
 
-**New**
-- **Network activity screen** (Settings > Privacy): every host the launcher may contact, why, and a per-host switch. Requests to unlisted hosts, and plain HTTP, are refused (each redirect hop is checked). No ads, no telemetry.
-- **Website /privacy** is generated from that same host list, so it cannot drift from the code.
-- **Servers page**: favourites, login-mode badges (offline-OK / online-mode required), version fit, direct connect, invite-link copy, and a plain-language message when a server needs a paid account.
-- **Alternative auth servers**: Ely.by / Luminos accounts via authlib-injector (the standard way to get skins on non-Mojang auth).
-- **Client compatibility manifest**: the Luminos Client jar is only installed when it matches your Minecraft version (fixes the "requires 1.21.4 but you have 26.x" crash).
-- 29 original voxel icons.
+### New
+- **Auto-update.** Luminos checks GitHub for a newer release on start (one request, switchable in Settings and Network activity), downloads `Luminos-Setup.exe`, verifies its SHA-256 against the release's `SHA256SUMS.txt`, then installs silently. Unit-tested; the silent install itself has not been run on a real PC yet.
+- **Storage and your data.** See what uses disk, free the download cache / Minecraft files / Java runtimes, reset launcher data (worlds kept), or delete everything (type DELETE).
+- **Honest username check.** Specific format errors, plus whether a premium account already uses the name. Offline names are not reserved by anyone, and the app says so.
+- **Your skin in game, offline.** Offline accounts now start a tiny skin server on 127.0.0.1 and load your skin and cape through authlib-injector (the way other open-source launchers do it). Tested over real TCP. **Not yet observed in a running game.** Other players see your skin only on servers that support it.
+- **Original skins and cape.** Four new Luminos skins (new default: Luminos Pilot) and the Moon Cape, drawn from scratch.
+- **Client page.** The launcher edits the same `luminos-client.json` as the in-game menu. Optional mods: Resourcify (in-game pack browser), Iris, Zoomify, Controlify, Status Effect Bars.
 
-**Verified before release** (ran in CI/sandbox): launcher unit and integration tests (54+), the auth-server conformance suite, a login-mode probe against a real vanilla 1.21.4 server, and live reachability of every registered host.
+### Fixed
+- The About card claimed "open source"; Luminos is proprietary and source-available.
 
-**Not verified / known limits**
-- Offline accounts only for play; Microsoft sign-in is not wired yet (needs an Azure app id).
-- Authlib-injector in a real game session and quick-join are written but not yet exercised on a live server.
-- Luminos Client currently ships for Minecraft 1.21.4 only; Forge/NeoForge cannot launch yet.
-- Skins you pick offline are visible to you only on online-mode servers; this is how Minecraft works, and the cosmetics system that addresses it is still in progress.
-- No Android build yet.
+### Known gaps
+Minecraft Client works on 1.21.4 only. Microsoft sign-in needs an Azure app id. Windows cards still use Mojang patch-note art, not our own captures. See `docs/PLAN_SESSIONS.md`.
