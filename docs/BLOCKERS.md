@@ -1,0 +1,8 @@
+# BLOCKERS (owner actions). Work continues around each; none stop the session.
+1. **Revoke the leaked PAT.** A classic personal access token (`ghp_…`) was pasted into the task chat. Revoke it at https://github.com/settings/tokens and switch to `gh auth login` or a fine-grained token scoped to this repo (Contents, Pull requests, Actions: read/write). AGENTS.md rule 5.
+2. **Windows code signing (A2).** Option 1: Azure Trusted Signing (needs a verified identity, org age requirements apply). Option 2: OV code-signing certificate from a CA, stored as repo secrets `SIGNING_PFX_BASE64` + `SIGNING_PFX_PASSWORD`. Without either, installers are unsigned and SmartScreen will warn.
+3. **Microsoft sign-in (C3).** Needs an Azure app registration (public client, device-code enabled) and its client ID in `LUMINOS_MS_CLIENT_ID`; Mojang's launcher-API approval may apply to third-party launchers.
+4. **Physical devices (H*).** Pojav-class input quirks (OTG mouse axis, mouse lock) need real hardware; emulator CI can only check the code path.
+5. **Hosting (C5, D1).** luminos-relay / cosmetics / auth need a host + domain + S3 bucket; deploy configs will be provided but not deployed by the agent.
+6. **Sandbox limits this session.** No Android SDK/NDK, no Windows, no GPU/display, 4 GB RAM. Anything needing those must be verified by GitHub Actions.
+7. **gate.sh counts itself.** Its stub regex contains the literal `coming soon`, and the script is not in the `--exclude-dir` list, so the stub check always reports at least 1 marker (`scripts/gate.sh:15`). The brief says to create the script exactly, so it was not edited. Owner decision: exclude `scripts/` from that grep (or drop the phrase from the regex).

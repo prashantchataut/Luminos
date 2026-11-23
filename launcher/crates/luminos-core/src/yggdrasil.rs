@@ -31,6 +31,12 @@ fn agent() -> ureq::Agent {
 }
 
 fn post(url: &str, body: &Value) -> Result<(u16, Value)> {
+    // The API root is either a known host (Ely.by) or one the user typed in; both are audited.
+    if crate::netaudit::lookup(&crate::netaudit::host_of(url).unwrap_or_default()).is_some() {
+        crate::netaudit::check(url)?;
+    } else {
+        crate::netaudit::check_user_configured(url)?;
+    }
     let mut r = agent()
         .post(url)
         .send_json(body)

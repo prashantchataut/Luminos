@@ -1,0 +1,58 @@
+{
+  "skill_name": "rust-best-practices",
+  "source": "skill review and API scenarios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this library function: fn parse(input: String) -> Vec<Record>. The crate is a protocol runtime that must stay allocation-free after init.",
+      "expected_output": "Flags owned String input and Vec return under an allocation-free profile. Recommends &[u8] (or similar) plus caller-owned output buffer returning Result<usize, typed error>. Documents # Allocation. Cites C-CALLER-CONTROL and does not treat C-NO-OUT as forbidding buffers on this profile. Mentions capacity exhaustion as a typed error.",
+      "assertions": [
+        "Rejects String and Vec as the runtime parse signature",
+        "Proposes caller-owned output buffer or equivalent",
+        "Names a typed capacity/output-too-small error",
+        "Does not claim the API must return Vec to satisfy C-NO-OUT"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This library does config.port.unwrap() when reading a config file. Is that OK?",
+      "expected_output": "No. Production libraries must not unwrap recoverable failures. Return Result with a typed error. Config I/O is caller-controlled, not a programmer defect.",
+      "assertions": [
+        "Rejects unwrap on the library path",
+        "Recommends Result and a typed error",
+        "Does not suggest expect as the production fix"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "pub fn read_byte(input: &[u8], index: usize) -> u8 { debug_assert!(index < input.len()); input[index] } Ship it?",
+      "expected_output": "No. debug_assert is not caller validation and disappears in release. Use get plus a typed error in all builds; debug_assert may follow the established invariant. Must not use debug_assert as an unsafe get_unchecked precondition.",
+      "assertions": [
+        "Flags debug_assert as the only bounds check",
+        "Requires a Result (or equivalent) for caller-controlled index",
+        "Does not approve the function as written"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Should this 32-byte Copy struct be passed by value? Give me the byte cutoff from the skill.",
+      "expected_output": "Pass small Copy values by value when that is clearer. Do not apply a universal byte cutoff. Measure ABI and target if size is in question. Never invent a 24-byte or 2-3-word rule.",
+      "assertions": [
+        "Does not state a universal byte threshold as policy",
+        "Says to measure ABI/target when unsure",
+        "Still allows passing small Copy by value"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add a CI baseline for a workspace library crate and point me at the official style and API docs.",
+      "expected_output": "cargo fmt --all -- --check; cargo clippy --workspace --all-targets --all-features --locked -- -D warnings; cargo test including doc and release-assertions profile. Links Style Guide and API Guidelines checklist. Prefer expect over allow for Clippy. overflow-checks on release.",
+      "assertions": [
+        "Includes cargo fmt --check",
+        "Includes clippy -D warnings",
+        "Links rust-lang.github.io/api-guidelines or the Style Guide",
+        "Mentions release-assertions or debug-assertions on an optimized test profile"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Check skill frontmatter, size, relative links, plugin manifests, and the no-em-dash rule.
+set -u
+
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+skill_dir="$root/skills/rust-best-practices"
+skill="$skill_dir/SKILL.md"
+errors=0
+
+fail() {
+  printf 'ERROR: %s\n' "$1"
+  errors=$((errors + 1))
+}
+
+if [ ! -f "$skill" ]; then
+  fail "skills/rust-best-practices/SKILL.md: missing"
+else
+  name="$(sed -n 's/^name: //p' "$skill" | head -1)"
+  [ "$name" = "rust-best-practices" ] || fail "SKILL.md: name must be rust-best-practices (got '$name')"
+  description="$(sed -n 's/^description: //p' "$skill" | head -1)"
+  [ -n "$description" ] || fail "SKILL.md: description missing"
+  case "$description" in
+    \"*\") ;;
+    *) fail "SKILL.md: description must be one double-quoted line" ;;
+  esac
+  length="$(printf '%s' "$description" | wc -m | tr -d ' ')"
+  [ "$length" -le 1026 ] || fail "SKILL.md: description is $length chars, limit 1024"
+  lines="$(wc -l < "$skill" | tr -d ' ')"
+  [ "$lines" -lt 500 ] || fail "SKILL.md: $lines lines, must stay under 500"
+  skill_version="$(sed -n 's/^  version: "\(.*\)"$/\1/p' "$skill" | head -1)"
+  grep -o '\]([^)]*)' "$skill" | sed 's/^](//; s/)$//' | grep -v -E '^(https?://|#|mailto:)' | while read -r link; do
+    [ -e "$skill_dir/${link%%#*}" ] || printf 'ERROR: SKILL.md: broken link %s\n' "$link"
+  done | tee /tmp/validate-links.txt
+  if [ -s /tmp/validate-links.txt ]; then errors=$((errors + $(wc -l < /tmp/validate-links.txt))); fi
+fi
+
+for manifest in "$root/.claude-plugin/plugin.json" "$root/.claude-plugin/marketplace.json"; do
+  if [ ! -f "$manifest" ]; then
+    fail "${manifest#"$root"/}: missing"
+  elif ! jq . "$manifest" > /dev/null 2>&1; then
+    fail "${manifest#"$root"/}: invalid JSON"
+  fi
+done
+if [ -f "$root/.claude-plugin/plugin.json" ] && [ -f "$root/.claude-plugin/marketplace.json" ]; then
+  plugin_name="$(jq -r '.name' "$root/.claude-plugin/plugin.json")"
+  [ "$plugin_name" = "rust-best-practices" ] || fail "plugin.json: name must be rust-best-practices"
+  plugin_version="$(jq -r '.version' "$root/.claude-plugin/plugin.json")"
+  [ "${skill_version:-}" = "" ] || [ "$skill_version" = "$plugin_version" ] || fail "SKILL.md metadata.version ($skill_version) and plugin.json version ($plugin_version) differ"
+  source="$(jq -r '.plugins[0].source' "$root/.claude-plugin/marketplace.json")"
+  [ "$source" = "./" ] || fail "marketplace.json: plugins[0].source must be ./"
+  entries="$(jq '.plugins | length' "$root/.claude-plugin/marketplace.json")"
+  [ "$entries" = "1" ] || fail "marketplace.json: exactly one plugin entry expected"
+  [ "$(jq '.plugins[0] | has("version")' "$root/.claude-plugin/marketplace.json")" = "false" ] || fail "marketplace.json: the plugin entry must not pin a version"
+fi
+
+for required in \
+  "$root/assets/rust-logo.svg" \
+  "$root/assets/rust-logo-white-outline.svg" \
+  "$skill_dir/references/official.md" \
+  "$skill_dir/references/allocation.md" \
+  "$skill_dir/references/ownership.md" \
+  "$skill_dir/references/errors.md" \
+  "$skill_dir/references/design.md" \
+  "$skill_dir/references/unsafe.md" \
+  "$skill_dir/references/performance.md" \
+  "$skill_dir/references/quality.md" \
+  "$skill_dir/references/review.md"
+do
+  [ -f "$required" ] || fail "${required#"$root"/}: missing"
+done
+
+if ! grep -q 'rust-lang.github.io/api-guidelines' "$skill_dir/references/official.md"; then
+  fail "references/official.md: must link API Guidelines"
+fi
+if ! grep -q 'doc.rust-lang.org/stable/style-guide' "$skill_dir/references/official.md"; then
+  fail "references/official.md: must link Style Guide"
+fi
+
+for doc in "$root"/README.md "$root"/AGENTS.md "$root"/CONVENTIONS.md "$root"/CONTRIBUTING.md "$root"/CHANGELOG.md "$root"/THIRD-PARTY-NOTICES.md "$skill" "$skill_dir"/references/*.md; do
+  [ -f "$doc" ] || continue
+  if grep -q $'\xe2\x80\x94' "$doc"; then fail "${doc#"$root"/}: contains an em dash (U+2014)"; fi
+done
+
+if [ "$errors" -gt 0 ]; then
+  exit 1
+fi
+printf 'OK\n'

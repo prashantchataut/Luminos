@@ -1,0 +1,199 @@
+{
+  "generated_by": "luminos-core/src/netaudit.rs (cargo run -p luminos-core --example hosts_json)",
+  "analytics": "none: Luminos contains no analytics or telemetry code and no host for it",
+  "ads": "none",
+  "hosts": [
+    {
+      "host": "piston-meta.mojang.com",
+      "purpose": "Minecraft version list and per-version metadata",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "piston-data.mojang.com",
+      "purpose": "Minecraft client and server jars",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "launchermeta.mojang.com",
+      "purpose": "Legacy Minecraft version metadata",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "launcher.mojang.com",
+      "purpose": "Legacy Minecraft jar downloads",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "libraries.minecraft.net",
+      "purpose": "Minecraft libraries (LWJGL, Netty, ...)",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "resources.download.minecraft.net",
+      "purpose": "Minecraft sounds, language files and other assets",
+      "category": "game",
+      "required_to_play": true,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "launchercontent.mojang.com",
+      "purpose": "Patch notes shown on the Home page",
+      "category": "luminos",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "News & updates"
+    },
+    {
+      "host": "meta.fabricmc.net",
+      "purpose": "Fabric loader versions",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "maven.fabricmc.net",
+      "purpose": "Fabric loader libraries",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "meta.quiltmc.org",
+      "purpose": "Quilt loader versions",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "maven.quiltmc.org",
+      "purpose": "Quilt loader libraries",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "api.adoptium.net",
+      "purpose": "Finds the right Java runtime when none is installed (redirects to GitHub)",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "github.com",
+      "purpose": "Java runtime download, authlib-injector, Luminos Client releases",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "objects.githubusercontent.com",
+      "purpose": "GitHub's file CDN for the downloads above",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "release-assets.githubusercontent.com",
+      "purpose": "GitHub's release-asset CDN for the downloads above",
+      "category": "game",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "Game files"
+    },
+    {
+      "host": "raw.githubusercontent.com",
+      "purpose": "Luminos' own server directory and client compatibility list",
+      "category": "luminos",
+      "required_to_play": false,
+      "sends": "A normal HTTPS request: your IP address and Luminos' user-agent. No account, hardware or usage data.",
+      "category_label": "News & updates"
+    },
+    {
+      "host": "*.modrinth.com",
+      "purpose": "Mod search, project pages, hash lookups, mod downloads and icons (api / cdn)",
+      "category": "content",
+      "required_to_play": false,
+      "sends": "Search text you type, project ids, and SHA-1/SHA-512 hashes of mod files you have installed (to find updates).",
+      "category_label": "Mods & packs"
+    },
+    {
+      "host": "login.microsoftonline.com",
+      "purpose": "Microsoft device-code sign-in",
+      "category": "accounts",
+      "required_to_play": false,
+      "sends": "Only when you add a Microsoft account: the sign-in handshake. Luminos never sees your password.",
+      "category_label": "Sign-in"
+    },
+    {
+      "host": "user.auth.xboxlive.com",
+      "purpose": "Xbox Live token step of Microsoft sign-in",
+      "category": "accounts",
+      "required_to_play": false,
+      "sends": "Sign-in tokens for the account you add.",
+      "category_label": "Sign-in"
+    },
+    {
+      "host": "xsts.auth.xboxlive.com",
+      "purpose": "XSTS token step of Microsoft sign-in",
+      "category": "accounts",
+      "required_to_play": false,
+      "sends": "Sign-in tokens for the account you add.",
+      "category_label": "Sign-in"
+    },
+    {
+      "host": "api.minecraftservices.com",
+      "purpose": "Minecraft profile and session for Microsoft accounts",
+      "category": "accounts",
+      "required_to_play": false,
+      "sends": "Your Minecraft access token, to read your profile.",
+      "category_label": "Sign-in"
+    },
+    {
+      "host": "authserver.ely.by",
+      "purpose": "Ely.by sign-in (authlib-injector)",
+      "category": "accounts",
+      "required_to_play": false,
+      "sends": "Only when you add an Ely.by account: the username and password you type, sent over HTTPS to Ely.by.",
+      "category_label": "Sign-in"
+    },
+    {
+      "host": "minotar.net",
+      "purpose": "Fetch a skin by username when you import one",
+      "category": "skins",
+      "required_to_play": false,
+      "sends": "The username you typed.",
+      "category_label": "Skins"
+    },
+    {
+      "host": "mc-heads.net",
+      "purpose": "Fallback skin lookup by username",
+      "category": "skins",
+      "required_to_play": false,
+      "sends": "The username you typed.",
+      "category_label": "Skins"
+    }
+  ]
+}

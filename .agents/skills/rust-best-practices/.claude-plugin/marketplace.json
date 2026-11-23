@@ -1,0 +1,27 @@
+{
+  "name": "rust-best-practices-skill",
+  "owner": {
+    "name": "Massimo De Luisa",
+    "email": "massimodeluisa@me.com"
+  },
+  "metadata": {
+    "description": "Write and review production Rust using the official API Guidelines, Style Guide, and this engineering standard."
+  },
+  "plugins": [
+    {
+      "name": "rust-best-practices",
+      "source": "./",
+      "description": "Write and review production Rust using the official API Guidelines, Style Guide, and this engineering standard: allocation contracts, ownership, Result vs panic, debug_assert, Clippy, tests, rustdoc, unsafe, and Cargo CI.",
+      "metadata": {
+        "category": "development",
+        "tags": [
+          "rust",
+          "clippy",
+          "rustfmt",
+          "api-guidelines",
+          "allocation"
+        ]
+      }
+    }
+  ]
+}

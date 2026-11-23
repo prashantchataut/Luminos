@@ -96,6 +96,8 @@ fn first_party_client_jar_installs() {
     let inst = luminos_core::instances::Instance {
         id: "fp".into(),
         name: "fp".into(),
+        mc_version: "1.21.4".into(),
+        loader: luminos_core::instances::Loader::Fabric,
         ..Default::default()
     };
     let name = luminos_core::preset::install_first_party(&inst).expect("install");

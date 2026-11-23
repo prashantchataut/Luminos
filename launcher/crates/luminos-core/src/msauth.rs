@@ -47,6 +47,7 @@ pub struct Session {
 }
 
 fn form(url: &str, fields: &[(&str, &str)]) -> Result<(u16, Value)> {
+    crate::netaudit::check(url)?;
     let mut resp = http::agent()
         .post(url)
         .config()
@@ -60,6 +61,7 @@ fn form(url: &str, fields: &[(&str, &str)]) -> Result<(u16, Value)> {
 }
 
 fn json_post(url: &str, body: &Value) -> Result<Value> {
+    crate::netaudit::check(url)?;
     let mut resp = http::agent()
         .post(url)
         .header("Accept", "application/json")
@@ -206,6 +208,7 @@ pub fn minecraft_login(ms_access: &str, ms_refresh: &str) -> Result<Session> {
         .to_string();
     let expires = mc["expires_in"].as_i64().unwrap_or(86_400);
 
+    crate::netaudit::check("https://api.minecraftservices.com/minecraft/profile")?;
     let mut resp = http::agent()
         .get("https://api.minecraftservices.com/minecraft/profile")
         .header("Authorization", &format!("Bearer {token}"))

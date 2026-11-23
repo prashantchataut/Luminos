@@ -1,0 +1,36 @@
+<!-- Social preview source. From the repository root: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=2 --window-size=1280,640 --screenshot=/tmp/og-2x.png "file://$PWD/assets/og.html" && magick /tmp/og-2x.png -resize 50% -strip assets/og.png. Needs Geist and Geist Mono. Logo: official rust-logo-white-outline.svg from rust-lang/rust-artwork, CC BY 4.0. -->
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:640px;overflow:hidden;background:#0b0d10;color:#f4f4f5;font-family:"Geist",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.bg{position:absolute;inset:0;background:
+ radial-gradient(900px 520px at 88% 12%, rgba(222,165,132,.28), transparent 60%),
+ radial-gradient(700px 420px at 8% 100%, rgba(222,165,132,.12), transparent 60%),
+ #0b0d10}
+.grain{position:absolute;inset:0;opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='.9'/></svg>")}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(255,255,255,.14);border-radius:999px;font:500 17px/1 "Geist";color:#c7c9d1;background:rgba(255,255,255,.03)}
+.chip b{color:#dea584;font-weight:600}
+.cmd{font:500 22px/1 "Geist Mono";color:#dea584;background:rgba(222,165,132,.10);border:1px solid rgba(222,165,132,.35);border-radius:10px;padding:14px 18px;display:inline-block}
+.cmd span{color:#8b8f9a}
+h1{font-weight:600;letter-spacing:-.02em;line-height:1.02}
+.strip{display:flex;gap:22px;justify-content:center;font:500 18px/1 "Geist Mono";color:#3a3f4b}
+.strip span:nth-child(3n+1){color:#dea584}.strip span:nth-child(5n+2){color:#8b8f9a}
+.fade{position:absolute;inset:0;pointer-events:none}
+</style></head><body><div class="bg"></div><div class="grain"></div>
+<div style="position:absolute;left:0;right:0;top:48px;text-align:center">
+  <img src="rust-logo-white-outline.svg" alt="" style="height:168px;display:inline-block">
+  <h1 style="font-size:54px;margin-top:28px">Write and review production Rust.</h1>
+  <div class="cmd" style="margin-top:24px"><span>$</span> npx skills add massimodeluisa/rust-best-practices-skill</div>
+  <div style="display:flex;gap:10px;margin-top:22px;justify-content:center"><span class="chip">Agent Skill</span><span class="chip"><b>API</b> Guidelines</span><span class="chip"><b>Style</b> Guide</span><span class="chip"><b>MIT</b></span></div>
+</div>
+<div class="strip" style="position:absolute;left:0;right:0;bottom:40px">
+<span>&amp;str</span>
+<span>Result</span>
+<span>no_std</span>
+<span>debug_assert!</span>
+<span>clippy</span>
+<span>C-CONV</span>
+<span>heapless</span>
+<span>rustfmt</span>
+</div>
+<div class="fade" style="background:linear-gradient(90deg,#0b0d10 0%,transparent 12%,transparent 88%,#0b0d10 100%)"></div>
+</body></html>

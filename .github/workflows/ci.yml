@@ -55,3 +55,35 @@ jobs:
         with:
           workspaces: launcher
       - run: cargo test -p luminos-core --test live -- --ignored --test-threads=1
+      # A1g: real requests through the audited HTTP layer; fails if any contacted host (redirects
+      # included) is not in the registry.
+      - run: cargo test -p luminos-core --test network_audit_live -- --ignored --nocapture --test-threads=1
+
+  trust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher
+      - name: A5c - hosts.json must match the registry (privacy page cannot drift)
+        working-directory: launcher
+        run: |
+          cargo run -q -p luminos-core --example hosts_json > /tmp/hosts.json
+          diff -u ../site/src/lib/hosts.json /tmp/hosts.json
+      - name: B2 - icon set tests (size, palette, uniqueness, determinism)
+        run: |
+          python3 tools/test_icons.py
+          git diff --exit-code brand/icons
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Site type-check and build (renders /privacy from hosts.json)
+        working-directory: site
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run build
