@@ -1,7 +1,7 @@
 //! The Luminos Client bundle: a curated, one-click set of open-source Fabric mods.
 //! Every slug below was verified against the live Modrinth API. Missing/incompatible
 //! mods are skipped gracefully so the bundle works across Minecraft versions.
-use crate::{content, http, instances::Instance};
+use crate::{content, instances::Instance};
 use anyhow::{bail, Context, Result};
 
 #[derive(Clone, Copy, Debug)]

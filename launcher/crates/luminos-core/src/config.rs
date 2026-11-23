@@ -22,6 +22,8 @@ pub struct Settings {
     pub game_width: u32,
     pub game_height: u32,
     pub fullscreen: bool,
+    /// Registry hosts (see `netaudit::REGISTRY`) the user switched off in Network activity.
+    pub net_disabled: Vec<String>,
 }
 
 impl Default for Settings {
@@ -42,15 +44,19 @@ impl Default for Settings {
             game_width: 0,
             game_height: 0,
             fullscreen: false,
+            net_disabled: Vec::new(),
         }
     }
 }
 
 impl Settings {
     pub fn load() -> Self {
-        store::read_json(&paths::settings_file())
+        let s: Self = store::read_json(&paths::settings_file());
+        crate::netaudit::set_disabled(&s.net_disabled);
+        s
     }
     pub fn save(&self) {
+        crate::netaudit::set_disabled(&self.net_disabled);
         let _ = store::write_json(&paths::settings_file(), self);
     }
 }
