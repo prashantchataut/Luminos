@@ -258,9 +258,9 @@ public final class Panel {
 	public void scroll(double dy) { page = Math.max(0, page + (dy < 0 ? 1 : -1)); }
 
 	/** @return true if the panel consumed the key (otherwise the screen may close itself). */
-	public boolean key(int code, int panelKeyCode) {
+	public boolean key(int code, int panelKeyCode, Object event) {
 		if (rebinding != null) {
-			if (code != 256) { Nav.rebind(Minecraft.getInstance(), rebinding, code); say("Bound to " + Nav.keyName(rebinding)); }
+			if (code != 256) { Nav.rebind(Minecraft.getInstance(), rebinding, event); say("Bound to " + Nav.keyName(rebinding)); }
 			rebinding = null;
 			return true;
 		}

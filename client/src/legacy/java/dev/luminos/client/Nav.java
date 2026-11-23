@@ -15,8 +15,8 @@ final class Nav {
 	static KeyMapping register(KeyMapping k) { return KeyBindingHelper.registerKeyBinding(k); }
 	static int boundCode(KeyMapping k) { return KeyBindingHelper.getBoundKeyOf(k).getValue(); }
 	static String keyName(KeyMapping k) { return k.getTranslatedKeyMessage().getString(); }
-	static void rebind(Minecraft mc, KeyMapping k, int code) {
-		k.setKey(InputConstants.Type.KEYSYM.getOrCreate(code));
+	static void rebind(Minecraft mc, KeyMapping k, Object ev) {
+		k.setKey(InputConstants.Type.KEYSYM.getOrCreate(((net.minecraft.client.input.KeyEvent) ev).key()));
 		KeyMapping.resetMapping();
 		mc.options.save();
 	}

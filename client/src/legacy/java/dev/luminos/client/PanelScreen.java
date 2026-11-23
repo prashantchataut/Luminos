@@ -33,7 +33,7 @@ public final class PanelScreen extends Screen {
 	@Override
 	public boolean keyPressed(KeyEvent e) {
 		int code = e.key(), pk = Nav.boundCode(LuminosClient.panelKey);
-		if (panel.key(code, pk)) return true;
+		if (panel.key(code, pk, e)) return true;
 		if (code == 256 || code == pk) { onClose(); return true; }
 		return false;
 	}
