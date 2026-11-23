@@ -1,0 +1,9 @@
+{
+  "clean_exit_marker": true,
+  "incompatibilities": [],
+  "minecraft": "1.21.11",
+  "pass": true,
+  "seconds": 40,
+  "title_screen": true,
+  "variant": "full"
+}

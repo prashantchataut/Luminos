@@ -4,7 +4,7 @@ You are continuing a multi-session project. **Before doing anything: read `CONTI
 **Before finishing: update `CONTINUITY.md`, regenerate screenshots if the UI changed, commit.**
 
 ## Non-negotiables
-1. **Everything in the launcher is Rust.** No Electron/webviews. The marketing site is the only TypeScript.
+1. **The engine is Rust (`luminos-core`); the Windows UI is Tauri 2 + React/TypeScript in `app/`** (since 0.6.0, so the web design skills apply). Tauri's webview is the only webview allowed; no Electron. The old egui UI in `launcher/crates/luminos-app` is no longer shipped and is kept only until the Tauri app has been exercised end to end on Windows.
 2. **Stay light.** New dependency? Justify it in the PR. Prefer `std`. Check `cargo build --release` size; don't regress past ~12 MB without a reason.
 3. **Never block the UI thread.** Network/disk/process work goes in a thread and reports through `Bg::send(Msg::…)`.
 4. **Honesty over hype.** Mark anything not run on real hardware as 🟡 in CONTINUITY. Never claim a feature works if it was only compiled.
