@@ -481,7 +481,8 @@ mod tests {
         // the losing value is recoverable
         let kept: Vec<_> = fs::read_dir(root.join("sync/conflicts")).unwrap().flatten().collect();
         assert!(!kept.is_empty());
-        assert!(fs::read_to_string(kept[0].path()).unwrap().contains("right.shift"));
+        // read_dir order differs per OS and several keys conflicted (fov too): look through every backup
+        assert!(kept.iter().any(|e| fs::read_to_string(e.path()).unwrap().contains("right.shift")), "losing panel binding must be kept");
 
         // key only B has flows back to the store, then to a third instance that knows it
         s2.reconcile("B", &b).unwrap();
