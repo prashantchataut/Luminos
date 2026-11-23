@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         mc: ["26.3", "1.21.11"]
-        variant: [full, minimal, no-skin, no-render]
+        variant: [full]   # minimal / no-skin / no-render exist in the harness (LUMINOS_SMOKE_VARIANT) for bisecting a failure
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Only the real default preset ("full") gates the build; the other variants exist to bisect a failure.
@@ -57,6 +57,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 libopenal1 libxrandr2 libxxf86vm1 libxcursor1 libxi6 libxinerama1 libpulse0 imagemagick x11-utils mesa-vulkan-drivers
       - name: Build the smoke harness
+        timeout-minutes: 20
         working-directory: launcher
         run: cargo build -p luminos-core --example smoke --release
       - name: Launch to the title screen
@@ -74,7 +75,7 @@ jobs:
           export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc${{ matrix.mc }}.jar | head -1)"
           mkdir -p out
           # screenshot of the real title screen = cover art for this version (one frame, 4 s after the signal)
-          ( until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done; sleep 4; DISPLAY=:99 import -window root out/title-${{ matrix.mc }}-${{ matrix.variant }}.png ) &
+          ( timeout 480 bash -c 'until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done' && sleep 4 && DISPLAY=:99 import -window root out/title-${{ matrix.mc }}-${{ matrix.variant }}.png ) >/dev/null 2>&1 &
           xvfb-run -n 99 -s "-screen 0 1280x720x24 +extension GLX +render -noreset" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
       - name: Summary
         if: always()

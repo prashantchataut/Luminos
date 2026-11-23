@@ -1,0 +1,27 @@
+{
+  "installer_bytes": 2360717,
+  "installer_mb": 2.25,
+  "silent_install_ms": 937,
+  "exe": "C:\\Users\\runneradmin\\AppData\\Local\\Luminos\\luminos-desktop.exe",
+  "exe_mb": 5.87,
+  "cold_start_runs": [
+    {
+      "run": 1,
+      "wall_ms": 6736,
+      "in_process_ms": 6705
+    },
+    {
+      "run": 2,
+      "wall_ms": 529,
+      "in_process_ms": 515
+    },
+    {
+      "run": 3,
+      "wall_ms": 405,
+      "in_process_ms": 384
+    }
+  ],
+  "idle_ws_mb": 332.8,
+  "idle_private_mb": 109.5,
+  "idle_process_count": 7
+}
