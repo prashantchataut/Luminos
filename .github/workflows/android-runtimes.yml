@@ -1,0 +1,49 @@
+name: android-runtimes
+# Packages Android-native OpenJDK 21 and 25 (Termux builds; each .deb verified against the repo's SHA-256 index)
+# as tar.xz runtimes for the Luminos Mobile app. Tag `android-runtimes-vN` -> GitHub Release with checksums.
+# OpenJDK is GPLv2 + Classpath Exception; source: https://github.com/termux/termux-packages/tree/master/packages/openjdk-21
+on:
+  workflow_dispatch: {}
+  push:
+    tags: ["android-runtimes-v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        major: [21, 25]
+        arch: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch, verify, assemble, pack
+        run: |
+          python3 android/ci/fetch_termux_jre.py ${{ matrix.major }} ${{ matrix.arch }} /tmp/rt
+          cp -a /tmp/rt/lib/. /tmp/rt/jre/lib/
+          N=luminos-jre${{ matrix.major }}-${{ matrix.arch }}.tar.xz
+          mkdir -p dist
+          tar -C /tmp/rt/jre -cf - . | xz -T0 -6 > "dist/$N"
+          (cd dist && sha256sum "$N" > "$N.sha256" && ls -l)
+      - uses: actions/upload-artifact@v4
+        with: { name: "rt-${{ matrix.major }}-${{ matrix.arch }}", path: dist/* }
+  release:
+    if: startsWith(github.ref, 'refs/tags/android-runtimes-v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: "rt-*", merge-multiple: true, path: dist }
+      - name: Combined checksums
+        run: cd dist && cat *.sha256 > SHA256SUMS-runtimes.txt && rm *.sha256 && cat SHA256SUMS-runtimes.txt && ls -l
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Luminos Android runtimes ${{ github.ref_name }}
+          prerelease: true
+          body: |
+            Java 21 and Java 25 runtimes for Luminos Mobile, repackaged from Termux's Android (bionic) OpenJDK builds.
+            Each source `.deb` was verified against the Termux repository's SHA-256 index in CI before packing. Minecraft 1.20.5 to 1.21.x needs Java 21, Minecraft 26.x needs Java 25.
+            `x86_64` builds were booted on an Android 11 emulator in CI (`android-jre-probe`). **`aarch64` builds are packaged the same way but have not been run by us on a device.**
+            Licence: OpenJDK is GPLv2 + Classpath Exception. Libraries: libandroid-shmem/-spawn (BSD), libiconv (LGPL), libjpeg-turbo (BSD/IJG/zlib), zlib, littlecms (MIT), libc++ (Apache-2.0 with LLVM exception). Sources: https://github.com/termux/termux-packages
+          files: dist/*
