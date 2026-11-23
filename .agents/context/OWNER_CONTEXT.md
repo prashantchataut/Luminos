@@ -39,7 +39,7 @@ Themes: dark/light variants, accent colour picker, animations toggle. Profiles: 
 HUD Design Studio: drag/resize widgets on the live game view, size badge, lock/hide/delete, GUI scale, background, text colour/shadow, visibility per context (F3, tab list, GUIs, chat), widget modes (e.g. keystrokes Normal/Custom).
 Main menu extras: Quickplay dropdown with server cards, Host World wizard (visibility: friends, game mode, difficulty, cheats, private relay, share resource pack), Social, Cosmetics, 3D skin preview on the main menu.
 Mod list seen: Chatting, CrashPatch, OverflowAnimations, DamageTint, PolyBlur, PolyTime, PolyWeather, PolyHitbox, PolyNametag, OverflowParticles, ParticleGlow, Overlay Tweaks, Simple Block Overlay, Better Screens, Spoty Widget, LambdaBetterGrass.
-Luminos must implement each as an original feature (client mod or launcher feature) and tick it in `docs/ONECLIENT_PARITY.md` when it works in a real game.
+Luminos must implement each as an original feature (client mod or launcher feature). `docs/ONECLIENT_PARITY.md` does not exist yet: create it from this checklist and tick an item only when it works in a real game.
 
 ## Imagery the owner liked (attached images, session 8)
 - Pixel-art flower beside serif headline (dithered, warm, calm): the dithered-blue site look.

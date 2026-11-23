@@ -152,6 +152,8 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] H10 Android CI (build, lint, unit, emulator UI, JNI smoke)
 - [x] H10a Release APK built in CI and attached to a GitHub Release with SHA256SUMS — evidence: https://github.com/prashantchataut/Luminos/releases/tag/android-v0.1.0
 - [x] H10b Emulator job installs, opens, drives onboarding/home/library/skins and fails on crash — evidence: android/ci/emulator_test.sh
+- [x] H2b Android-native Java 21 and 25 compile and run a program on the x86_64 emulator (CI log) — evidence: android/ci/jre_probe.sh
+- [x] H2c App downloads the Java major Mojang's version JSON asks for, SHA-256 verified, and boots it (OpenJDK 25.0.5.1 for 26.3) — evidence: docs/screenshots/android/04-home.png
 - [x] H2a JVM (OpenJDK 17 for Android) boots on the x86_64 emulator, in the CI log — evidence: android/ci/jvm_smoke.sh
 - [x] H10c Android screenshots of onboarding, home, library, skins committed — evidence: docs/screenshots/android
 
