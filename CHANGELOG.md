@@ -1,3 +1,6 @@
+## 0.5.0
+- Auto-update, storage manager, honest username check, offline skin + cape server, original skins and cape, Client page, optional mods (Resourcify and others). See docs/RELEASE_NOTES.md.
+
 # Changelog
 
 ## 0.4.0

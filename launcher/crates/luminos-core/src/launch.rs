@@ -385,6 +385,13 @@ pub fn spawn_ext(
     prep: &Prepared,
     quick_join: Option<&str>,
 ) -> Result<GameHandle> {
+    // Offline accounts: serve the chosen skin and cape to the game from a local Yggdrasil server.
+    let (session_account, skin_server) = if settings.offline_skins {
+        offline_skin_session(account)
+    } else {
+        (account.clone(), None)
+    };
+    let account = &session_account;
     if account.kind.uses_injector() {
         crate::yggdrasil::ensure_injector()?;
     }
@@ -426,12 +433,55 @@ pub fn spawn_ext(
             }
         });
     }
+    let child = Arc::new(Mutex::new(child));
+    if let Some(srv) = skin_server {
+        // Keep the local skin server alive exactly as long as the game runs.
+        let c = child.clone();
+        thread::spawn(move || {
+            loop {
+                thread::sleep(std::time::Duration::from_secs(2));
+                if matches!(c.lock().map(|mut c| c.try_wait()), Ok(Ok(Some(_))) | Err(_)) {
+                    break;
+                }
+            }
+            drop(srv);
+        });
+    }
     Ok(GameHandle {
         instance_id: inst.id.clone(),
-        child: Arc::new(Mutex::new(child)),
+        child,
         log,
         started: store::now_unix(),
     })
+}
+
+/// For an offline account with a skin or cape: start the local skin server and return a copy of the
+/// account that routes the game's auth through it (authlib-injector). Any failure falls back to the plain
+/// offline account, so a skin problem can never stop the game from starting.
+fn offline_skin_session(account: &Account) -> (Account, Option<crate::offlineskin::SkinServer>) {
+    use crate::{accounts::AccountKind, offlineskin::{Profile, SkinServer}};
+    let plain = || (account.clone(), None);
+    if account.kind != AccountKind::Offline {
+        return plain();
+    }
+    let lib = crate::skins::load();
+    let skin = account.skin_id.as_deref().and_then(|id| {
+        let png = crate::skins::read_png(id).or_else(|| crate::cosmetics::skin(id).map(|b| b.png.to_vec()))?;
+        let slim = lib.skins.iter().find(|s| s.id == id).map(|s| s.slim).or_else(|| crate::cosmetics::skin(id).map(|b| b.slim));
+        Some((png, slim.unwrap_or(false)))
+    });
+    let cape = account.cape_id.as_deref().and_then(crate::cosmetics::cape).map(|c| c.png.to_vec());
+    let Some((skin_png, slim)) = skin else { return plain() };
+    if crate::yggdrasil::ensure_injector().is_err() {
+        return plain();
+    }
+    let profile = Profile { name: account.username.clone(), uuid: account.uuid.clone(), skin_png, slim, cape_png: cape };
+    let Ok(srv) = SkinServer::start(profile) else { return plain() };
+    let mut a = account.clone();
+    a.kind = AccountKind::Luminos;
+    a.auth_server = Some(srv.api_root());
+    a.access_token = Some("luminos-local".into());
+    (a, Some(srv))
 }
 
 /// Blocks until the game exits (poll-based so `kill` never deadlocks), records playtime, returns the exit code.

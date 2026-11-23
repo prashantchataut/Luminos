@@ -27,6 +27,7 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         .map(|a| a.username.clone())
         .unwrap_or_else(|| "player".into());
     let greet = GREETINGS[(store::now_unix() / 86400) as usize % GREETINGS.len()];
+    crate::maint::update_banner(app, ui);
     hero(app, ui, accent, &format!("{greet}, {name}"));
     ui.add_space(10.0);
     ui.add_space(6.0);

@@ -64,7 +64,7 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] B3 3D skin/bust renders
 - [ ] B3a Premium skin via API
 - [ ] B3b Offline account from local skin
-- [ ] B3c Original Luminos default skin
+- [x] B3c Original Luminos default skin — evidence: launcher/crates/luminos-core/assets/skins/luminos-pilot.png
 - [ ] B3d Idle animation and cape
 - [ ] B3e Used in profile card, cosmetics, account switcher, server lists, chat
 - [ ] B4 Real icons: servers, worlds, mods, screenshots
@@ -173,3 +173,16 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] J8 Offline mod cache
 - [ ] J9 Data-saver mode
 - [ ] J10 Accessibility pass (colorblind HUD presets, screen-reader labels)
+
+## K. Session 9 (launcher 0.5.0)
+- [x] K1 Launcher self-update: newest vX.Y.Z release, SHA-256 verified, silent install (unit-tested; the install step has not been run on a real PC) — evidence: launcher/crates/luminos-core/src/update.rs
+- [x] K2 Storage page: usage per area, free cache / Minecraft files / Java, reset data, delete everything with typed confirm — evidence: launcher/crates/luminos-core/src/storage.rs
+- [x] K3 Username check: specific format errors + "premium name / free name" lookup, honest about offline names — evidence: launcher/crates/luminos-core/src/namecheck.rs
+- [x] K4 Offline skin server: your skin and cape load in game via local Yggdrasil + authlib-injector (tested over real TCP; not yet observed in a running game) — evidence: launcher/crates/luminos-core/src/offlineskin.rs
+- [x] K5 Original skins (4) + Moon cape, generator is deterministic — evidence: tools/make_skins.py
+- [x] K6 Client page in the launcher edits the same luminos-client.json as the in-game menu — evidence: docs/screenshots/22-client.png
+- [x] K7 Optional mods (Resourcify, Iris, Zoomify, Controlify, Status Effect Bars), slugs verified against Modrinth for 1.21.4 and 26.3 — evidence: launcher/crates/luminos-core/src/preset.rs
+- [ ] K8 CI proof that an offline account with the skin server still reaches the title screen on real Java
+- [ ] K9 Observe the skin in a running game (screenshot from CI)
+- [ ] K10 Own in-game pack browser (Resourcify-class), per docs/PLAN_SESSIONS.md session 11
+

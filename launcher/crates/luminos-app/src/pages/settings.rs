@@ -131,6 +131,9 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         widgets::setting_row(ui, "Fullscreen", "Start the game in fullscreen.", |ui| {
             widgets::toggle(ui, accent, &mut app.settings.fullscreen);
         });
+        widgets::setting_row(ui, "Show my skin and cape in game", "Offline accounts only. Starts a tiny server on this PC (127.0.0.1) so the game can load your skin. Others only see it on servers that support it.", |ui| {
+            widgets::toggle(ui, accent, &mut app.settings.offline_skins);
+        });
     });
 
     widgets::subheading(ui, "Privacy");
@@ -218,6 +221,8 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             },
         );
     });
+    crate::maint::settings_sections(app, ui);
+
     widgets::subheading(ui, "About");
     widgets::card(ui, |ui| {
         ui.set_width(ui.available_width());
@@ -225,7 +230,7 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
             egui::RichText::new(format!("Luminos Launcher {} (beta)", luminos_core::VERSION))
                 .font(egui::FontId::new(15.0, theme::bold())),
         );
-        widgets::muted(ui, "Open-source, written in Rust. Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.");
+        widgets::muted(ui, "Written in Rust, no ads, no telemetry. Source-available under the Luminos licence. Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.");
     });
 
     if app.settings != before {

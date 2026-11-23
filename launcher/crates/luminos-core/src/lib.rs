@@ -32,3 +32,8 @@ pub mod directory;
 pub mod joinlink;
 pub mod loginprobe;
 pub mod yggdrasil;
+pub mod cosmetics;
+pub mod namecheck;
+pub mod offlineskin;
+pub mod storage;
+pub mod update;

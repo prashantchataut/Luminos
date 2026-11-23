@@ -104,6 +104,7 @@ pub fn authenticate(
         auth_server: Some(root.to_string()),
         access_token: v["accessToken"].as_str().map(String::from),
         client_token: v["clientToken"].as_str().map(String::from),
+        cape_id: None,
     })
 }
 

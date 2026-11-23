@@ -411,7 +411,8 @@ fn profile(app: &mut App, ui: &mut Ui) {
     );
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(88.0, 88.0), Sense::hover());
-        widgets::face(ui, r, None, &app.wizard.name);
+        let tex = crate::pages::skins::skin_tex(app, luminos_core::cosmetics::DEFAULT_SKIN_ID);
+        widgets::face(ui, r, tex.as_ref(), &app.wizard.name);
         ui.vertical(|ui| {
             ui.add_space(8.0);
             let edit = egui::TextEdit::singleline(&mut app.wizard.name)
@@ -421,21 +422,16 @@ fn profile(app: &mut App, ui: &mut Ui) {
                 .margin(egui::Margin::symmetric(12, 10));
             ui.add(edit);
             let ok = accounts::valid_username(&app.wizard.name);
-            if app.wizard.name.is_empty() {
-                widgets::muted(ui, "Letters, numbers and underscores only.");
-            } else if ok {
-                ui.label(
-                    egui::RichText::new("Looks good")
-                        .color(theme::GOOD)
-                        .size(13.0),
-                );
+            let name = app.wizard.name.clone();
+            if name.is_empty() {
+                widgets::muted(ui, "3–16 letters, numbers or underscores.");
+            } else if let Err(why) = luminos_core::namecheck::check_format(&name) {
+                ui.label(egui::RichText::new(why).color(theme::BAD).size(13.0));
             } else {
-                ui.label(
-                    egui::RichText::new("Needs 3–16 characters: letters, numbers or _")
-                        .color(theme::BAD)
-                        .size(13.0),
-                );
+                app.probe_name_tick(&name);
+                crate::maint::name_status_line(app, ui, &name);
             }
+            let _ = ok;
         });
     });
     ui.add_space(14.0);

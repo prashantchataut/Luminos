@@ -88,3 +88,12 @@ Rule: never write "verified" in docs unless a command was run and its output is 
 - Releases: Windows tag `vX.Y.Z` (release.yml), Android tag `android-vX.Y.Z` (android.yml), client tag `client-vX.Y.Z`. After tagging, download the release assets and compare SHA-256 against the published checksum file before saying it shipped.
 - A GitHub PAT pasted in chat is used only through a one-off `http.extraHeader`; tell the owner to revoke it. Never write it to a file, remote URL or git config.
 - `scripts/gate.sh` checks every workflow on the exact HEAD commit, not just the newest run on the branch name.
+
+
+## Rules added in session 9 (owner directives)
+- Read `.agents/context/REFERENCES.md` and `docs/PLAN_SESSIONS.md` first. Sessions 10-14 are planned there; follow the plan unless evidence says otherwise.
+- Launcher and client are **one product**: anything the in-game menu can change must also be editable in the launcher Client page, from the same file.
+- Skin truth: a launcher can only guarantee *your own* view of an offline skin. Say where others will and will not see it (`docs/research/offline-skins-and-multiplayer.md`). Never write that a skin "works in game" until a running game showed it.
+- UI work: load taste-skill + ui-ux-pro-max, render with `luminos-shots`, and LOOK at the PNGs before committing. Screens use real shipped assets; demo data stays in `demo.rs`.
+- Cosmetics are original: generate them from code (`tools/make_skins.py`), never trace third-party art or copy store assets.
+- The sandbox's file tools only reach the project root; to edit the repo, symlink it into the root and remove the link at the end.

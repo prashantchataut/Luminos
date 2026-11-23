@@ -13,6 +13,23 @@ pub struct PresetMod {
     pub default_on: bool,
 }
 
+/// Optional Modrinth mods offered on the Client page (slugs verified live against Modrinth: Fabric, 1.21.4 and 26.3).
+/// `file_key` is a lowercase fragment of the jar name, used to recognise an installed copy.
+pub struct OptionalMod {
+    pub slug: &'static str,
+    pub name: &'static str,
+    pub why: &'static str,
+    pub file_key: &'static str,
+}
+
+pub const OPTIONAL: &[OptionalMod] = &[
+    OptionalMod { slug: "resourcify", name: "Resourcify", why: "Browse and install resource packs, shaders and data packs from inside the game (open Resource Packs, then Browse).", file_key: "resourcify" },
+    OptionalMod { slug: "iris", name: "Iris Shaders", why: "Shader packs on top of Sodium.", file_key: "iris" },
+    OptionalMod { slug: "zoomify", name: "Zoomify", why: "Smooth, configurable zoom with scroll to adjust.", file_key: "zoomify" },
+    OptionalMod { slug: "controlify", name: "Controlify", why: "Full controller support with radial menus.", file_key: "controlify" },
+    OptionalMod { slug: "status-effect-bars", name: "Status Effect Bars", why: "Compact bars for potion effects.", file_key: "statuseffectbars" },
+];
+
 pub const LUMINOS_CLIENT: &[PresetMod] = &[
     PresetMod {
         slug: "fabric-api",

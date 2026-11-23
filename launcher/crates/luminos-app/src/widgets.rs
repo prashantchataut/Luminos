@@ -234,6 +234,7 @@ pub fn setting_row(ui: &mut Ui, title: &str, desc: &str, right: impl FnOnce(&mut
         });
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), right);
     });
+    ui.add_space(8.0);
 }
 
 pub fn card<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> egui::InnerResponse<R> {

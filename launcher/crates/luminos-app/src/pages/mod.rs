@@ -1,3 +1,4 @@
+pub mod client;
 pub mod discover;
 pub mod home;
 pub mod instance;
