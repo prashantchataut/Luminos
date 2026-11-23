@@ -10,6 +10,8 @@ Each session = research -> plan -> execute -> verify -> review. Each ends with a
 4. **Skills loaded and named in each commit.** Design: taste-skill + ui-ux-pro-max (rules applied by hand to egui). Motion: reanimate (method: spec table of trigger/duration/easing per element, verify with frame captures). Rust: rust-best-practices. Android: kotlin-android. Client: fabric-stonecutter. Reverse engineering: rea.
 5. **Honesty.** Verified = a command was run and its output saved. Everything else is labelled unverified.
 
+## Session 10 STATUS (see START_HERE): solver + 26.3/1.21.11 client jars + smoke CI + Tauri UI written; release, perf numbers and review rounds NOT done. Carry the unchecked items into session 11 first.
+
 ## Session 10: Windows shell redesign + "it must start" (Windows 0.6)
 - Research: Lunar/Badlion/Feather/Modrinth App/Prism screenshots for layout; OneClient home (hero art + version carousel).
 - Redesign nav: top bar (Home, Library, Browse, Servers, Skins, Stats) + account chip; drop left rail clutter; instance carousel with real cover art; one big launch button that morphs Ready -> Preparing -> Launching -> Running (reanimate spec first).

@@ -1,0 +1,28 @@
+[package]
+name = "luminos-desktop"
+version = "0.6.0"
+edition = "2021"
+publish = false
+license = "LicenseRef-Luminos-Proprietary"
+
+[lib]
+name = "luminos_desktop_lib"
+path = "src/lib.rs"
+
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+luminos-core = { path = "../../launcher/crates/luminos-core" }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
