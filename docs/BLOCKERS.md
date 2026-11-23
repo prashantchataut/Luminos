@@ -5,3 +5,4 @@
 4. **Physical devices (H*).** Pojav-class input quirks (OTG mouse axis, mouse lock) need real hardware; emulator CI can only check the code path.
 5. **Hosting (C5, D1).** luminos-relay / cosmetics / auth need a host + domain + S3 bucket; deploy configs will be provided but not deployed by the agent.
 6. **Sandbox limits this session.** No Android SDK/NDK, no Windows, no GPU/display, 4 GB RAM. Anything needing those must be verified by GitHub Actions.
+7. **gate.sh counts itself.** Its stub regex contains the literal `coming soon`, and the script is not in the `--exclude-dir` list, so the stub check always reports at least 1 marker (`scripts/gate.sh:15`). The brief says to create the script exactly, so it was not edited. Owner decision: exclude `scripts/` from that grep (or drop the phrase from the regex).

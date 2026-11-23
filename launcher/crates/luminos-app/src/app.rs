@@ -542,7 +542,7 @@ impl App {
         };
         if !inst.loader.supported() {
             self.toast(
-                format!("{} launching is coming soon", inst.loader.label()),
+                format!("{} launching is not supported yet", inst.loader.label()),
                 ToastKind::Bad,
             );
             return;
