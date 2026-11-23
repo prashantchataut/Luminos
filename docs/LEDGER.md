@@ -22,11 +22,11 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [x] A1f CI/static test fails on source URLs whose host is not in the registry — evidence: launcher/crates/luminos-core/tests/netaudit_static.rs
 - [x] A1g CI test that records real traffic and fails on unlisted hosts — evidence: launcher/crates/luminos-core/tests/network_audit_live.rs
 - [ ] A2 Installer + signing + SHA256SUMS + winget
-- [ ] A2a Inno Setup installer with version resources
+- [x] A2a Inno Setup installer (Luminos-Setup.exe on every release; version resources not audited) — evidence: installer/luminos.iss
 - [ ] A2b No packers/obfuscation (documented + CI check)
 - [ ] A2c Code signing wired in release workflow (Azure Trusted Signing / OV cert)
 - [ ] A2d docs/SIGNING.md owner steps
-- [ ] A2e SHA256SUMS published with releases
+- [x] A2e SHA256SUMS published with releases — evidence: https://github.com/prashantchataut/Luminos/releases/tag/v0.5.0
 - [ ] A2f Microsoft false-positive submission steps documented
 - [ ] A2g winget manifest
 - [ ] A3 Tokens in OS secure storage
