@@ -159,6 +159,11 @@ async fn launch_instance(app: AppHandle, id: String) -> R<()> {
     Ok(())
 }
 
+/// Empty path means the default `sync-export` folder inside the Luminos data directory.
+fn sync_dir(p: &str) -> std::path::PathBuf {
+    if p.is_empty() { luminos_core::paths::root().join("sync-export") } else { std::path::PathBuf::from(p) }
+}
+
 /// Reconcile every instance with the shared store now; returns one report per instance.
 #[tauri::command]
 async fn sync_run() -> R<Value> {
@@ -176,12 +181,12 @@ async fn sync_run() -> R<Value> {
 
 #[tauri::command]
 async fn sync_export(path: String) -> R<usize> {
-    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(std::path::Path::new(&path)).map_err(err)).await
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(&sync_dir(&path)).map_err(err)).await
 }
 
 #[tauri::command]
 async fn sync_import(path: String) -> R<usize> {
-    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(std::path::Path::new(&path)).map_err(err)).await
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(&sync_dir(&path)).map_err(err)).await
 }
 
 #[tauri::command]

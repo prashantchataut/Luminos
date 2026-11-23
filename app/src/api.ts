@@ -79,6 +79,8 @@ export async function call<T = any>(cmd: string, args: any = {}): Promise<T> {
     return { status: "free" } as any;
   }
   if (cmd === "modrinth_search") { const q = (args.query || "").toLowerCase(); return { total: 10, hits: SEED.mods.filter((m) => !q || m.title.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q)) } as any; }
+  if (cmd === "sync_run") return Object.fromEntries(SEED.instances.map((i, n) => [i.name + " " + i.mc, { pulled: n === 1 ? ["options", "client-config"] : [], pushed: n === 0 ? ["options"] : [], conflicts: n === 2 ? [{ item: "options:key_key.luminos.panel", winner: "store" }] : [] }])) as any;
+  if (cmd === "sync_export" || cmd === "sync_import") return 6 as any;
   return null as any;
 }
 export async function onLaunch(cb: (e: any) => void): Promise<() => void> {

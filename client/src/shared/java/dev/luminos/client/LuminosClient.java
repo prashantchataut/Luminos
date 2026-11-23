@@ -90,7 +90,8 @@ public final class LuminosClient implements ClientModInitializer {
 		}
 		phaseTicks++;
 		switch (phase) {
-			case 0 -> { if (smokeTick >= 80) shot("cover", () -> { coverDone = true; phase = 1; }); }              // vanilla panorama = per-version cover art
+			case 0 -> { if (smokeTick >= 80) { Nav.open(mc, new CoverScreen()); phase = 5; } }                          // bare vanilla panorama = per-version cover art
+			case 5 -> { if (phaseTicks >= 30) shot("cover", () -> { coverDone = true; Nav.open(mc, new LuminosTitleScreen()); phase = 1; }); }
 			case 1 -> { if (phaseTicks >= 60) shot("title", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, false, Nav.screen(mc))); LOGGER.info("[luminos] quick panel opened via smoke"); phase = 2; }); }
 			case 2 -> { if (phaseTicks >= 40) shot("panel", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.KEYBINDS, false, null)); phase = 3; }); }
 			case 3 -> { if (phaseTicks >= 40) shot("panel-keys", () -> phase = 4); }

@@ -107,7 +107,7 @@ const SCENES: Record<string, { sky: string[]; ridge: string[]; sun: string; seed
   "1.21.11": { sky: ["#1a1030", "#6a2f6e", "#ff9e7a"], ridge: ["#4a2a60", "#2c1a45", "#150c2a"], sun: "#ffe6cf", seed: 11 },
   "1.21.4": { sky: ["#0a1a22", "#1f5a4a", "#9be0a0"], ridge: ["#1b5a45", "#10392d", "#08201a"], sun: "#eaffe6", seed: 14 },
 };
-/** Cover art. Uses the real in-game capture from CI when /covers/<version>.png exists, otherwise a dithered scene. */
+/** Cover art. Uses the real in-game capture from CI when /covers/<version>.jpg exists, otherwise a dithered scene. */
 export function Cover({ version, className = "" }: { version: string; className?: string }) {
   const [real, setReal] = useState(true);
   const ref = useRef<HTMLCanvasElement>(null);
@@ -136,7 +136,7 @@ export function Cover({ version, className = "" }: { version: string; className?
     ctx.putImageData(img, 0, 0);
   }, [real, version]);
   return real ? (
-    <img src={`/covers/${version}.png`} alt="" onError={() => setReal(false)} className={`object-cover w-full h-full ${className}`} />
+    <img src={`/covers/${version}.jpg`} alt="" onError={() => setReal(false)} className={`object-cover w-full h-full ${className}`} />
   ) : (
     <canvas ref={ref} className={`w-full h-full ${className}`} style={{ imageRendering: "pixelated", objectFit: "cover" }} />
   );
@@ -183,7 +183,7 @@ export function Row({ title, desc, children }: { title: string; desc?: string; c
 }
 export function Badge({ tone = "mute", children }: { tone?: "ok" | "warn" | "bad" | "mute" | "accent"; children: ReactNode }) {
   const c = { ok: "var(--color-ok)", warn: "var(--color-warn)", bad: "var(--color-bad)", mute: "var(--color-mute)", accent: "var(--color-accent)" }[tone];
-  return <span className="inline-flex items-center gap-1.5 h-6 px-2.5 whitespace-nowrap shrink-0 rounded-full text-[11.5px] font-medium" style={{ color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 28%, transparent)` }}>{children}</span>;
+  return <span className="inline-flex items-center gap-1.5 h-6 px-2.5 whitespace-nowrap shrink-0 rounded-full text-[11.5px] font-medium" style={{ color: c, background: `color-mix(in srgb, ${c} 16%, #060b22 84%)`, border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, backdropFilter: "blur(6px)" }}>{children}</span>;
 }
 export function Tile({ name, hue = 220, size = 44 }: { name: string; hue?: number; size?: number }) {
   const ini = name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
