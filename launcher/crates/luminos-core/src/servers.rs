@@ -15,6 +15,14 @@ pub struct SavedServer {
     pub name: String,
     /// `host` or `host:port`
     pub address: String,
+    #[serde(default)]
+    pub favorite: bool,
+    /// Last login probe result: "offline-ok" | "online-required" | "whitelisted" | ...
+    #[serde(default)]
+    pub login_mode: Option<String>,
+    /// Instance id to quick-join with, if the user pinned one.
+    #[serde(default)]
+    pub instance: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Default)]

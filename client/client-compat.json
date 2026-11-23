@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "minecraft": ["1.21.4"],
+      "loader": "fabric",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/client-v0.2.0/luminos-client-0.2.0.jar",
+      "sha256": "a480a42f10a6b04e7c172c8a718d294ba362935bbb55e1971349e99b3f140895",
+      "client_version": "0.2.0",
+      "java": 21,
+      "required_mods": ["fabric-api"],
+      "disabled_features": []
+    }
+  ]
+}

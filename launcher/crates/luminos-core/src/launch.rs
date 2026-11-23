@@ -202,6 +202,29 @@ pub fn build_command(
     account: &Account,
     prep: &Prepared,
 ) -> Command {
+    build_command_ext(inst, settings, account, prep, None)
+}
+
+/// Minecraft 1.20+ (and the 26.x line) understands `--quickPlayMultiplayer`; older versions use `--server/--port`.
+pub fn supports_quick_play(mc: &str) -> bool {
+    let mut it = mc.split('.').map(|p| {
+        p.split('-')
+            .next()
+            .unwrap_or("")
+            .parse::<u32>()
+            .unwrap_or(0)
+    });
+    let (major, minor) = (it.next().unwrap_or(0), it.next().unwrap_or(0));
+    major > 1 || (major == 1 && minor >= 20)
+}
+
+pub fn build_command_ext(
+    inst: &Instance,
+    settings: &Settings,
+    account: &Account,
+    prep: &Prepared,
+    quick_join: Option<&str>,
+) -> Command {
     let sep = if cfg!(windows) { ";" } else { ":" };
     let classpath = prep
         .classpath
@@ -221,11 +244,20 @@ pub fn build_command(
     );
     vars.insert("assets_index_name", ai.id.clone());
     vars.insert("auth_uuid", account.uuid.replace('-', ""));
-    vars.insert("auth_access_token", "0".into());
-    vars.insert("auth_session", "0".into());
+    let token = account.access_token.clone().unwrap_or_else(|| "0".into());
+    vars.insert("auth_access_token", token.clone());
+    vars.insert("auth_session", token);
     vars.insert("clientid", "luminos".into());
     vars.insert("auth_xuid", "0".into());
-    vars.insert("user_type", "legacy".into());
+    vars.insert(
+        "user_type",
+        match account.kind {
+            crate::accounts::AccountKind::Microsoft => "msa",
+            crate::accounts::AccountKind::Offline => "legacy",
+            _ => "mojang",
+        }
+        .into(),
+    );
     vars.insert("user_properties", "{}".into());
     vars.insert("version_type", "Luminos".into());
     vars.insert(
@@ -257,6 +289,15 @@ pub fn build_command(
         .chain(inst.jvm_args.split_whitespace())
     {
         cmd.arg(a);
+    }
+
+    if account.kind.uses_injector() {
+        // authlib-injector must come before -cp/-jar so it can instrument authlib.
+        if let Some(a) =
+            crate::yggdrasil::javaagent_arg(account, &crate::yggdrasil::injector_path())
+        {
+            cmd.arg(a);
+        }
     }
 
     let (jvm, game) = match &prep.version.arguments {
@@ -294,6 +335,14 @@ pub fn build_command(
         cmd.arg("--width").arg(settings.game_width.to_string());
         cmd.arg("--height").arg(settings.game_height.to_string());
     }
+    if let Some(addr) = quick_join {
+        if supports_quick_play(&inst.mc_version) {
+            cmd.arg("--quickPlayMultiplayer").arg(addr);
+        } else {
+            let (h, p) = crate::servers::split_address(addr);
+            cmd.arg("--server").arg(h).arg("--port").arg(p.to_string());
+        }
+    }
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
@@ -325,6 +374,20 @@ pub fn spawn(
     account: &Account,
     prep: &Prepared,
 ) -> Result<GameHandle> {
+    spawn_ext(inst, settings, account, prep, None)
+}
+
+/// Like `spawn`, optionally joining `quick_join` (host[:port]) straight away.
+pub fn spawn_ext(
+    inst: &Instance,
+    settings: &Settings,
+    account: &Account,
+    prep: &Prepared,
+    quick_join: Option<&str>,
+) -> Result<GameHandle> {
+    if account.kind.uses_injector() {
+        crate::yggdrasil::ensure_injector()?;
+    }
     // Offline accounts: drop the chosen skin where CustomSkinLoader (part of the Luminos Client bundle) looks for it.
     if let Some(id) = &account.skin_id {
         let src = crate::skins::png_path(id);
@@ -338,7 +401,7 @@ pub fn spawn(
             let _ = fs::copy(&src, dst.join(format!("{}.png", account.username)));
         }
     }
-    let mut cmd = build_command(inst, settings, account, prep);
+    let mut cmd = build_command_ext(inst, settings, account, prep, quick_join);
     let mut child = cmd
         .spawn()
         .with_context(|| format!("starting {}", prep.java.display()))?;

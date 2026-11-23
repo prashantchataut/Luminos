@@ -13,3 +13,7 @@ Luminos is proprietary (see `LICENSE`), but it stands on open-source work. These
 
 Mod files are fetched directly from Modrinth's public API at the user's request, so each author's licence
 and Modrinth's terms apply to them. Minecraft game files come straight from Mojang's servers.
+
+## Added in session 6
+- **authlib-injector** v1.2.8 (AGPL-3.0, https://github.com/yushijinhun/authlib-injector). Downloaded at runtime as a separate jar with a pinned SHA-256 and attached with `-javaagent`. Not linked into or redistributed with Luminos.
+- **axum, tokio, rsa, sha1, sha2, argon2, rand, base64, md5** (MIT/Apache-2.0) in `luminos-auth` / `luminos-core`. Run `cargo deny check` in CI before a release; it has not been run here.

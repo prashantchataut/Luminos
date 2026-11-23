@@ -278,20 +278,32 @@ pub fn app(ctx: &egui::Context) -> App {
         luminos_core::servers::SavedServer {
             name: "Hypixel".into(),
             address: "mc.hypixel.net".into(),
+            ..Default::default()
         },
         luminos_core::servers::SavedServer {
             name: "Our SMP".into(),
             address: "play.ourSMP.example:25570".into(),
+            ..Default::default()
         },
         luminos_core::servers::SavedServer {
             name: "PvP Practice".into(),
             address: "pvp.example.org".into(),
+            ..Default::default()
         },
         luminos_core::servers::SavedServer {
             name: "Creative Plots".into(),
             address: "plots.example.net".into(),
+            ..Default::default()
         },
     ];
+    use luminos_core::loginprobe::LoginMode;
+    a.servers.list[1].favorite = true;
+    a.servers
+        .modes
+        .insert("play.ourSMP.example:25570".into(), Ok(LoginMode::OfflineOk));
+    a.servers
+        .modes
+        .insert("mc.hypixel.net".into(), Ok(LoginMode::OnlineRequired));
     let st = |motd: &str, on, max, ver: &str, ms| {
         Loadable::Ready(luminos_core::servers::Status {
             motd: motd.into(),
