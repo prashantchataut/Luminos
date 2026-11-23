@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/luminos-core", "crates/luminos-app"]
+members = ["crates/luminos-core", "crates/luminos-app", "crates/luminos-auth"]
 
 [workspace.package]
 publish = false

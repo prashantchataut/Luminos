@@ -12,3 +12,4 @@ tsconfig.tsbuildinfo
 site/dist/
 site/public/screenshots/
 dist/
+launcher/target/
