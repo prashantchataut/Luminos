@@ -150,6 +150,10 @@ Pain-point map: docs/research/USER_PAIN.md (each complaint cites ledger IDs).
 - [ ] H8 Perf targets measured
 - [ ] H9 Safety (permissions, HTTPS-only, signed APK, F-Droid metadata)
 - [ ] H10 Android CI (build, lint, unit, emulator UI, JNI smoke)
+- [x] H10a Release APK built in CI and attached to a GitHub Release with SHA256SUMS — evidence: https://github.com/prashantchataut/Luminos/releases/tag/android-v0.1.0
+- [x] H10b Emulator job installs, opens, drives onboarding/home/library/skins and fails on crash — evidence: android/ci/emulator_test.sh
+- [x] H2a JVM (OpenJDK 17 for Android) boots on the x86_64 emulator, in the CI log — evidence: android/ci/jvm_smoke.sh
+- [x] H10c Android screenshots of onboarding, home, library, skins committed — evidence: docs/screenshots/android
 
 ## I. Site
 - [ ] I1 Showcase rebuild per B5

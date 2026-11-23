@@ -79,3 +79,12 @@ Reverse-engineering/research tasks: study public behaviour and docs (Mojang laun
 | Motion | Tokens from the brief encoded in `motion.rs`; Reanimate not used. |
 | Auth / probe / compat | Protocol and API docs only (authlib-injector Yggdrasil spec, Mojang manifest, Modrinth API); verified against a real server. |
 Rule: never write "verified" in docs unless a command was run and its output is in `docs/TEST_REPORT.md`.
+
+
+## Rules added in session 8 (owner directives; details in `.agents/context/OWNER_CONTEXT.md`, read it)
+- Order of work: research -> plan -> execute -> verify -> review. Load the matching skill from `.agents/skills/` before every task and name it in the commit.
+- Reference projects (OneLauncher, OneClient, Polyfrost mods) are GPL-3.0: study behaviour, never copy code. Feature target is OneClient parity, then better. Cosmetics must be new, original, free, Luminos-branded.
+- A built-in, toggleable, optimised Resourcify-style pack browser is a client requirement.
+- Releases: Windows tag `vX.Y.Z` (release.yml), Android tag `android-vX.Y.Z` (android.yml), client tag `client-vX.Y.Z`. After tagging, download the release assets and compare SHA-256 against the published checksum file before saying it shipped.
+- A GitHub PAT pasted in chat is used only through a one-off `http.extraHeader`; tell the owner to revoke it. Never write it to a file, remote URL or git config.
+- `scripts/gate.sh` checks every workflow on the exact HEAD commit, not just the newest run on the branch name.

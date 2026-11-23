@@ -100,7 +100,7 @@ private fun Main(vm: AppVm) {
 @Composable
 private fun BottomBar(vm: AppVm, modifier: Modifier) {
     val view = LocalView.current
-    Column(modifier.fillMaxWidth().background(Lx.Bg1.copy(alpha = 0.96f)).navigationBarsPadding()) {
+    Column(modifier.fillMaxWidth().background(Lx.Bg1).navigationBarsPadding()) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(2.dp).background(Lx.Line)) {
             val frac by animateFloatAsState(vm.tab.ordinal.toFloat(), tween(if (vm.settings.reduceMotion) 0 else 280, easing = FastOutSlowInEasing), label = "ind")
             Box(Modifier.offset(x = maxWidth / Tab.entries.size * frac).width(maxWidth / Tab.entries.size).height(2.dp).background(Lx.Accent))

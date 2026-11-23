@@ -226,7 +226,7 @@ fun ErrorLine(text: String, modifier: Modifier = Modifier) =
 
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.clip(Shape).border(1.dp, Lx.Line, Shape).background(Lx.Bg0.copy(alpha = 0.5f)).padding(3.dp), Arrangement.spacedBy(3.dp)) {
+    Row(modifier.clip(Shape).border(1.dp, Lx.Line, Shape).background(Lx.Bg1).padding(3.dp), Arrangement.spacedBy(3.dp)) {
         options.forEachIndexed { i, o ->
             val bg by animateColorAsState(if (i == selected) Lx.Accent else Color.Transparent, tween(160), label = "seg")
             val view = LocalView.current
