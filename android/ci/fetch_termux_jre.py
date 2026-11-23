@@ -43,7 +43,7 @@ prefix = os.path.join(root, "data/data/com.termux/files/usr")
 jre_src = os.path.join(prefix, "lib/jvm", f"java-{major}-openjdk")
 assert os.path.isdir(jre_src), "jvm dir missing: " + str(os.listdir(os.path.join(prefix, "lib/jvm")))
 jre = os.path.join(out, "jre"); shutil.rmtree(jre, ignore_errors=True)
-shutil.copytree(jre_src, jre, symlinks=False)
+shutil.copytree(jre_src, jre, symlinks=False, ignore_dangling_symlinks=True)
 for junk in ("jmods", "include", "man", "demo", "sample", "src.zip", "legal"):
     shutil.rmtree(os.path.join(jre, junk), ignore_errors=True)
 libd = os.path.join(out, "lib"); os.makedirs(libd, exist_ok=True)
