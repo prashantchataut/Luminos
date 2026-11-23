@@ -411,6 +411,12 @@ pub fn spawn_ext(
     prep: &Prepared,
     quick_join: Option<&str>,
 ) -> Result<GameHandle> {
+    // Keybinds, options, HUD layout and the server list follow the player between instances (set LUMINOS_NO_SYNC to skip).
+    if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
+        if let Err(e) = crate::sync::Syncer::new(crate::sync::Policy::default()).reconcile(&inst.id, &inst.game_dir()) {
+            eprintln!("sync before launch failed (continuing): {e:#}");
+        }
+    }
     // Offline accounts: serve the chosen skin and cape to the game from a local Yggdrasil server.
     let (session_account, skin_server) = if settings.offline_skins {
         offline_skin_session(account)

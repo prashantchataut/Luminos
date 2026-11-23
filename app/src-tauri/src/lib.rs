@@ -145,12 +145,42 @@ async fn launch_instance(app: AppHandle, id: String) -> R<()> {
             Ok(h) => {
                 emit(json!({ "id": inst.id, "phase": "running" }));
                 let code = launch::wait_and_record(&h);
-                emit(json!({ "id": inst.id, "phase": "exited", "code": code, "log": h.log_tail(60) }));
+                // Push whatever the player changed in this session (keybinds, HUD layout, servers) to the shared store.
+                let synced = if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
+                    luminos_core::sync::Syncer::new(Default::default()).reconcile(&inst.id, &inst.game_dir()).ok()
+                } else {
+                    None
+                };
+                emit(json!({ "id": inst.id, "phase": "exited", "code": code, "log": h.log_tail(60), "sync": serde_json::to_value(&synced).unwrap_or(Value::Null) }));
             }
             Err(e) => emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
         }
     });
     Ok(())
+}
+
+/// Reconcile every instance with the shared store now; returns one report per instance.
+#[tauri::command]
+async fn sync_run() -> R<Value> {
+    blocking(|| {
+        let s = luminos_core::sync::Syncer::new(Default::default());
+        let mut out = serde_json::Map::new();
+        for i in instances::list() {
+            out.insert(i.name.clone(), serde_json::to_value(s.reconcile(&i.id, &i.game_dir())?)?);
+        }
+        Ok(Value::Object(out))
+    })
+    .await
+}
+
+#[tauri::command]
+async fn sync_export(path: String) -> R<usize> {
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).export(std::path::Path::new(&path))).await
+}
+
+#[tauri::command]
+async fn sync_import(path: String) -> R<usize> {
+    blocking(move || luminos_core::sync::Syncer::new(Default::default()).import(std::path::Path::new(&path))).await
 }
 
 #[tauri::command]
@@ -271,6 +301,9 @@ pub fn run() {
             create_account,
             create_instance,
             launch_instance,
+            sync_run,
+            sync_export,
+            sync_import,
             mod_report,
             modrinth_search,
             install_mod,

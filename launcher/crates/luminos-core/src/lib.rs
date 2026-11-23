@@ -24,6 +24,7 @@ pub mod preset;
 pub mod servers;
 pub mod skins;
 pub mod store;
+pub mod sync;
 pub mod sys;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
