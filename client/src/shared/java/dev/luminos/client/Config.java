@@ -32,6 +32,18 @@ public final class Config {
 	/** FOV while the zoom key is held (Minecraft's slider range is 30–110). */
 	public int zoomFov = 30;
 	public boolean showBackground = true;
+	/** Snap dragged HUD modules to a 4 px grid, screen edges/centre and other modules. */
+	public boolean snap = true;
+	/** Replace the vanilla title screen with the Luminos one. Also off when LUMINOS_VANILLA_TITLE is set. */
+	public boolean customTitle = true;
+	/** off | auto | always. Restricted mode disables modules that could be an advantage (zoom). */
+	public String complianceMode = "auto";
+	public java.util.List<String> complianceServers = new java.util.ArrayList<>(java.util.List.of("hypixel.net", "mineplex.com", "cubecraft.net", "minemen.club"));
+	public String activeProfile = "default";
+	public String cosmeticSkin = "";
+	public String cosmeticCape = "";
+	public int crosshairColor = 0xFF4F8CFF;
+	public long playtimeMs = 0;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static Config instance = new Config();
@@ -39,6 +51,10 @@ public final class Config {
 	private static Path file() {
 		return FabricLoader.getInstance().getConfigDir().resolve("luminos-client.json");
 	}
+
+	public static Gson gson() { return GSON; }
+
+	public static void replace(Config c) { if (c != null) instance = c; }
 
 	public static Config get() {
 		return instance;

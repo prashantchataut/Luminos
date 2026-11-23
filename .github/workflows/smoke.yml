@@ -74,9 +74,22 @@ jobs:
           set -o pipefail   # without this the harness exit code was swallowed by `tee` (the gate was always green)
           export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc${{ matrix.mc }}.jar | head -1)"
           mkdir -p out
-          # screenshot of the real title screen = cover art for this version (one frame, 4 s after the signal)
-          ( timeout 480 bash -c 'until grep -q "title-screen reached" out/run.log 2>/dev/null; do sleep 1; done' && sleep 4 && DISPLAY=:99 import -window root out/title-${{ matrix.mc }}-${{ matrix.variant }}.png ) >/dev/null 2>&1 &
-          xvfb-run -n 99 -s "-screen 0 1280x720x24 +extension GLX +render -noreset" launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
+          # Start X ourselves with access control off. `xvfb-run` hides the display behind an Xauthority cookie, so the
+          # separate `import` process below could never connect and the old capture failed silently (stderr went to /dev/null).
+          Xvfb :99 -ac -screen 0 1280x720x24 +extension GLX +render -noreset > out/xvfb.log 2>&1 &
+          sleep 2
+          export DISPLAY=:99
+          : > out/run.log; : > out/capture.log
+          # one capture per marker the client logs: cover = vanilla panorama (per-version cover art), title = Luminos title
+          # screen, panel / panel-hud = the quick panel. Errors are kept in out/capture.log.
+          ( for shot in cover title panel panel-hud; do
+              if timeout 900 bash -c "until grep -q '\[luminos\] shot $shot\$' out/run.log; do sleep 0.5; done"; then
+                sleep 1
+                import -display :99 -window root "out/$shot-${{ matrix.mc }}.png" 2>> out/capture.log && echo "captured $shot" >> out/capture.log || echo "capture $shot FAILED" >> out/capture.log
+              else echo "marker $shot never appeared" >> out/capture.log; fi
+            done ) &
+          launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
+          sleep 2; cat out/capture.log
       - name: Summary
         if: always()
         run: |

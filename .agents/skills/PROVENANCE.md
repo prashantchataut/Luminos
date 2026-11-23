@@ -13,3 +13,11 @@
 
 Not found / not installed: "UI Hall design skills" (no matching public repo located via GitHub search).
 Not browsed: skills.sh, skill-issue.in, open-design.ai (not fetched this session).
+| hallmark | github.com/Nutlope/hallmark @04977e1 | MIT |
+| emil-kowalski-skills | github.com/emilkowalski/skills @64eb3de (animate, choreograph, review-animations, animation-performance, ...) | MIT |
+| ibelick-ui-skills | github.com/ibelick/ui-skills @7ef0076 (baseline-ui, fixing-accessibility, fixing-motion-performance) | MIT |
+| ui-design-skill | github.com/JuanEliasJabib02/ui-design-skill @282dce7 (rules + pre-ship checklist) | see repo |
+
+Session 12: browsed open-design.ai/skills (407 entries) and picked the web/React design, motion and a11y entries above.
+Anthropic frontend-design / webapp-testing / theme-factory and vercel web-design-guidelines were already installed (session 11).
+"UI Hall design skills": searched GitHub and the web again in session 12 -- still no public skills repo by that name. NOT installed; not claimed.

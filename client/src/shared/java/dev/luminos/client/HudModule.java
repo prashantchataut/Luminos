@@ -33,6 +33,11 @@ public abstract class HudModule {
 		return 6;
 	}
 
+	/** Centred on screen; the configured x/y are ignored. */
+	public boolean centered() {
+		return false;
+	}
+
 	public boolean enabledByDefault() {
 		return true;
 	}

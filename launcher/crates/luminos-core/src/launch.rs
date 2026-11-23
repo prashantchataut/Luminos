@@ -305,6 +305,8 @@ pub fn build_command_ext(
     let mut cmd = Command::new(&prep.java);
     crate::sys::quiet(&mut cmd);
     cmd.current_dir(&game_dir);
+    // The Luminos Client title screen shows which instance this is.
+    cmd.env("LUMINOS_INSTANCE", &inst.name);
     cmd.arg(format!("-Xmx{mem}M"))
         .arg(format!("-Xms{}M", (mem / 4).max(256)));
     let base_flags = crate::jvmflags::effective(&settings.jvm_args, prep.java_major);

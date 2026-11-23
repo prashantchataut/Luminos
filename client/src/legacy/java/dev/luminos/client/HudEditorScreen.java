@@ -43,7 +43,8 @@ public final class HudEditorScreen extends Screen {
 				g.drawString(minecraft.font, m.title() + " (off)", c.x + 3, c.y + 3, 0xFF8596C5);
 			}
 		}
-		g.drawCenteredString(minecraft.font, "Drag to move · right-click toggles · scroll resizes", width / 2, 12, 0xFFE8EEFF);
+		Hud.drawGuides(a);
+		g.drawCenteredString(minecraft.font, "Drag to move (snaps) · right-click toggles · scroll resizes", width / 2, 12, 0xFFE8EEFF);
 	}
 
 	@Override
@@ -53,7 +54,7 @@ public final class HudEditorScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent e, double dx, double dy) {
-		return Hud.drag(e.x(), e.y()) || super.mouseDragged(e, dx, dy);
+		return Hud.drag(minecraft, e.x(), e.y()) || super.mouseDragged(e, dx, dy);
 	}
 
 	@Override

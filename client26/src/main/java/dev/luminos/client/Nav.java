@@ -1,0 +1,26 @@
+package dev.luminos.client;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+/** Everything whose name differs between Minecraft lines lives here, so shared code stays identical. (26.x) */
+final class Nav {
+	private Nav() {}
+	static Screen screen(Minecraft mc) { return mc.gui.screen(); }
+	static void open(Minecraft mc, Screen s) { mc.setScreenAndShow(s); }
+	static KeyMapping register(KeyMapping k) { return KeyMappingHelper.registerKeyMapping(k); }
+	static int boundCode(KeyMapping k) { return KeyMappingHelper.getBoundKeyOf(k).getValue(); }
+	static String keyName(KeyMapping k) { return k.getTranslatedKeyMessage().getString(); }
+	static void rebind(Minecraft mc, KeyMapping k, int code) {
+		k.setKey(InputConstants.Type.KEYSYM.getOrCreate(code));
+		KeyMapping.resetMapping();
+		mc.options.save();
+	}
+	static void toast(Minecraft mc, String s) { if (mc.player != null) mc.player.sendOverlayMessage(Component.literal(s)); }
+	static String version(Minecraft mc) { return net.minecraft.SharedConstants.getCurrentVersion().name(); }
+	static boolean windowActive(Minecraft mc) { return mc.isWindowActive(); }
+}

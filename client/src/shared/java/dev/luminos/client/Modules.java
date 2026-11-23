@@ -23,6 +23,7 @@ public final class Modules {
 		ALL.add(new Coordinates());
 		ALL.add(new Potions());
 		ALL.add(new SprintStatus());
+		ALL.addAll(ExtraModules.create());
 	}
 
 	public static final class ArmorHud extends HudModule {
