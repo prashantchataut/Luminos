@@ -70,6 +70,7 @@ jobs:
           MESA_GLSL_VERSION_OVERRIDE: "460"
           LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
           LUMINOS_SMOKE_VARIANT: ${{ matrix.variant }}
+          LUMINOS_SMOKE_ACK_DIR: ${{ github.workspace }}/out
         run: |
           set -o pipefail   # without this the harness exit code was swallowed by `tee` (the gate was always green)
           export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc${{ matrix.mc }}.jar | head -1)"
@@ -82,10 +83,11 @@ jobs:
           : > out/run.log; : > out/capture.log
           # one capture per marker the client logs: cover = vanilla panorama (per-version cover art), title = Luminos title
           # screen, panel / panel-hud = the quick panel. Errors are kept in out/capture.log.
-          ( for shot in cover title panel panel-hud; do
+          ( for shot in cover title panel panel-keys; do
               if timeout 900 bash -c "until grep -q '\[luminos\] shot $shot\$' out/run.log; do sleep 0.5; done"; then
                 sleep 1
                 import -display :99 -window root "out/$shot-${{ matrix.mc }}.png" 2>> out/capture.log && echo "captured $shot" >> out/capture.log || echo "capture $shot FAILED" >> out/capture.log
+                touch "out/ack-$shot"   # tells the client the frame is saved, so it can move on to the next scene
               else echo "marker $shot never appeared" >> out/capture.log; fi
             done ) &
           launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log

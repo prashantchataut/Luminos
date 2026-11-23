@@ -67,16 +67,34 @@ public final class LuminosClient implements ClientModInitializer {
 		Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, search, null));
 	}
 
+	private static int phase, phaseTicks;
+	private static String pendingShot;
+	private static int pendingWait;
+	private static Runnable afterShot;
+	private static boolean coverDone;
+
+	/** Logs a marker the CI job reacts to, then waits (up to 60 s) for the job to confirm the capture before going on. */
+	private static void shot(String name, Runnable next) {
+		LOGGER.info("[luminos] shot {}", name);
+		pendingShot = name;
+		pendingWait = 0;
+		afterShot = next;
+	}
+
 	private static void smokeStep(Minecraft mc) {
-		switch (smokeTick) {
-			case 80 -> LOGGER.info("[luminos] shot cover");     // vanilla panorama = per-version cover art
-			case 150 -> LOGGER.info("[luminos] shot title");    // Luminos title screen
-			case 160 -> { Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, false, Nav.screen(mc))); LOGGER.info("[luminos] quick panel opened via smoke"); }
-			case 230 -> LOGGER.info("[luminos] shot panel");
-			case 235 -> { Nav.open(mc, new PanelScreen(Panel.Tab.HUD, false, null)); }
-			case 300 -> LOGGER.info("[luminos] shot panel-hud");
-			case 320 -> { LOGGER.info("[luminos] smoke-ok"); mc.stop(); }
-			default -> { }
+		if (pendingShot != null) {
+			String dir = System.getenv("LUMINOS_SMOKE_ACK_DIR");
+			boolean acked = dir != null && java.nio.file.Files.exists(java.nio.file.Path.of(dir, "ack-" + pendingShot));
+			if (acked || ++pendingWait > 1200) { pendingShot = null; phaseTicks = 0; afterShot.run(); }
+			return;
+		}
+		phaseTicks++;
+		switch (phase) {
+			case 0 -> { if (smokeTick >= 80) shot("cover", () -> { coverDone = true; phase = 1; }); }              // vanilla panorama = per-version cover art
+			case 1 -> { if (phaseTicks >= 60) shot("title", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, false, Nav.screen(mc))); LOGGER.info("[luminos] quick panel opened via smoke"); phase = 2; }); }
+			case 2 -> { if (phaseTicks >= 40) shot("panel", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.KEYBINDS, false, null)); phase = 3; }); }
+			case 3 -> { if (phaseTicks >= 40) shot("panel-keys", () -> phase = 4); }
+			default -> { LOGGER.info("[luminos] smoke-ok"); mc.stop(); }
 		}
 	}
 
@@ -85,7 +103,7 @@ public final class LuminosClient implements ClientModInitializer {
 		if (smokeTick >= 0) { smokeTick++; smokeStep(mc); }
 		boolean smoke = smokeTick >= 0;
 		boolean wantCustom = Config.get().customTitle && System.getenv("LUMINOS_VANILLA_TITLE") == null;
-		if (cur instanceof TitleScreen && wantCustom && (!smoke || smokeTick >= 100)) {
+		if (cur instanceof TitleScreen && wantCustom && (!smoke || coverDone)) {
 			if (!customShown) { customShown = true; LOGGER.info("[luminos] custom title screen shown"); }
 			Nav.open(mc, new LuminosTitleScreen());
 		}

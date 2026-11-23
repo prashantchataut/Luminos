@@ -55,7 +55,7 @@ public final class Panel {
 					Config.ModuleCfg c = cfg.of(m);
 					r.add(new Row(m.title(), "HUD module  -  " + (c.enabled ? "visible" : "hidden"), c.enabled ? "ON" : "OFF", c.enabled, null, () -> { c.enabled = !c.enabled; Config.save(); }));
 				}
-				r.add(new Row("Toggle sprint", "Hold W once, keep sprinting", cfg.toggleSprint ? "ON" : "OFF", cfg.toggleSprint, null, () -> { cfg.toggleSprint = !cfg.toggleSprint; Config.save(); }));
+				r.add(new Row("Toggle sprint", "Tap W once, keep sprinting", cfg.toggleSprint ? "ON" : "OFF", cfg.toggleSprint, null, () -> { cfg.toggleSprint = !cfg.toggleSprint; Config.save(); }));
 				boolean restricted = Compliance.restricted(mc);
 				r.add(new Row("Zoom", restricted ? "Compliance mode" : "Hold C  -  FOV " + cfg.zoomFov, restricted ? "LOCKED" : "FOV " + cfg.zoomFov, !restricted, restricted ? "Disabled by compliance mode on this server" : null,
 					() -> { cfg.zoomFov = cfg.zoomFov >= 70 ? 30 : cfg.zoomFov + 10; Config.save(); }));
@@ -63,11 +63,11 @@ public final class Panel {
 				r.add(new Row("Hit colour", "Tint the damage flash", "N/A", false, "Not in this build: needs a render mixin per version", null));
 			}
 			case HUD -> {
-				r.add(new Row("HUD editor", "Drag, snap, right-click to hide, scroll to resize", "OPEN", true, null, openEditor));
-				r.add(new Row("Snap to grid", "4 px grid, screen edges, other modules", cfg.snap ? "ON" : "OFF", cfg.snap, null, () -> { cfg.snap = !cfg.snap; Config.save(); }));
-				r.add(new Row("Module backgrounds", "Dark plate behind HUD text", cfg.showBackground ? "ON" : "OFF", cfg.showBackground, null, () -> { cfg.showBackground = !cfg.showBackground; Config.save(); }));
-				r.add(new Row("Reset layout", "Put every module back where it started", "RESET", true, null, () -> { cfg.resetLayout(); Config.save(); say("Layout reset"); }));
-				r.add(new Row("Layout profile", "Active: " + cfg.activeProfile + "  (Profiles tab)", "PROFILE", true, null, () -> tab = Tab.PROFILES));
+				r.add(new Row("HUD editor", "Drag, snap, hide, resize", "OPEN", true, null, openEditor));
+				r.add(new Row("Snap to grid", "Grid, edges, other modules", cfg.snap ? "ON" : "OFF", cfg.snap, null, () -> { cfg.snap = !cfg.snap; Config.save(); }));
+				r.add(new Row("Module backgrounds", "Plate behind HUD text", cfg.showBackground ? "ON" : "OFF", cfg.showBackground, null, () -> { cfg.showBackground = !cfg.showBackground; Config.save(); }));
+				r.add(new Row("Reset layout", "Restore the default layout", "RESET", true, null, () -> { cfg.resetLayout(); Config.save(); say("Layout reset"); }));
+				r.add(new Row("Layout profile", "Active: " + cfg.activeProfile, "PROFILE", true, null, () -> tab = Tab.PROFILES));
 			}
 			case KEYBINDS -> {
 				for (KeyMapping k : LuminosClient.KEYS) {
@@ -100,7 +100,7 @@ public final class Panel {
 					r.add(new Row(m[1], on ? "Loaded" : "Not installed in this instance", on ? "LOADED" : "MISSING", on, null, null));
 				}
 				r.add(new Row("Luminos title screen", "Off shows the vanilla one", cfg.customTitle ? "ON" : "OFF", cfg.customTitle, null, () -> { cfg.customTitle = !cfg.customTitle; Config.save(); }));
-				r.add(new Row("Compliance mode", "Auto turns off zoom on listed servers", Compliance.label().toUpperCase(Locale.ROOT), true, null, Compliance::cycle));
+				r.add(new Row("Compliance mode", "Auto locks zoom on listed servers", Compliance.label().toUpperCase(Locale.ROOT), true, null, Compliance::cycle));
 			}
 			case PROFILES -> {
 				for (String p : Profiles.list()) {
@@ -119,7 +119,7 @@ public final class Panel {
 				if (shots != null) for (File f : shots) if (f.lastModified() > best) { best = f.lastModified(); newest = f.getName(); }
 				r.add(new Row("Screenshots taken", "In " + dir.getName() + "/", String.valueOf(n), true, null, null));
 				r.add(new Row("Latest", newest, "NEW", n > 0, null, null));
-				r.add(new Row("Capture", "Press F2 in the world; this panel hides itself first", "F2", false, "Capture button not in this build", null));
+				r.add(new Row("Capture", "F2 in the world", "F2", false, "Capture button not in this build", null));
 			}
 		}
 		return r;
@@ -192,8 +192,8 @@ public final class Panel {
 			hits.add(new Hit(4, y, 86, 20, () -> { tab = target; query.setLength(0); page = 0; rebinding = null; }));
 			y += 22;
 		}
-		g.text("Right Ctrl  toggles", 10, H - 22, a(DIM));
-		g.text("Right Shift  searches", 10, H - 12, a(DIM));
+		g.text("RCtrl: panel", 10, H - 24, a(DIM));
+		g.text("RShift: search", 10, H - 13, a(DIM));
 		// search
 		int sx = 104, sw = W - 116;
 		box(g, sx, 8, sw, 18, searchFocus ? 0xFF101C48 : CARD, searchFocus ? ACCENT : 0xFF22346A);
@@ -218,10 +218,10 @@ public final class Panel {
 			boolean enabled = row.reason == null && row.act != null;
 			boolean hot = enabled && inside(x, yy, cardW, cardH);
 			box(g, x, yy, cardW, cardH, hot ? CARD_HOT : CARD, row.active && row.reason == null ? 0xFF35549E : 0xFF1F2E5F);
-			g.text(fit(g, row.title, cardW - 60), x + 8, yy + 6, a(enabled || row.act == null && row.reason == null ? TEXT : DIM));
+			int bw = g.textWidth(row.badge) + 10;
+			g.text(fit(g, row.title, cardW - bw - 22), x + 8, yy + 6, a(enabled || row.act == null && row.reason == null ? TEXT : DIM));
 			String sub = row.reason != null ? row.reason : row.sub;
 			g.text(fit(g, sub, cardW - 14), x + 8, yy + (cardH - 14), a(row.reason != null ? WARN : DIM));
-			int bw = g.textWidth(row.badge) + 10;
 			int bc = row.reason != null ? 0xFF3A3A50 : row.active ? 0xFF2C4F9C : 0xFF1B2547;
 			g.fill(x + cardW - bw - 6, yy + 5, x + cardW - 6, yy + 17, a(bc));
 			g.text(row.badge, x + cardW - bw - 1, yy + 7, a(row.reason != null ? DIM : row.badge.equals("ON") || row.badge.equals("ACTIVE") || row.badge.equals("LOADED") ? OK : TEXT));
