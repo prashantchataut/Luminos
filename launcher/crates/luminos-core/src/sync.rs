@@ -487,7 +487,10 @@ mod tests {
         s2.reconcile("B", &b).unwrap();
         let c = root.join("c");
         write(&c.join("options.txt"), "key_key.only_in_b:key.keyboard.k\n");
-        let r = s.reconcile("C", &c).unwrap();
+        // C already has its own, different binding and no sync history: a genuine conflict. KeepStore makes B's win.
+        let s3 = Syncer::at(root.join("sync"), Policy::KeepStore);
+        let r = s3.reconcile("C", &c).unwrap();
+        assert!(r.conflicts.iter().any(|x| x.item == "options:key_key.only_in_b" && x.winner == "store"), "{r:?}");
         assert!(fs::read_to_string(c.join("options.txt")).unwrap().contains("key.keyboard.j"), "{r:?}");
     }
 
