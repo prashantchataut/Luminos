@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Luminos",
+  "version": "0.6.0",
+  "identifier": "dev.luminos.launcher",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Luminos",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "decorations": false,
+        "center": true,
+        "backgroundColor": "#050a1f"
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"],
+    "windows": { "nsis": { "installMode": "currentUser", "compression": "lzma", "displayLanguageSelector": false } }
+  }
+}

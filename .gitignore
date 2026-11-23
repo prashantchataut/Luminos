@@ -13,3 +13,8 @@ site/dist/
 site/public/screenshots/
 dist/
 launcher/target/
+client26/build/
+client26/.gradle/
+client/.gradle/
+client/build/
+smoke-out/

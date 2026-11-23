@@ -24,6 +24,8 @@ pub struct Prepared {
     pub classpath: Vec<PathBuf>,
     pub natives_dir: PathBuf,
     pub java_major: u32,
+    /// What the pre-launch mod audit found and fixed (empty/ok when nothing needed doing).
+    pub mod_report: crate::resolve::Report,
 }
 
 #[derive(Deserialize)]
@@ -159,6 +161,27 @@ pub fn prepare(inst: &Instance, settings: &Settings, p: &Progress) -> Result<Pre
         .unwrap_or(8);
     let preferred = inst.java_path.as_deref().or(settings.java_path.as_deref());
     let java = java::ensure(major, preferred, p)?;
+    // Fabric refuses to start when any mod's `fabric.mod.json` is unsatisfied. Check and repair first.
+    p.set_stage("Checking mods against this Minecraft version…");
+    let mod_report = match crate::resolve::env_for(inst, major) {
+        Ok(env) => crate::resolve::prelaunch(
+            inst,
+            &env,
+            crate::resolve::Options { allow_beta: settings.allow_beta_mods },
+        )
+        .unwrap_or_else(|e| crate::resolve::Report {
+            minecraft: inst.mc_version.clone(),
+            ok: false,
+            notes: vec![format!("Could not verify mods (continuing): {e:#}")],
+            ..Default::default()
+        }),
+        Err(e) => crate::resolve::Report {
+            minecraft: inst.mc_version.clone(),
+            ok: false,
+            notes: vec![format!("Could not read loader version (continuing): {e:#}")],
+            ..Default::default()
+        },
+    };
     p.set_stage("Ready");
     Ok(Prepared {
         version,
@@ -166,6 +189,7 @@ pub fn prepare(inst: &Instance, settings: &Settings, p: &Progress) -> Result<Pre
         classpath,
         natives_dir,
         java_major: major,
+        mod_report,
     })
 }
 
