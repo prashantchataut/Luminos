@@ -205,10 +205,10 @@ fun LaunchButton(state: Launch, readyLabel: String, onClick: () -> Unit, haptics
                         Text(s.label, style = Type.label.copy(color = Color.White), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                         Text("${(s.progress * 100).toInt()}%", style = Type.mono.copy(color = Lx.Ice))
                     }
-                    is Launch.Verified -> Row(Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
+                    is Launch.Verified -> Row(Modifier, Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Check, null, tint = Lx.Ice, modifier = Modifier.size(20.dp)); Text("Verified", style = Type.label.copy(color = Lx.Ice))
                     }
-                    is Launch.Failed -> Row(Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
+                    is Launch.Failed -> Row(Modifier, Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Refresh, null, tint = Color.White, modifier = Modifier.size(20.dp)); Text("Retry", style = Type.label.copy(color = Color.White))
                     }
                 }
