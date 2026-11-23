@@ -22,7 +22,7 @@ public final class TitleView {
 	private final long born = System.currentTimeMillis();
 	private long frozen = -1;
 	private final String splash = SPLASHES[(int) ((System.currentTimeMillis() / 86400000L) % SPLASHES.length)];
-	private int ix, iy, iw = 176, ih = 22, pitch = 26;
+	private int ix, iy, iw = 176, ih = 18, pitch = 21;
 
 	public TitleView(Screen self, Minecraft mc) {
 		this.self = self;
@@ -41,14 +41,16 @@ public final class TitleView {
 		TitleArt.draw(g, t);
 		int w = g.width(), h = g.height();
 		ix = Math.max(24, w / 11);
-		iy = Math.max(70, h / 2 - 8);
+		// compact layouts first: a 240 px tall GUI (854x480 at scale 2) must still show all six items, the instance line and the footer
+		iy = Math.max(58, Math.min(h / 2 - 8, h - 40 - items.size() * pitch - 36));
+		int logoScale = h < 300 ? 2 : 3;
 		float fade = Math.min(1f, (now - born) / 350f);
 		// logo
-		g.push(ix, Math.max(14, iy - 62), 3f);
+		g.push(ix, Math.max(8, iy - (logoScale * 8 + 22)), (float) logoScale);
 		g.text("Luminos", 0, 0, 0xFFE8EEFF);
 		g.pop();
-		g.fill(ix, iy - 28, ix + 46, iy - 26, 0xFF4F8CFF);
-		g.text(splash, ix, iy - 20, 0xFFFFD866);
+		g.fill(ix, iy - 22, ix + 46, iy - 20, 0xFF4F8CFF);
+		g.text(splash, ix, iy - 15, 0xFFFFD866);
 		for (int i = 0; i < items.size(); i++) {
 			int y = iy + i * pitch;
 			boolean hot = mx >= ix && mx < ix + iw && my >= y && my < y + ih;
@@ -57,18 +59,18 @@ public final class TitleView {
 			g.fill(ix, y, ix + iw, y + ih, f ? 0xDD2C4F9C : 0xAA080D28);
 			g.fill(ix, y, ix + 2, y + ih, f ? 0xFF9CC2FF : 0xFF2B4488);
 			g.outline(ix, y, iw, ih, f ? 0xFF6F9CFF : 0x44FFFFFF);
-			g.text(items.get(i).label, ix + 12, y + 7, f ? 0xFFFFFFFF : 0xFFC8D4F5);
+			g.text(items.get(i).label, ix + 12, y + 5, f ? 0xFFFFFFFF : 0xFFC8D4F5);
 		}
 		String inst = System.getenv("LUMINOS_INSTANCE") != null ? System.getenv("LUMINOS_INSTANCE") : "Default";
 		String info = inst + "  -  Minecraft " + Nav.version(mc);
-		g.text(info, ix, iy + items.size() * pitch + 6, 0xFF9DB0E8);
-		g.text("Right Ctrl: quick panel in game", ix, iy + items.size() * pitch + 18, 0xFF6F86C8);
+		g.text(info, ix, iy + items.size() * pitch + 4, 0xFFB4C4F0);
+		g.text("Right Ctrl: quick panel in game", ix, iy + items.size() * pitch + 15, 0xFF8FA4DE);
 		String use = "Use vanilla title screen";
 		int uw = g.textWidth(use);
 		boolean uh = mx >= 8 && mx < 8 + uw && my >= h - 16 && my < h - 4;
-		g.text(use, 8, h - 14, uh ? 0xFFFFFFFF : 0xFF6F86C8);
+		g.text(use, 8, h - 14, uh ? 0xFFFFFFFF : 0xFF8FA4DE);
 		String v = "Luminos Client " + LuminosClient.VERSION;
-		g.text(v, w - g.textWidth(v) - 8, h - 14, 0xFF6F86C8);
+		g.text(v, w - g.textWidth(v) - 8, h - 14, 0xFF8FA4DE);
 		if (fade < 1f) g.fill(0, 0, w, h, ((int) ((1f - fade) * 255) << 24) | 0x040716);
 	}
 
