@@ -7,7 +7,7 @@ Read `docs/PR15_v09_launcher.md` for the full table. Short version:
 | Launcher redesign (Home, Instances, Library, Cosmetics, Servers, Client page, Settings, Onboarding), liquid glass + intensity slider + Solid switch, 4 render rounds each | **VERIFIED** (render, 2x, `docs/launcher-shots/rounds/`) |
 | 48 original skins + 14 original capes (6 animated), CC0, generated; skinview3d viewer, outfits, import | **VERIFIED** (render) |
 | Renderer picker logic, FPS diagnostic, Click test model | **VERIFIED** (`cd app && npm test`, 13 assertions) |
-| `ms_device_begin` / `ms_device_finish` Tauri commands | **UNVERIFIED**: written with no Rust compiler; needs `LUMINOS_MS_CLIENT_ID` |
+| `ms_device_begin` / `ms_device_finish` Tauri commands | **Compiles** (CI `windows` job green); never run with a real account; needs `LUMINOS_MS_CLIENT_ID` |
 | In-game: title screen, death markers, fonts, crosshair/keystroke/QoL **in the client**, glass panels | **NOT BUILT** (no JDK in the session) |
 | Community skins (MC-Skins.net / NameMC) | **0**: Cloudflare challenge / rights reserved. Link-outs only |
 | FPS and startup numbers, three profiles | **NOT MEASURED** (`docs/PERF.md`) |
