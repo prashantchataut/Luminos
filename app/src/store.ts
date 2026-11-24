@@ -30,6 +30,12 @@ export function apply(s: Settings) {
 }
 apply(state);
 
+const CLIENT_KEYS = ["theme", "classicClient", "lowFire", "lowShield", "compliance", "keystrokes", "fogOverworld", "fogNether", "fogEnd", "crosshair"];
+let crosshairObj: any = null;
+export function setCrosshairGeometry(c: any) { crosshairObj = c; writeClient(); }
+/** The file the in-game client reads. Written whenever a client setting changes. */
+export function clientSettings() { const o: any = {}; for (const k of CLIENT_KEYS) o[k] = (state as any)[k]; if (crosshairObj) o.crosshair = crosshairObj; return o; }
+function writeClient() { call("write_client_settings", { json: JSON.stringify(clientSettings()) }).catch(() => { /* browser */ }); }
 export function set<K extends keyof Settings>(k: K, v: Settings[K]) {
   state = { ...state, [k]: v };
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* private mode */ }
@@ -38,6 +44,7 @@ export function set<K extends keyof Settings>(k: K, v: Settings[K]) {
   if (["memoryMb", "allowBeta", "offlineSkins", "checkUpdates", "closeOnLaunch", "profile", "renderer", "inputSampling", "hudFps", "startupCache", "compliance"].includes(k)) {
     call("set_setting", { key: k, value: v }).catch(() => { /* engine unavailable in a plain browser */ });
   }
+  if (CLIENT_KEYS.includes(k as string)) writeClient();
   subs.forEach((f) => f());
 }
 export const useSettings = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => state);

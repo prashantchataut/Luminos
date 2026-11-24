@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Badge, Chip, Icon, LRow, Slider, Switch } from "../kit";
 import { PRESETS } from "../data/launcher";
-import { set, useSettings } from "../store";
+import { set, useSettings, setCrosshairGeometry } from "../store";
 
 /* ---- crosshair model: also the file format the client reads (luminos-client.json -> "crosshair") ---- */
 export type Cross = { name: string; shape: "cross" | "dot" | "circle" | "T" | "X"; thickness: number; gap: number; length: number; outline: number; color: string; opacity: number; dot?: boolean; ring?: boolean; spread: boolean };
@@ -60,6 +60,7 @@ export default function ClientPage() {
   const s = useSettings();
   const [cfg, setCfg] = useState<Record<string, any>>(() => ({ lowFireOffset: 40, fogMult: 100, noFlash: true, tameParticles: true, ...loadCfg() }));
   const [cross, setCross] = useState<Cross>(() => ({ ...(CROSS_PRESETS[s.crosshair] || CROSS_PRESETS["dot-ring"]) }));
+  useEffect(() => { setCrosshairGeometry({ ...cross, color: String((cross as any).color || "#ffffff") }); }, [cross]);
   const [spread, setSpread] = useState(0);
   const [customPng, setCustomPng] = useState<string | null>(null);
   const put = (k: string, v: any) => setCfg((c) => { const n = { ...c, [k]: v }; localStorage.setItem("luminos.client.v1", JSON.stringify(n)); return n; });

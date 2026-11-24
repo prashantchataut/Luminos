@@ -173,6 +173,17 @@ async fn write_cosmetics(json: String) -> R<()> {
     .await
 }
 
+/// Settings the in-game client reads: luminos-client-settings.json (theme, crosshair, keystrokes, fog, fonts, classic client).
+#[tauri::command]
+async fn write_client_settings(json: String) -> R<()> {
+    blocking(move || {
+        serde_json::from_str::<Value>(&json).map_err(err)?;
+        let dir = luminos_core::paths::accounts_file().parent().map(|p| p.to_path_buf()).ok_or("no config directory".to_string())?;
+        std::fs::write(dir.join("luminos-client-settings.json"), json).map_err(err)
+    })
+    .await
+}
+
 #[tauri::command]
 async fn create_account(name: String) -> R<()> {
     blocking(move || {
@@ -399,6 +410,7 @@ pub fn run() {
             mojang_lookup,
             mojang_set_skin,
             write_cosmetics,
+            write_client_settings,
             create_instance,
             launch_instance,
             sync_run,

@@ -582,7 +582,7 @@ public final class Panel {
 		boolean showToast = System.currentTimeMillis() - toastAt < 2200;
 		String left = showToast ? toast : query.length() > 0 ? "Results from every tab" : tab == Tab.MODULES ? "Right-click a row for its settings" : "Esc closes";
 		Glass.text(g, Glass.fit(g, left, Glass.LABEL, (W - RAIL - 120)), RAIL + 10, y + 1, Glass.LABEL, showToast ? ok() : Glass.INK3);
-		String right = Glass.solid() ? "Solid panels" : "Glass " + Config.get().glassIntensity + "%";
+		String right = "Theme: " + Glass.theme().id;
 		Glass.text(g, right, W - 10 - Glass.width(g, right, Glass.LABEL), y + 1, Glass.LABEL, Glass.INK3);
 	}
 
