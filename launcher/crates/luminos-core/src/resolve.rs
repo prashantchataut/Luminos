@@ -52,7 +52,11 @@ impl Ver {
         let pre = pre
             .map(|p| {
                 p.split(['.', '-'])
-                    .map(|x| x.parse::<u64>().map(Pre::Num).unwrap_or_else(|_| Pre::Str(x.to_string())))
+                    .map(|x| {
+                        x.parse::<u64>()
+                            .map(Pre::Num)
+                            .unwrap_or_else(|_| Pre::Str(x.to_string()))
+                    })
                     .collect()
             })
             .unwrap_or_default();
@@ -125,7 +129,10 @@ fn bump(nums: &[u64], at: usize) -> Ver {
         n.push(0);
     }
     n[at] += 1;
-    Ver { nums: n, pre: vec![] }
+    Ver {
+        nums: n,
+        pre: vec![],
+    }
 }
 
 fn comparator(tok: &str) -> Option<Vec<Cmp>> {
@@ -145,8 +152,17 @@ fn comparator(tok: &str) -> Option<Vec<Cmp>> {
         let nums: Option<Vec<u64>> = parts[..w].iter().map(|p| p.parse().ok()).collect();
         let nums = nums?;
         return Some(vec![
-            Cmp { op: Op::Ge, v: Ver { nums: nums.clone(), pre: vec![] } },
-            Cmp { op: Op::Lt, v: bump(&nums, w - 1) },
+            Cmp {
+                op: Op::Ge,
+                v: Ver {
+                    nums: nums.clone(),
+                    pre: vec![],
+                },
+            },
+            Cmp {
+                op: Op::Lt,
+                v: bump(&nums, w - 1),
+            },
         ]);
     }
     let v = Ver::parse(rest)?;
@@ -187,7 +203,10 @@ impl Req {
         if alts.is_empty() {
             alts.push(vec![]);
         }
-        Req { alts, raw: options.join(" || ") }
+        Req {
+            alts,
+            raw: options.join(" || "),
+        }
     }
     pub fn matches(&self, version: &str) -> bool {
         let Some(v) = Ver::parse(version) else {
@@ -243,12 +262,17 @@ impl ModMeta {
 }
 
 fn req_map(v: &serde_json::Value) -> Vec<(String, Req)> {
-    let Some(o) = v.as_object() else { return vec![] };
+    let Some(o) = v.as_object() else {
+        return vec![];
+    };
     o.iter()
         .map(|(k, val)| {
             let opts: Vec<String> = match val {
                 serde_json::Value::String(s) => vec![s.clone()],
-                serde_json::Value::Array(a) => a.iter().filter_map(|x| x.as_str().map(String::from)).collect(),
+                serde_json::Value::Array(a) => a
+                    .iter()
+                    .filter_map(|x| x.as_str().map(String::from))
+                    .collect(),
                 _ => vec!["*".into()],
             };
             (k.clone(), Req::parse_any(&opts))
@@ -262,7 +286,8 @@ fn read_units(bytes: &[u8], depth: u8, out: &mut Vec<Unit>) -> Result<()> {
     zip.by_name("fabric.mod.json")
         .context("no fabric.mod.json (not a Fabric mod)")?
         .read_to_string(&mut json)?;
-    let v: serde_json::Value = serde_json::from_str(json.trim_start_matches('\u{feff}')).context("bad fabric.mod.json")?;
+    let v: serde_json::Value =
+        serde_json::from_str(json.trim_start_matches('\u{feff}')).context("bad fabric.mod.json")?;
     let provides = v["provides"]
         .as_array()
         .map(|a| {
@@ -281,7 +306,11 @@ fn read_units(bytes: &[u8], depth: u8, out: &mut Vec<Unit>) -> Result<()> {
     if depth < 2 {
         let nested: Vec<String> = v["jars"]
             .as_array()
-            .map(|a| a.iter().filter_map(|j| j["file"].as_str().map(String::from)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|j| j["file"].as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
         for f in nested {
             let mut buf = vec![];
@@ -331,12 +360,18 @@ pub struct Problem {
 impl Problem {
     pub fn describe(&self) -> String {
         match self.kind {
-            ProblemKind::Missing => format!("{} needs {} ({}), which is not installed", self.owner, self.dep, self.wanted),
+            ProblemKind::Missing => format!(
+                "{} needs {} ({}), which is not installed",
+                self.owner, self.dep, self.wanted
+            ),
             ProblemKind::WrongVersion => format!(
                 "{} needs {} {}, but {} is what would be installed",
                 self.owner, self.dep, self.wanted, self.found
             ),
-            ProblemKind::Breaks => format!("{} cannot run together with {} {}", self.owner, self.dep, self.found),
+            ProblemKind::Breaks => format!(
+                "{} cannot run together with {} {}",
+                self.owner, self.dep, self.found
+            ),
         }
     }
 }
@@ -407,7 +442,11 @@ pub fn env_for(inst: &Instance, java_major: u32) -> Result<Env> {
             .next()
             .ok_or_else(|| anyhow!("no Fabric Loader for Minecraft {}", inst.mc_version))?,
     };
-    Ok(Env { minecraft: inst.mc_version.clone(), loader, java: java_major })
+    Ok(Env {
+        minecraft: inst.mc_version.clone(),
+        loader,
+        java: java_major,
+    })
 }
 
 // ---------------------------------------------------------------- candidates
@@ -448,9 +487,16 @@ impl ModrinthSource {
     }
     /// Download (once) and return the cached jar path for a candidate.
     pub fn jar(&self, c: &Cand) -> Result<std::path::PathBuf> {
-        let f = c.version.primary_file().ok_or_else(|| anyhow!("{} has no file", c.project.title))?;
+        let f = c
+            .version
+            .primary_file()
+            .ok_or_else(|| anyhow!("{} has no file", c.project.title))?;
         let p = Self::cache_path(&f.hashes.sha1);
-        if p.exists() && store::sha1_file(&p).map(|h| h == f.hashes.sha1).unwrap_or(false) {
+        if p.exists()
+            && store::sha1_file(&p)
+                .map(|h| h == f.hashes.sha1)
+                .unwrap_or(false)
+        {
             return Ok(p);
         }
         let bytes = http::get_bytes(&f.url)?;
@@ -469,7 +515,11 @@ impl Source for ModrinthSource {
         let list = modrinth::versions(&project.id, Some("fabric"), Some(&env.minecraft))?;
         Ok(list
             .into_iter()
-            .map(|version| Cand { slug: slug.to_string(), project: project.clone(), version })
+            .map(|version| Cand {
+                slug: slug.to_string(),
+                project: project.clone(),
+                version,
+            })
             .collect())
     }
     fn meta(&self, c: &Cand) -> Result<ModMeta> {
@@ -550,8 +600,16 @@ impl<'a> Solver<'a> {
             return Ok(p.clone());
         }
         let all = self.src.candidates(slug, self.env)?;
-        let stable: Vec<Cand> = all.iter().filter(|c| c.channel() == "release").cloned().collect();
-        let pool = if self.allow_beta { all.clone() } else { stable.clone() };
+        let stable: Vec<Cand> = all
+            .iter()
+            .filter(|c| c.channel() == "release")
+            .cloned()
+            .collect();
+        let pool = if self.allow_beta {
+            all.clone()
+        } else {
+            stable.clone()
+        };
         if stable.is_empty() && !all.is_empty() {
             self.only_prerelease.insert(slug.to_string());
         }
@@ -560,22 +618,37 @@ impl<'a> Solver<'a> {
     }
 
     fn has(&self, slug_or_id: &str) -> Option<usize> {
-        self.chosen
-            .iter()
-            .position(|c| c.cand.slug == slug_or_id || c.cand.project.id == slug_or_id || c.cand.project.slug == slug_or_id)
+        self.chosen.iter().position(|c| {
+            c.cand.slug == slug_or_id
+                || c.cand.project.id == slug_or_id
+                || c.cand.project.slug == slug_or_id
+        })
     }
 
-    fn new_problems(&self, before: &[Problem], extra: Option<&ModMeta>, skip: Option<usize>) -> Vec<Problem> {
+    fn new_problems(
+        &self,
+        before: &[Problem],
+        extra: Option<&ModMeta>,
+        skip: Option<usize>,
+    ) -> Vec<Problem> {
         let after = check(self.env, &self.metas(extra, skip));
         after.into_iter().filter(|p| !before.contains(p)).collect()
     }
 
     /// Try to add `slug`. Err(reason) = could not be satisfied.
-    fn add(&mut self, slug: &str, name: &str, required: bool, depth: u8) -> std::result::Result<(), String> {
+    fn add(
+        &mut self,
+        slug: &str,
+        name: &str,
+        required: bool,
+        depth: u8,
+    ) -> std::result::Result<(), String> {
         if self.has(slug).is_some() {
             return Ok(());
         }
-        let pool = self.pool(slug).map_err(|e| format!("could not look it up on Modrinth ({e:#})"))?;
+        let pool = self
+            .pool(slug)
+            .map_err(|e| format!("could not look it up on Modrinth ({e:#})"))?;
         if pool.is_empty() {
             return Err(if self.only_prerelease.contains(slug) {
                 format!(
@@ -591,7 +664,10 @@ impl<'a> Solver<'a> {
             let meta = match self.src.meta(cand) {
                 Ok(m) => m,
                 Err(e) => {
-                    first_reason.get_or_insert(format!("{} could not be read ({e:#})", cand.version.version_number));
+                    first_reason.get_or_insert(format!(
+                        "{} could not be read ({e:#})",
+                        cand.version.version_number
+                    ));
                     continue;
                 }
             };
@@ -602,7 +678,10 @@ impl<'a> Solver<'a> {
                 for dep in cand.required_projects() {
                     if self.has(&dep).is_none() {
                         if let Err(r) = self.add(&dep, &dep, true, depth + 1) {
-                            dep_fail = Some(format!("{} needs another mod that cannot be installed ({r})", cand.version.version_number));
+                            dep_fail = Some(format!(
+                                "{} needs another mod that cannot be installed ({r})",
+                                cand.version.version_number
+                            ));
                             break;
                         }
                     }
@@ -616,14 +695,23 @@ impl<'a> Solver<'a> {
             let before = check(self.env, &self.metas(None, None));
             let problems = self.new_problems(&before, Some(&meta), None);
             if problems.is_empty() {
-                self.chosen.push(Chosen { name: name.to_string(), cand: cand.clone(), meta, required });
+                self.chosen.push(Chosen {
+                    name: name.to_string(),
+                    cand: cand.clone(),
+                    meta,
+                    required,
+                });
                 return Ok(());
             }
             if self.repair(cand, &meta, name, required, &before, &problems) {
                 return Ok(());
             }
             self.chosen.truncate(start);
-            first_reason.get_or_insert(format!("{} - {}", cand.version.version_number, self.explain(&problems[0])));
+            first_reason.get_or_insert(format!(
+                "{} - {}",
+                cand.version.version_number,
+                self.explain(&problems[0])
+            ));
         }
         Err(first_reason.unwrap_or_else(|| "no compatible version".into()))
     }
@@ -647,14 +735,24 @@ impl<'a> Solver<'a> {
 
     /// One level of backtracking: swap an already chosen (non-required) mod for an older version so
     /// `cand` fits, as long as nothing else breaks.
-    fn repair(&mut self, cand: &Cand, meta: &ModMeta, name: &str, required: bool, before: &[Problem], problems: &[Problem]) -> bool {
+    fn repair(
+        &mut self,
+        cand: &Cand,
+        meta: &ModMeta,
+        name: &str,
+        required: bool,
+        before: &[Problem],
+        problems: &[Problem],
+    ) -> bool {
         let mut blockers: Vec<usize> = vec![];
         for p in problems {
-            if let Some(i) = self
-                .chosen
-                .iter()
-                .position(|c| !c.required && c.meta.units.iter().any(|u| u.id == p.dep || u.provides.contains(&p.dep)))
-            {
+            if let Some(i) = self.chosen.iter().position(|c| {
+                !c.required
+                    && c.meta
+                        .units
+                        .iter()
+                        .any(|u| u.id == p.dep || u.provides.contains(&p.dep))
+            }) {
                 if !blockers.contains(&i) {
                     blockers.push(i);
                 }
@@ -664,8 +762,14 @@ impl<'a> Solver<'a> {
             let slug = self.chosen[i].cand.slug.clone();
             let cur = self.chosen[i].cand.version.id.clone();
             let Ok(pool) = self.pool(&slug) else { continue };
-            for alt in pool.iter().filter(|a| a.version.id != cur).take(MAX_CANDIDATES) {
-                let Ok(alt_meta) = self.src.meta(alt) else { continue };
+            for alt in pool
+                .iter()
+                .filter(|a| a.version.id != cur)
+                .take(MAX_CANDIDATES)
+            {
+                let Ok(alt_meta) = self.src.meta(alt) else {
+                    continue;
+                };
                 // alt replaces chosen[i]; then cand joins.
                 let mut metas: Vec<&ModMeta> = self.metas(None, Some(i));
                 metas.push(&alt_meta);
@@ -680,7 +784,12 @@ impl<'a> Solver<'a> {
                     ));
                     self.chosen[i].cand = alt.clone();
                     self.chosen[i].meta = alt_meta;
-                    self.chosen.push(Chosen { name: name.to_string(), cand: cand.clone(), meta: meta.clone(), required });
+                    self.chosen.push(Chosen {
+                        name: name.to_string(),
+                        cand: cand.clone(),
+                        meta: meta.clone(),
+                        required,
+                    });
                     return true;
                 }
             }
@@ -690,7 +799,13 @@ impl<'a> Solver<'a> {
 }
 
 /// Solve for `wants` (priority order) on top of the `fixed` jars.
-pub fn solve(src: &dyn Source, env: &Env, fixed: &[Fixed], wants: &[Want], allow_beta: bool) -> Result<Plan> {
+pub fn solve(
+    src: &dyn Source,
+    env: &Env,
+    fixed: &[Fixed],
+    wants: &[Want],
+    allow_beta: bool,
+) -> Result<Plan> {
     let mut s = Solver {
         src,
         env,
@@ -705,12 +820,25 @@ pub fn solve(src: &dyn Source, env: &Env, fixed: &[Fixed], wants: &[Want], allow
     for w in wants {
         if let Err(reason) = s.add(&w.slug, &w.name, w.required, 0) {
             if w.required {
-                bail!("{} cannot be installed for Minecraft {}: {}", w.name, env.minecraft, reason);
+                bail!(
+                    "{} cannot be installed for Minecraft {}: {}",
+                    w.name,
+                    env.minecraft,
+                    reason
+                );
             }
-            dropped.push(Dropped { slug: w.slug.clone(), name: w.name.clone(), reason });
+            dropped.push(Dropped {
+                slug: w.slug.clone(),
+                name: w.name.clone(),
+                reason,
+            });
         }
     }
-    Ok(Plan { chosen: s.chosen, dropped, notes: s.notes })
+    Ok(Plan {
+        chosen: s.chosen,
+        dropped,
+        notes: s.notes,
+    })
 }
 
 // ---------------------------------------------------------------- applying to an instance
@@ -741,19 +869,29 @@ pub fn apply(inst: &Instance, plan: &Plan, report: &mut Report) -> Result<()> {
     let installed = content::list(inst, content::Kind::Mod);
     std::fs::create_dir_all(mods_dir(inst))?;
     for c in &plan.chosen {
-        let Some(f) = c.cand.version.primary_file() else { continue };
+        let Some(f) = c.cand.version.primary_file() else {
+            continue;
+        };
         let already = installed.iter().any(|e| e.file == f.filename && e.enabled);
         if already {
             continue;
         }
-        for old in installed.iter().filter(|e| e.project_id.as_deref() == Some(c.cand.project.id.as_str())) {
+        for old in installed
+            .iter()
+            .filter(|e| e.project_id.as_deref() == Some(c.cand.project.id.as_str()))
+        {
             let _ = content::remove(inst, content::Kind::Mod, &old.file);
-            report.replaced.push(format!("{} {} -> {}", c.name, old.version, c.cand.version.version_number));
+            report.replaced.push(format!(
+                "{} {} -> {}",
+                c.name, old.version, c.cand.version.version_number
+            ));
         }
         let jar = src.jar(&c.cand)?;
         std::fs::copy(&jar, mods_dir(inst).join(&f.filename))?;
         content::install_version(inst, content::Kind::Mod, &c.cand.project, &c.cand.version)?;
-        report.installed.push(format!("{} {}", c.name, c.cand.version.version_number));
+        report
+            .installed
+            .push(format!("{} {}", c.name, c.cand.version.version_number));
     }
     Ok(())
 }
@@ -762,7 +900,10 @@ pub fn apply(inst: &Instance, plan: &Plan, report: &mut Report) -> Result<()> {
 pub fn install_wants(inst: &Instance, env: &Env, wants: &[Want], opts: Options) -> Result<Report> {
     let fixed = fixed_from_disk(inst, &[])?;
     let plan = solve(&ModrinthSource, env, &fixed, wants, opts.allow_beta)?;
-    let mut report = Report { minecraft: env.minecraft.clone(), ..Default::default() };
+    let mut report = Report {
+        minecraft: env.minecraft.clone(),
+        ..Default::default()
+    };
     apply(inst, &plan, &mut report)?;
     report.dropped = plan.dropped;
     report.notes = plan.notes;
@@ -773,7 +914,10 @@ pub fn install_wants(inst: &Instance, env: &Env, wants: &[Want], opts: Options) 
 
 fn fixed_from_disk(inst: &Instance, skip_projects: &[String]) -> Result<Vec<Fixed>> {
     let mut out = vec![];
-    for e in content::list(inst, content::Kind::Mod).into_iter().filter(|e| e.enabled) {
+    for e in content::list(inst, content::Kind::Mod)
+        .into_iter()
+        .filter(|e| e.enabled)
+    {
         if let Some(p) = &e.project_id {
             if skip_projects.contains(p) {
                 continue;
@@ -784,7 +928,10 @@ fn fixed_from_disk(inst: &Instance, skip_projects: &[String]) -> Result<Vec<Fixe
         }
         if let Ok(bytes) = std::fs::read(mods_dir(inst).join(&e.file)) {
             if let Ok(meta) = read_meta(&bytes) {
-                out.push(Fixed { label: e.file.clone(), meta });
+                out.push(Fixed {
+                    label: e.file.clone(),
+                    meta,
+                });
             }
         }
     }
@@ -793,7 +940,9 @@ fn fixed_from_disk(inst: &Instance, skip_projects: &[String]) -> Result<Vec<Fixe
 
 fn looks_prerelease(v: &str) -> bool {
     let l = v.to_lowercase();
-    ["beta", "alpha", "snapshot", "-rc", "-pre", "nightly"].iter().any(|k| l.contains(k))
+    ["beta", "alpha", "snapshot", "-rc", "-pre", "nightly"]
+        .iter()
+        .any(|k| l.contains(k))
 }
 
 /// Run before every launch. Reads each enabled jar's `fabric.mod.json`, evaluates the whole set for
@@ -801,7 +950,10 @@ fn looks_prerelease(v: &str) -> bool {
 /// refreshes the Luminos Client jar for this Minecraft, and disables (never deletes) a mod that
 /// cannot be satisfied, recording why. Fast path: no network when everything already checks out.
 pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
-    let mut report = Report { minecraft: env.minecraft.clone(), ..Default::default() };
+    let mut report = Report {
+        minecraft: env.minecraft.clone(),
+        ..Default::default()
+    };
     if inst.loader != Loader::Fabric || !mods_dir(inst).exists() {
         report.ok = true;
         return Ok(report);
@@ -818,11 +970,16 @@ pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
             .collect()
     };
     let mut jars = load(inst);
-    let own_problem = jars.iter().any(|(_, m)| m.id() == "luminos_client" && !check(env, &[m]).iter().all(|p| p.dep != "minecraft"));
+    let own_problem = jars.iter().any(|(_, m)| {
+        m.id() == "luminos_client" && !check(env, &[m]).iter().all(|p| p.dep != "minecraft")
+    });
     if own_problem {
         match crate::preset::install_first_party(inst) {
             Ok(n) => {
-                report.replaced.push(format!("Luminos Client -> {n} (built for Minecraft {})", env.minecraft));
+                report.replaced.push(format!(
+                    "Luminos Client -> {n} (built for Minecraft {})",
+                    env.minecraft
+                ));
                 jars = load(inst);
             }
             Err(e) => {
@@ -831,7 +988,11 @@ pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
                     report.dropped.push(Dropped {
                         slug: "luminos_client".into(),
                         name: "Luminos Client".into(),
-                        reason: format!("version {} does not support Minecraft {}: {e:#}", m.version(), env.minecraft),
+                        reason: format!(
+                            "version {} does not support Minecraft {}: {e:#}",
+                            m.version(),
+                            env.minecraft
+                        ),
                     });
                 }
                 jars = load(inst);
@@ -845,7 +1006,13 @@ pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
     let unstable: Vec<&(content::Entry, ModMeta)> = if opts.allow_beta {
         vec![]
     } else {
-        jars.iter().filter(|(e, m)| e.project_id.is_some() && looks_prerelease(m.version()) && m.id() != "luminos_client").collect()
+        jars.iter()
+            .filter(|(e, m)| {
+                e.project_id.is_some()
+                    && looks_prerelease(m.version())
+                    && m.id() != "luminos_client"
+            })
+            .collect()
     };
     if problems.is_empty() && unstable.is_empty() {
         report.ok = true;
@@ -857,23 +1024,37 @@ pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
         .filter(|(e, m)| e.project_id.is_some() && m.id() != "luminos_client")
         .cloned()
         .collect();
-    let tracked_ids: Vec<String> = tracked.iter().filter_map(|(e, _)| e.project_id.clone()).collect();
+    let tracked_ids: Vec<String> = tracked
+        .iter()
+        .filter_map(|(e, _)| e.project_id.clone())
+        .collect();
     let fixed: Vec<Fixed> = jars
         .iter()
         .filter(|(e, m)| e.project_id.is_none() || m.id() == "luminos_client")
-        .map(|(e, m)| Fixed { label: e.file.clone(), meta: m.clone() })
+        .map(|(e, m)| Fixed {
+            label: e.file.clone(),
+            meta: m.clone(),
+        })
         .collect();
     let mut wants: Vec<Want> = tracked
         .iter()
-        .map(|(e, m)| Want { slug: e.project_id.clone().unwrap(), name: e.display_name.clone(), required: m.id() == "fabric-api" })
+        .map(|(e, m)| Want {
+            slug: e.project_id.clone().unwrap(),
+            name: e.display_name.clone(),
+            required: m.id() == "fabric-api",
+        })
         .collect();
     wants.sort_by_key(|w| !w.required);
-    let plan = solve(&ModrinthSource, env, &fixed, &wants, opts.allow_beta).context("solving mod versions")?;
+    let plan = solve(&ModrinthSource, env, &fixed, &wants, opts.allow_beta)
+        .context("solving mod versions")?;
     let dropped_ids: HashSet<String> = plan.dropped.iter().map(|d| d.slug.clone()).collect();
     // Anything tracked that was not chosen and not dropped is simply kept (never silently lost).
     for pid in &tracked_ids {
         if dropped_ids.contains(pid) {
-            for (e, _) in tracked.iter().filter(|(e, _)| e.project_id.as_deref() == Some(pid.as_str())) {
+            for (e, _) in tracked
+                .iter()
+                .filter(|(e, _)| e.project_id.as_deref() == Some(pid.as_str()))
+            {
                 let _ = content::set_enabled(inst, content::Kind::Mod, &e.file, false);
             }
         }
@@ -891,7 +1072,10 @@ pub fn prelaunch(inst: &Instance, env: &Env, opts: Options) -> Result<Report> {
         }
         let mut progressed = false;
         for p in &left {
-            if let Some((e, _)) = now.iter().find(|(_, m)| m.units.iter().any(|u| u.id == p.owner)) {
+            if let Some((e, _)) = now
+                .iter()
+                .find(|(_, m)| m.units.iter().any(|u| u.id == p.owner))
+            {
                 if content::set_enabled(inst, content::Kind::Mod, &e.file, false).is_ok() {
                     report.dropped.push(Dropped {
                         slug: p.owner.clone(),
@@ -923,13 +1107,23 @@ mod tests {
                 id: id.into(),
                 version: ver.into(),
                 provides: vec![],
-                depends: deps.iter().map(|(k, v)| (k.to_string(), Req::parse(v))).collect(),
-                breaks: breaks.iter().map(|(k, v)| (k.to_string(), Req::parse(v))).collect(),
+                depends: deps
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), Req::parse(v)))
+                    .collect(),
+                breaks: breaks
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), Req::parse(v)))
+                    .collect(),
             }],
         }
     }
     fn env(mc: &str) -> Env {
-        Env { minecraft: mc.into(), loader: "0.20.1".into(), java: 25 }
+        Env {
+            minecraft: mc.into(),
+            loader: "0.20.1".into(),
+            java: 25,
+        }
     }
 
     #[test]
@@ -953,7 +1147,12 @@ mod tests {
 
     #[test]
     fn the_old_client_jar_is_rejected_on_26_3_and_accepted_on_1_21_11() {
-        let old = unit("luminos_client", "0.2.0", &[("minecraft", "~1.21.4"), ("java", ">=21")], &[]);
+        let old = unit(
+            "luminos_client",
+            "0.2.0",
+            &[("minecraft", "~1.21.4"), ("java", ">=21")],
+            &[],
+        );
         let p = check(&env("26.3"), &[&old]);
         assert_eq!(p.len(), 1);
         assert_eq!(p[0].dep, "minecraft");
@@ -963,7 +1162,11 @@ mod tests {
     #[test]
     fn nested_jars_provide_fabric_api_modules() {
         let mut api = unit("fabric-api", "0.166.2", &[], &[]);
-        api.units.push(Unit { id: "fabric-resource-loader-v0".into(), version: "3.0.0".into(), ..Default::default() });
+        api.units.push(Unit {
+            id: "fabric-resource-loader-v0".into(),
+            version: "3.0.0".into(),
+            ..Default::default()
+        });
         let user = unit("m", "1", &[("fabric-resource-loader-v0", ">=2.0")], &[]);
         assert!(check(&env("26.3"), &[&api, &user]).is_empty());
         assert_eq!(check(&env("26.3"), &[&user]).len(), 1);
@@ -972,7 +1175,10 @@ mod tests {
     struct Fake(HashMap<String, Vec<(Cand, ModMeta)>>);
     impl Fake {
         fn add(&mut self, slug: &str, ver: &str, channel: &str, meta: ModMeta) {
-            let mut c = Cand { slug: slug.into(), ..Default::default() };
+            let mut c = Cand {
+                slug: slug.into(),
+                ..Default::default()
+            };
             c.project.id = slug.into();
             c.project.slug = slug.into();
             c.project.title = slug.into();
@@ -984,30 +1190,73 @@ mod tests {
     }
     impl Source for Fake {
         fn candidates(&self, slug: &str, _: &Env) -> Result<Vec<Cand>> {
-            Ok(self.0.get(slug).map(|v| v.iter().map(|(c, _)| c.clone()).collect()).unwrap_or_default())
+            Ok(self
+                .0
+                .get(slug)
+                .map(|v| v.iter().map(|(c, _)| c.clone()).collect())
+                .unwrap_or_default())
         }
         fn meta(&self, c: &Cand) -> Result<ModMeta> {
-            self.0[&c.slug].iter().find(|(x, _)| x.version.id == c.version.id).map(|(_, m)| m.clone()).ok_or_else(|| anyhow!("none"))
+            self.0[&c.slug]
+                .iter()
+                .find(|(x, _)| x.version.id == c.version.id)
+                .map(|(_, m)| m.clone())
+                .ok_or_else(|| anyhow!("none"))
         }
     }
     fn want(s: &str, req: bool) -> Want {
-        Want { slug: s.into(), name: s.into(), required: req }
+        Want {
+            slug: s.into(),
+            name: s.into(),
+            required: req,
+        }
     }
 
     /// The exact failure from the bug report: newest Sodium is a beta, Sodium Extra needs 0.9.3.
     fn sodium_world() -> Fake {
         let mut f = Fake(HashMap::new());
-        f.add("sodium", "mc26.3-0.9.4-beta.1-fabric", "beta", unit("sodium", "0.9.4-beta.1+mc26.3", &[("minecraft", "26.3")], &[]));
-        f.add("sodium", "mc26.3-0.9.3-fabric", "release", unit("sodium", "0.9.3+mc26.3", &[("minecraft", "26.3")], &[]));
-        f.add("sodium-extra", "0.9.6", "release", unit("sodium-extra", "0.9.6", &[("sodium", "0.9.3")], &[]));
+        f.add(
+            "sodium",
+            "mc26.3-0.9.4-beta.1-fabric",
+            "beta",
+            unit(
+                "sodium",
+                "0.9.4-beta.1+mc26.3",
+                &[("minecraft", "26.3")],
+                &[],
+            ),
+        );
+        f.add(
+            "sodium",
+            "mc26.3-0.9.3-fabric",
+            "release",
+            unit("sodium", "0.9.3+mc26.3", &[("minecraft", "26.3")], &[]),
+        );
+        f.add(
+            "sodium-extra",
+            "0.9.6",
+            "release",
+            unit("sodium-extra", "0.9.6", &[("sodium", "0.9.3")], &[]),
+        );
         f
     }
 
     #[test]
     fn stable_sodium_is_chosen_not_the_beta() {
         let f = sodium_world();
-        let plan = solve(&f, &env("26.3"), &[], &[want("sodium", false), want("sodium-extra", false)], false).unwrap();
-        let v: Vec<&str> = plan.chosen.iter().map(|c| c.cand.version.version_number.as_str()).collect();
+        let plan = solve(
+            &f,
+            &env("26.3"),
+            &[],
+            &[want("sodium", false), want("sodium-extra", false)],
+            false,
+        )
+        .unwrap();
+        let v: Vec<&str> = plan
+            .chosen
+            .iter()
+            .map(|c| c.cand.version.version_number.as_str())
+            .collect();
         assert_eq!(v, vec!["mc26.3-0.9.3-fabric", "0.9.6"]);
         assert!(plan.dropped.is_empty());
     }
@@ -1015,27 +1264,69 @@ mod tests {
     #[test]
     fn with_betas_allowed_sodium_is_downgraded_so_the_extra_still_loads() {
         let f = sodium_world();
-        let plan = solve(&f, &env("26.3"), &[], &[want("sodium", false), want("sodium-extra", false)], true).unwrap();
+        let plan = solve(
+            &f,
+            &env("26.3"),
+            &[],
+            &[want("sodium", false), want("sodium-extra", false)],
+            true,
+        )
+        .unwrap();
         assert!(plan.dropped.is_empty(), "{:?}", plan.dropped);
-        assert!(plan.chosen.iter().any(|c| c.cand.version.version_number == "mc26.3-0.9.3-fabric"));
-        assert!(plan.notes.iter().any(|n| n.contains("so sodium-extra can load")), "{:?}", plan.notes);
+        assert!(plan
+            .chosen
+            .iter()
+            .any(|c| c.cand.version.version_number == "mc26.3-0.9.3-fabric"));
+        assert!(
+            plan.notes
+                .iter()
+                .any(|n| n.contains("so sodium-extra can load")),
+            "{:?}",
+            plan.notes
+        );
     }
 
     #[test]
     fn an_optional_mod_that_cannot_be_satisfied_is_dropped_with_a_reason() {
         let mut f = Fake(HashMap::new());
-        f.add("sodium", "0.9.3", "release", unit("sodium", "0.9.3", &[], &[]));
-        f.add("old-extra", "1", "release", unit("old-extra", "1", &[("sodium", "0.8.0")], &[]));
-        let plan = solve(&f, &env("26.3"), &[], &[want("sodium", true), want("old-extra", false)], false).unwrap();
+        f.add(
+            "sodium",
+            "0.9.3",
+            "release",
+            unit("sodium", "0.9.3", &[], &[]),
+        );
+        f.add(
+            "old-extra",
+            "1",
+            "release",
+            unit("old-extra", "1", &[("sodium", "0.8.0")], &[]),
+        );
+        let plan = solve(
+            &f,
+            &env("26.3"),
+            &[],
+            &[want("sodium", true), want("old-extra", false)],
+            false,
+        )
+        .unwrap();
         assert_eq!(plan.chosen.len(), 1);
         assert_eq!(plan.dropped.len(), 1);
-        assert!(plan.dropped[0].reason.contains("sodium") && plan.dropped[0].reason.contains("0.8.0"), "{}", plan.dropped[0].reason);
+        assert!(
+            plan.dropped[0].reason.contains("sodium") && plan.dropped[0].reason.contains("0.8.0"),
+            "{}",
+            plan.dropped[0].reason
+        );
     }
 
     #[test]
     fn beta_only_mods_are_dropped_unless_opted_in() {
         let mut f = Fake(HashMap::new());
-        f.add("shiny", "1.0-beta", "beta", unit("shiny", "1.0.0-beta.1", &[], &[]));
+        f.add(
+            "shiny",
+            "1.0-beta",
+            "beta",
+            unit("shiny", "1.0.0-beta.1", &[], &[]),
+        );
         let off = solve(&f, &env("26.3"), &[], &[want("shiny", false)], false).unwrap();
         assert!(off.chosen.is_empty());
         assert!(off.dropped[0].reason.contains("Allow beta"));
@@ -1054,7 +1345,14 @@ mod tests {
         let mut f = Fake(HashMap::new());
         f.add("a", "1", "release", unit("a", "1", &[], &[]));
         f.add("b", "1", "release", unit("b", "1", &[], &[("a", "*")]));
-        let plan = solve(&f, &env("26.3"), &[], &[want("a", false), want("b", false)], false).unwrap();
+        let plan = solve(
+            &f,
+            &env("26.3"),
+            &[],
+            &[want("a", false), want("b", false)],
+            false,
+        )
+        .unwrap();
         assert_eq!(plan.dropped.len(), 1);
         assert!(plan.dropped[0].reason.contains("cannot run together"));
     }
@@ -1065,7 +1363,8 @@ mod tests {
         let mut inner = Cursor::new(vec![]);
         {
             let mut z = zip::ZipWriter::new(&mut inner);
-            z.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default()).unwrap();
+            z.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default())
+                .unwrap();
             z.write_all(br#"{"schemaVersion":1,"id":"nested-mod","version":"2.0.0","depends":{"minecraft":">=26"}}"#).unwrap();
             z.finish().unwrap();
         }

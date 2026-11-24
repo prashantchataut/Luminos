@@ -1,37 +1,57 @@
 [
-  {
-    "id": "luminos-default",
-    "name": "Luminos Default",
-    "model": "classic",
-    "file": "skins/luminos-default.png",
-    "blurb": "Dark navy and off-white with clean panel lines and a small Luminos mark on the back."
-  },
-  {
-    "id": "ember",
-    "name": "Ember",
-    "model": "slim",
-    "file": "skins/ember.png",
-    "blurb": "Rust and charcoal. Worn leather jacket, brass buckle, headband."
-  },
-  {
-    "id": "glasshouse",
-    "name": "Glasshouse",
-    "model": "classic",
-    "file": "skins/glasshouse.png",
-    "blurb": "Mint and white with a botanical vine on the back layer."
-  },
-  {
-    "id": "nightshift",
-    "name": "Nightshift",
-    "model": "slim",
-    "file": "skins/nightshift.png",
-    "blurb": "Black and violet hoodie with a gradient down the sleeves."
-  },
-  {
-    "id": "paper",
-    "name": "Paper",
-    "model": "classic",
-    "file": "skins/paper.png",
-    "blurb": "Cream and ink. Minimal line art."
-  }
+ {
+  "id": "luminos-default",
+  "name": "Luminos Default",
+  "model": "classic",
+  "description": "Dark navy and off-white with panel lines and the Luminos crescent on the back.",
+  "file": "skins/luminos-default.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.24
+ },
+ {
+  "id": "ember",
+  "name": "Ember",
+  "model": "slim",
+  "description": "Worn rust leather over charcoal, stitched cuffs and boots.",
+  "file": "skins/ember.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.53
+ },
+ {
+  "id": "glasshouse",
+  "name": "Glasshouse",
+  "model": "classic",
+  "description": "Mint and white with a vine pattern on the back layer.",
+  "file": "skins/glasshouse.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.4
+ },
+ {
+  "id": "nightshift",
+  "name": "Nightshift",
+  "model": "slim",
+  "description": "Black hoodie, violet trim, sleeves that fade toward the cuff.",
+  "file": "skins/nightshift.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.33
+ },
+ {
+  "id": "paper",
+  "name": "Paper",
+  "model": "classic",
+  "description": "Cream and ink with thin line art.",
+  "file": "skins/paper.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.2
+ }
 ]

@@ -429,7 +429,12 @@ pub fn app(ctx: &egui::Context) -> App {
         acc.cape_id = Some("luminos-moon-cape".into());
     }
     // Client page: pretend the Luminos Client instance is installed, with a few optional mods present.
-    if let Some(inst) = a.instances.iter().find(|i| i.id == "luminos-client").cloned() {
+    if let Some(inst) = a
+        .instances
+        .iter()
+        .find(|i| i.id == "luminos-client")
+        .cloned()
+    {
         let mk = |file: &str, on: bool| luminos_core::content::Entry {
             file: file.into(),
             display_name: file.into(),
@@ -441,17 +446,51 @@ pub fn app(ctx: &egui::Context) -> App {
             description: String::new(),
             size: 0,
         };
-        a.client.mods = vec![mk("luminos-client-0.2.0.jar", true), mk("resourcify-1.21.4.jar", true), mk("zoomify-2.14.jar", false)];
+        a.client.mods = vec![
+            mk("luminos-client-0.2.0.jar", true),
+            mk("resourcify-1.21.4.jar", true),
+            mk("zoomify-2.14.jar", false),
+        ];
         a.client.cfg = serde_json::json!({"modules": {"cps": {"enabled": false}}, "toggleSprint": true, "zoomFov": 24});
         a.client.instance = Some(inst);
         a.client.loaded_for = a.page_t0;
     }
     a.maint.storage = crate::app::Loadable::Ready(vec![
-        luminos_core::storage::Area { name: "Instances", detail: "Worlds, mods and settings.", path: Default::default(), bytes: 3_400_000_000, reclaimable: false },
-        luminos_core::storage::Area { name: "Minecraft files", detail: "Re-downloaded when needed.", path: Default::default(), bytes: 1_150_000_000, reclaimable: true },
-        luminos_core::storage::Area { name: "Java runtimes", detail: "Re-downloaded when needed.", path: Default::default(), bytes: 610_000_000, reclaimable: true },
-        luminos_core::storage::Area { name: "Downloads cache", detail: "Temporary downloads.", path: Default::default(), bytes: 24_000_000, reclaimable: true },
-        luminos_core::storage::Area { name: "Skins", detail: "Your skin library.", path: Default::default(), bytes: 90_000, reclaimable: false },
+        luminos_core::storage::Area {
+            name: "Instances",
+            detail: "Worlds, mods and settings.",
+            path: Default::default(),
+            bytes: 3_400_000_000,
+            reclaimable: false,
+        },
+        luminos_core::storage::Area {
+            name: "Minecraft files",
+            detail: "Re-downloaded when needed.",
+            path: Default::default(),
+            bytes: 1_150_000_000,
+            reclaimable: true,
+        },
+        luminos_core::storage::Area {
+            name: "Java runtimes",
+            detail: "Re-downloaded when needed.",
+            path: Default::default(),
+            bytes: 610_000_000,
+            reclaimable: true,
+        },
+        luminos_core::storage::Area {
+            name: "Downloads cache",
+            detail: "Temporary downloads.",
+            path: Default::default(),
+            bytes: 24_000_000,
+            reclaimable: true,
+        },
+        luminos_core::storage::Area {
+            name: "Skins",
+            detail: "Your skin library.",
+            path: Default::default(),
+            bytes: 90_000,
+            reclaimable: false,
+        },
     ]);
     a.skins.selected = Some("luminos-default".into());
     a.detail.tab = DTab::Content;

@@ -167,7 +167,9 @@ pub fn prepare(inst: &Instance, settings: &Settings, p: &Progress) -> Result<Pre
         Ok(env) => crate::resolve::prelaunch(
             inst,
             &env,
-            crate::resolve::Options { allow_beta: settings.allow_beta_mods },
+            crate::resolve::Options {
+                allow_beta: settings.allow_beta_mods,
+            },
         )
         .unwrap_or_else(|e| crate::resolve::Report {
             minecraft: inst.mc_version.clone(),
@@ -413,7 +415,9 @@ pub fn spawn_ext(
 ) -> Result<GameHandle> {
     // Keybinds, options, HUD layout and the server list follow the player between instances (set LUMINOS_NO_SYNC to skip).
     if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
-        if let Err(e) = crate::sync::Syncer::new(crate::sync::Policy::default()).reconcile(&inst.id, &inst.game_dir()) {
+        if let Err(e) = crate::sync::Syncer::new(crate::sync::Policy::default())
+            .reconcile(&inst.id, &inst.game_dir())
+        {
             eprintln!("sync before launch failed (continuing): {e:#}");
         }
     }
@@ -491,24 +495,47 @@ pub fn spawn_ext(
 /// account that routes the game's auth through it (authlib-injector). Any failure falls back to the plain
 /// offline account, so a skin problem can never stop the game from starting.
 fn offline_skin_session(account: &Account) -> (Account, Option<crate::offlineskin::SkinServer>) {
-    use crate::{accounts::AccountKind, offlineskin::{Profile, SkinServer}};
+    use crate::{
+        accounts::AccountKind,
+        offlineskin::{Profile, SkinServer},
+    };
     let plain = || (account.clone(), None);
     if account.kind != AccountKind::Offline {
         return plain();
     }
     let lib = crate::skins::load();
     let skin = account.skin_id.as_deref().and_then(|id| {
-        let png = crate::skins::read_png(id).or_else(|| crate::cosmetics::skin(id).map(|b| b.png.to_vec()))?;
-        let slim = lib.skins.iter().find(|s| s.id == id).map(|s| s.slim).or_else(|| crate::cosmetics::skin(id).map(|b| b.slim));
+        let png = crate::skins::read_png(id)
+            .or_else(|| crate::cosmetics::skin(id).map(|b| b.png.to_vec()))?;
+        let slim = lib
+            .skins
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| s.slim)
+            .or_else(|| crate::cosmetics::skin(id).map(|b| b.slim));
         Some((png, slim.unwrap_or(false)))
     });
-    let cape = account.cape_id.as_deref().and_then(crate::cosmetics::cape).map(|c| c.png.to_vec());
-    let Some((skin_png, slim)) = skin else { return plain() };
+    let cape = account
+        .cape_id
+        .as_deref()
+        .and_then(crate::cosmetics::cape)
+        .map(|c| c.png.to_vec());
+    let Some((skin_png, slim)) = skin else {
+        return plain();
+    };
     if crate::yggdrasil::ensure_injector().is_err() {
         return plain();
     }
-    let profile = Profile { name: account.username.clone(), uuid: account.uuid.clone(), skin_png, slim, cape_png: cape };
-    let Ok(srv) = SkinServer::start(profile) else { return plain() };
+    let profile = Profile {
+        name: account.username.clone(),
+        uuid: account.uuid.clone(),
+        skin_png,
+        slim,
+        cape_png: cape,
+    };
+    let Ok(srv) = SkinServer::start(profile) else {
+        return plain();
+    };
     let mut a = account.clone();
     a.kind = AccountKind::Luminos;
     a.auth_server = Some(srv.api_root());

@@ -40,7 +40,7 @@ export default function Servers() {
       <div className="flex flex-col gap-2 stagger">
         {shown.map((s) => (
           <article key={s.address} className="panel lift flex items-center gap-3 p-2.5" style={{ borderRadius: 12 }}>
-            {s.icon ? <img src={s.icon} alt="" className="w-11 h-11 rounded-lg skin-px shrink-0" /> : <span className="w-11 h-11 rounded-lg grid place-items-center shrink-0" style={{ background: "color-mix(in srgb, var(--color-fg) 12%, transparent)" }}><Icon n="globe" s={18} /></span>}
+            {s.icon ? <img src={s.icon} alt="" className="w-11 h-11 rounded-lg skin-px shrink-0" /> : <span className="w-11 h-11 rounded-lg grid place-items-center shrink-0" style={{ background: "rgba(160,190,255,.12)" }}><Icon n="globe" s={18} /></span>}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2"><span className="t3 font-semibold truncate">{s.name}</span>{s.tags.map((t) => <Badge key={t}>{t}</Badge>)}</div>
               <div className="t1 mute truncate">{s.motd[0] || s.address}</div>

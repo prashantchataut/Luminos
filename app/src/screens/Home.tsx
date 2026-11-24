@@ -28,11 +28,11 @@ export function LaunchButton({ inst, big = true }: { inst: string; big?: boolean
   useEffect(() => () => clearInterval(timer.current), []);
   const run = phase === "run";
   return (
-    <button onClick={start} aria-live="polite" className="relative overflow-hidden lift" style={{ height: big ? 44 : 32, minWidth: big ? 220 : 120, borderRadius: 12, padding: "0 18px", background: run ? "color-mix(in srgb, var(--color-ok) 16%, transparent)" : "var(--color-accent)", color: run ? "var(--color-ok)" : "var(--accent-ink)", border: run ? "1px solid color-mix(in srgb, var(--color-ok) 50%, transparent)" : "1px solid transparent", transition: "background 300ms, color 300ms, min-width 420ms var(--ease-spring)" }}>
-      {(phase === "prepare" || phase === "start") && <span className="absolute inset-y-0 left-0" style={{ width: `${p * 100}%`, background: "color-mix(in srgb, var(--color-fg) 35%, transparent)", transition: "width 160ms linear" }} />}
+    <button onClick={start} aria-live="polite" className="relative overflow-hidden lift" style={{ height: big ? 44 : 32, minWidth: big ? 220 : 120, borderRadius: 12, padding: "0 18px", background: run ? "rgba(127,224,176,.16)" : "var(--color-accent)", color: run ? "var(--color-ok)" : "var(--accent-fg)", border: run ? "1px solid rgba(127,224,176,.5)" : "1px solid transparent", transition: "background 300ms, color 300ms, min-width 420ms var(--ease-spring)" }}>
+      {(phase === "prepare" || phase === "start") && <span className="absolute inset-y-0 left-0" style={{ width: `${p * 100}%`, background: "rgba(255,255,255,.35)", transition: "width 160ms linear" }} />}
       <span className="relative flex items-center justify-center gap-2 font-semibold t3">
         {phase === "idle" && <Icon n="play" s={16} />}
-        {(phase === "prepare" || phase === "start") && <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--accent-ink)]/30 border-t-[var(--accent-ink)]" style={{ animation: "spin .8s linear infinite" }} />}
+        {(phase === "prepare" || phase === "start") && <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--accent-fg)]/30 border-t-[var(--accent-fg)]" style={{ animation: "spin .8s linear infinite" }} />}
         {run && <Icon n="stop" s={14} />}
         {LABEL[phase]}{run && <span className="num t2 font-medium">{String(Math.floor(sec / 60)).padStart(2, "0")}:{String(sec % 60).padStart(2, "0")}</span>}
       </span>
@@ -52,7 +52,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
       {/* hero */}
       <div className="panel overflow-hidden relative" style={{ height: 212 }}>
         <div className="absolute inset-0"><Cover version={last.mc} /></div>
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--inset) 90%, transparent) 0%, color-mix(in srgb, var(--inset) 62%, transparent) 48%, color-mix(in srgb, var(--inset) 10%, transparent) 100%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(2,4,13,.9) 0%, rgba(2,4,13,.62) 48%, rgba(2,4,13,.1) 100%)" }} />
         <div className="relative h-full p-5 flex flex-col justify-between">
           <div>
             <div className="eyebrow mb-1.5">Continue playing</div>
@@ -69,7 +69,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
             </div>
           </div>
         </div>
-        <div className="absolute right-8 top-3 flex flex-col items-center"><SkinThumb src="/skins/luminos-default.png" scale={4} className="drop-shadow-[0_10px_16px_color-mix(in srgb, var(--inset) 50%, transparent)]" /></div>
+        <div className="absolute right-8 top-3 flex flex-col items-center"><SkinThumb src="/skins/luminos-default.png" scale={4} className="drop-shadow-[0_10px_16px_rgba(0,0,0,.5)]" /></div>
       </div>
 
       {/* quick play */}
@@ -85,7 +85,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           <span className="ibtn"><Icon n="play" s={14} /></span>
         </button>
         <button className="panel lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("library")}>
-          <span className="w-10 h-10 rounded-lg grid place-items-center shrink-0" style={{ background: "color-mix(in srgb, var(--color-accent) 16%, transparent)" }}><Icon n="bolt" s={18} className="text-[var(--color-accent)]" /></span>
+          <span className="w-10 h-10 rounded-lg grid place-items-center shrink-0" style={{ background: "var(--accent-soft)" }}><Icon n="bolt" s={18} className="text-[var(--color-accent)]" /></span>
           <span className="min-w-0 flex-1"><span className="eyebrow block">Last modpack</span><span className="t2 font-medium block truncate">{QUICK.pack.name}</span><span className="t1 mute block truncate">{QUICK.pack.detail}</span></span>
           <span className="ibtn"><Icon n="chev" s={14} /></span>
         </button>
@@ -124,7 +124,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
         <div>
           <div className="eyebrow mb-1.5 px-1 flex justify-between"><span>Playtime · last 14 days</span><span className="num normal-case tracking-normal">{fmtTime(SEED.playtime.week)} this week · {SEED.playtime.streak}-day streak</span></div>
           <div className="panel p-3 flex items-end gap-1.5" style={{ height: 96 }}>
-            {SEED.playtime.daily.map(([d, v], i) => <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full" title={`${d}: ${fmtTime(v || 60)}`}><div className="w-full rounded-[3px]" style={{ height: `${Math.max(4, (v / 9800) * 100)}%`, background: i === 13 ? "var(--color-accent)" : "color-mix(in srgb, var(--color-accent) 38%, transparent)", minHeight: 3 }} /><span className="t1 mute">{d[0]}</span></div>)}
+            {SEED.playtime.daily.map(([d, v], i) => <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full" title={`${d}: ${fmtTime(v || 60)}`}><div className="w-full rounded-[3px]" style={{ height: `${Math.max(4, (v / 9800) * 100)}%`, background: i === 13 ? "var(--color-accent)" : "rgba(143,180,255,.38)", minHeight: 3 }} /><span className="t1 mute">{d[0]}</span></div>)}
           </div>
         </div>
         <div>

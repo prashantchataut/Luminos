@@ -1,356 +1,455 @@
 #!/usr/bin/env python3
-"""Draws the five original Luminos skins (64x64, base + outer layer). Original art, CC0-1.0.
-Writes app/public/skins/<id>.png, app/src/data/skins.json and docs/research/skins-contact-sheet.png."""
-import json, random, pathlib
-from PIL import Image
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-rgb = lambda h: (int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16), 255)
-def mul(c, k): return tuple(max(0, min(255, round(v * k))) for v in c[:3]) + (c[3] if len(c) > 3 else 255,)
-def mix(a, b, t): return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
-def alpha(c, a): return c[:3] + (a,)
-def rnd(x, y, seed): return random.Random((x * 73856093) ^ (y * 19349663) ^ (seed * 83492791)).random()
-SHADE = {"front": 1.0, "back": .94, "right": .9, "left": .9, "top": 1.08, "bottom": .72}
+"""The five Luminos skins. Painted from scratch, pixel by pixel; no template, no scraped or traced art.
 
-def faces(o, d):
-    u, v = o; w, h, dd = d
-    return {"top": (u + dd, v, w, dd), "bottom": (u + dd + w, v, w, dd), "right": (u, v + dd, dd, h), "front": (u + dd, v + dd, w, h), "left": (u + dd + w, v + dd, dd, h), "back": (u + 2 * dd + w, v + dd, w, h)}
+Writes, for each skin: launcher/crates/luminos-core/assets/skins/<id>.png (built into the engine),
+app/public/skins/<id>.png (the launcher UI), and app/src/data/skins.json (the manifest).
+Licence: CC0-1.0. Run: python3 tools/make_luminos_skins.py
+"""
+import json, os, random, struct, zlib
 
-class Skin:
-    def __init__(s, slim):
-        s.im = Image.new("RGBA", (64, 64), (0, 0, 0, 0)); aw = 3 if slim else 4; s.slim = slim
-        s.parts = {"head": ((0, 0), (32, 0), (8, 8, 8)), "body": ((16, 16), (16, 32), (8, 12, 4)), "rarm": ((40, 16), (40, 32), (aw, 12, 4)),
-                   "larm": ((32, 48), (48, 48), (aw, 12, 4)), "rleg": ((0, 16), (0, 32), (4, 12, 4)), "lleg": ((16, 48), (0, 48), (4, 12, 4))}
-    def paint(s, part, layer, fn, only=None, shade=True):
-        for f, (x0, y0, w, h) in faces(s.parts[part][layer], s.parts[part][2]).items():
-            if only and f not in only: continue
-            for y in range(h):
-                for x in range(w):
-                    c = fn(f, x, y, w, h, x0 + x, y0 + y)
-                    if c:
-                        if shade and layer == 0 and c[3] == 255: c = mul(c, SHADE[f])
-                        s.im.putpixel((x0 + x, y0 + y), c)
-    def both(s, parts, layer, fn, **k):
-        for p in parts: s.paint(p, layer, fn, **k)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def head(s, P):
-    """Face + hair. P: skin, skin_d, hair, hair_l, eyew, iris, brow, mouth, fringe (row-2 x list), outer_front (row-1 x list)."""
-    def base(f, x, y, w, h, ax, ay):
-        if f == "top": return P["hair"]
-        if f == "bottom": return P["skin_d"]
-        if f == "back": return P["hair"] if y <= 6 else P["skin_d"]
-        if f in ("right", "left"):
-            back = x <= 2 if f == "right" else x >= 5
-            if y <= 2 or (back and y <= 6): return P["hair"] if (x + y) % 5 else P["hair_l"]
-            return P["skin"]
-        if y <= 1: return P["hair"] if (x + y) % 4 else P["hair_l"]
-        if y == 2: return P["hair"] if x in P["fringe"] else P["skin"]
-        if y == 3 and x in (1, 2, 5, 6): return P["brow"]
-        if y == 4:
-            if x == 1 or x == 6: return P["eyew"]
-            if x == 2 or x == 5: return P["iris"]
-        if y == 5 and x in (3, 4): return mix(P["skin"], P["skin_d"], .45)
-        if y == 6 and x in (3, 4): return P["mouth"]
-        return P["skin"]
-    s.paint("head", 0, base)
-    def outer(f, x, y, w, h, ax, ay):
-        if f == "top": return P["hair_l"]
-        if f == "back": return P["hair_l"] if y <= 5 else None
-        if f in ("right", "left"):
-            back = x <= 1 if f == "right" else x >= 6
-            if y <= 1 or (back and y <= 5): return P["hair_l"]
-            return None
-        if f == "front": return P["hair_l"] if (y == 0 or (y == 1 and x in P["outer_front"])) else None
-    s.paint("head", 1, outer, shade=False)
 
-def limbs(s, f_arm, f_leg, f_body, o_arm=None, o_leg=None, o_body=None):
-    s.both(["rarm", "larm"], 0, f_arm); s.both(["rleg", "lleg"], 0, f_leg); s.paint("body", 0, f_body)
-    if o_arm: s.both(["rarm", "larm"], 1, o_arm, shade=False)
-    if o_leg: s.both(["rleg", "lleg"], 1, o_leg, shade=False)
-    if o_body: s.paint("body", 1, o_body, shade=False)
+def hx(h, a=255):
+    h = h.lstrip("#")
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a)
 
-# ---------------------------------------------------------------- 1. Luminos Default
-def luminos():
-    s = Skin(False)
-    P = dict(skin=rgb("#e6b793"), skin_d=rgb("#c99973"), hair=rgb("#0e1530"), hair_l=rgb("#1c2a55"), eyew=rgb("#f1efe6"), iris=rgb("#2d5bd0"), brow=rgb("#0a1024"), mouth=rgb("#b9775f"), fringe=[0, 1, 2, 6, 7], outer_front=[0, 1, 7])
-    head(s, P)
-    N, ND, NL, OFF, GR = rgb("#16254f"), rgb("#0d1836"), rgb("#27407f"), rgb("#f1efe6"), rgb("#c9c6bb")
-    MARK = [".####.", "#....#", "#.##.#", "#.##.#", "#....#", ".####."]
-    def body(f, x, y, w, h, ax, ay):
-        c = N
-        if f == "front":
-            if y == 0: return OFF
-            if x == 3 and 1 <= y <= 10: c = OFF
-            elif x == 4 and 1 <= y <= 10: c = ND
-            elif y == 4: c = NL
-            elif y == 8 and x in (1, 2, 5, 6): c = NL
-            elif y == 11: c = OFF
-            elif x in (0, 7): c = ND
-        elif f == "back":
-            if 2 <= y <= 7 and 1 <= x <= 6 and MARK[y - 2][x - 1] == "#": return OFF
-            if y == 0 or y == 11: c = OFF if y == 11 else NL
-            elif y == 3 and not (1 <= x <= 6): c = NL
-            elif x in (0, 7): c = ND
-        elif f in ("right", "left") and y == 11: c = OFF
-        return c
-    def arm(f, x, y, w, h, ax, ay):
-        if f == "top": return NL
-        if f == "bottom": return OFF
-        if y >= 10: return OFF
-        if y == 3 or y == 0: return NL
-        return N if x else ND if f in ("right", "left") else N
-    def leg(f, x, y, w, h, ax, ay):
-        if f == "top": return ND
-        if f == "bottom": return GR
-        if y >= 8: return mul(GR, .78) if y == 11 else GR
-        if y == 4 and f == "front": return NL
-        stripe = (f == "right" and x in (1, 2)) or (f == "left" and x in (1, 2))
-        if stripe: return OFF
-        return ND
-    def o_body(f, x, y, w, h, ax, ay):
-        if y <= 1 and f != "top" and f != "bottom": return OFF if y == 0 else NL
-        if y >= 10 and f not in ("top", "bottom"): return OFF if y == 11 else NL
-        if f == "front" and y == 6 and x in (3, 4): return None
-    def o_arm(f, x, y, w, h, ax, ay):
-        if f in ("top",): return NL
-        if y == 0: return NL
-        if y == 11 and f != "bottom": return OFF
-    def o_leg(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y <= 1: return NL
-        if y >= 10: return OFF
-    limbs(s, arm, leg, body, o_arm, o_leg, o_body)
-    return s
 
-# ---------------------------------------------------------------- 2. Ember (slim, worn leather)
+def sh(c, k):  # k > 0 lightens, k < 0 darkens
+    if k >= 0:
+        return tuple(min(255, int(v + (255 - v) * k)) for v in c[:3]) + (c[3],)
+    return tuple(max(0, int(v * (1 + k))) for v in c[:3]) + (c[3],)
+
+
+def mix(a, b, t):
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
+
+
+class Img:
+    def __init__(self):
+        self.px = [(0, 0, 0, 0)] * (64 * 64)
+
+    def set(self, x, y, c):
+        if 0 <= x < 64 and 0 <= y < 64:
+            self.px[y * 64 + x] = c
+
+    def get(self, x, y):
+        return self.px[y * 64 + x]
+
+
+def png(path, im):
+    raw = b"".join(b"\x00" + b"".join(bytes(im.px[y * 64 + x]) for x in range(64)) for y in range(64))
+
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 64, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def faces(ox, oy, w, h, d):
+    return {"top": (ox + d, oy, w, d), "bottom": (ox + d + w, oy, w, d), "right": (ox, oy + d, d, h), "front": (ox + d, oy + d, w, h),
+            "left": (ox + d + w, oy + d, d, h), "back": (ox + 2 * d + w, oy + d, w, h)}
+
+
+def layout(slim):
+    aw = 3 if slim else 4
+    return {"head": (0, 0, 8, 8, 8), "hat": (32, 0, 8, 8, 8), "body": (16, 16, 8, 12, 4), "jacket": (16, 32, 8, 12, 4),
+            "rarm": (40, 16, aw, 12, 4), "rsleeve": (40, 32, aw, 12, 4), "larm": (32, 48, aw, 12, 4), "lsleeve": (48, 48, aw, 12, 4),
+            "rleg": (0, 16, 4, 12, 4), "rpant": (0, 32, 4, 12, 4), "lleg": (16, 48, 4, 12, 4), "lpant": (0, 48, 4, 12, 4)}
+
+
+def paint(im, slim, part, fn):
+    """fn(face, x, y, w, h) -> colour or None, with x, y local to the face."""
+    for name, (fx, fy, fw, fh) in faces(*layout(slim)[part]).items():
+        for y in range(fh):
+            for x in range(fw):
+                c = fn(name, x, y, fw, fh)
+                if c is not None:
+                    im.set(fx + x, fy + y, c)
+
+
+# ---------------------------------------------------------------- head, shared by all five (each passes its own masks and colours)
+FRONT = {
+    "short": ["HHHHHHHH", "HHHHHHHH", "HSSSSSSH", "SbbSSbbS", "SweSSewS", "SSSnnSSS", "SSSmmSSS", "SSSSSSSS"],
+    "side":  ["HHHHHHHH", "HHHHHHHH", "HHSSSSHH", "HSbSSbSH", "HweSSewH", "SSSnnSSS", "SSSmmSSS", "SSSSSSSS"],
+    "fringe": ["HHHHHHHH", "HHHHHHHH", "HHHSSHHH", "SbbSSbbS", "SweSSewS", "SSSnnSSS", "SSSmmSSS", "SSSSSSSS"],
+    "dot":   ["HHHHHHHH", "HHHHHHHH", "HSSSSSSH", "SSSSSSSS", "SSeSSeSS", "SSSnnSSS", "SSSSSSSS", "SSSSSSSS"],
+}
+SIDE = {  # right face (front edge at x = 7); the left face is this mirrored
+    "short": ["HHHHHHHH", "HHHHHHHH", "HHHSSSSS", "HHSSSSSS", "SSSEESSS", "SSSEESSS", "SSSSSSSS", "SSSSSSSS"],
+    "long":  ["HHHHHHHH", "HHHHHHHH", "HHHHSSSS", "HHHSSSSS", "HHSEESSS", "HHSEESSS", "HHHSSSSS", "HHSSSSSS"],
+}
+
+
+def head(im, slim, skin, hair, hair2, eye, white, mouth, front="short", side="short", back_long=False, brow=None):
+    pal = {"H": hair, "S": skin, "e": eye, "w": white, "b": brow or hair, "m": mouth, "n": sh(skin, -0.09), "E": sh(skin, -0.14)}
+    fm, sm = FRONT[front], SIDE[side]
+    rng = random.Random(hair[0] * 7 + hair[2] + len(front))
+
+    def base(face, x, y, w, h):
+        if face == "front":
+            c = pal[fm[y][x]]
+            return hair2 if (c == hair and rng.random() < 0.2) else c
+        if face in ("right", "left"):
+            c = pal[sm[y][x if face == "right" else 7 - x]]
+            return hair2 if (c == hair and (x * 3 + y) % 5 == 0) else c
+        if face == "back":
+            if y < 6 or back_long:
+                return hair if (x + y * 2) % 6 else hair2
+            return sh(skin, -0.05)
+        if face == "top":
+            return hair if (x + y) % 4 else hair2
+        return sh(skin, -0.12)
+    paint(im, slim, "head", base)
+
+    def hat(face, x, y, w, h):  # outer layer: hair volume, tufts at the edges, nothing over the face
+        if face == "top":
+            return sh(hair, 0.06) if (x * 5 + y * 3) % 7 else hair2
+        if face == "front":
+            return sh(hair, 0.05) if (y < 2 and (x + y) % 2 == 0) else (hair if y < 1 else None)
+        if face == "right":
+            return hair if (y < 3 and x < 5) or (back_long and y < 7 and x < 2) else None
+        if face == "left":
+            return hair if (y < 3 and x > 2) or (back_long and y < 7 and x > 5) else None
+        if face == "back":
+            return hair if y < 7 else None
+        return None
+    paint(im, slim, "hat", hat)
+
+
+# ---------------------------------------------------------------- 1. Luminos Default (classic): navy and off-white, crescent on the back
+def luminos_default():
+    im = Img()
+    navy, deep, mid, off, skin = hx("#14213d"), hx("#0b1530"), hx("#26407a"), hx("#eef1f7"), hx("#d9a982")
+    head(im, False, skin, deep, mid, hx("#3b6cf0"), off, hx("#a8734f"), front="short", side="short")
+
+    def body(f, x, y, w, h):
+        c = navy
+        if f in ("front", "back") and y == 0:
+            c = off
+        elif f == "front" and x == 3:
+            c = off                                    # zip
+        elif f in ("front", "back") and y == 5:
+            c = mid                                    # panel line
+        elif y == h - 1:
+            c = deep
+        return sh(c, -0.06 if y > 7 else 0)
+    paint(im, False, "body", body)
+    crescent = ["..XXX..", ".XX....", "XX.....", "XX.....", "XX...S.", ".XX....", "..XXX.."]
+
+    def jacket(f, x, y, w, h):  # outer layer: collar band, hem band, and the mark on the back
+        if y == 0 and f in ("front", "back", "left", "right"):
+            return sh(off, -0.05)
+        if y >= h - 2:
+            return mid
+        if f == "back" and 2 <= y < 9 and x < 7:
+            ch = crescent[y - 2][x]
+            if ch == "X":
+                return off
+            if ch == "S":
+                return hx("#8fb4ff")
+        return None
+    paint(im, False, "jacket", jacket)
+
+    def arm(f, x, y, w, h):
+        if y >= 10:
+            return skin if f != "top" else navy
+        if y in (8, 9):
+            return off
+        return navy if y > 0 else mid
+    for p in ("rarm", "larm"):
+        paint(im, False, p, arm)
+    for p in ("rsleeve", "lsleeve"):
+        paint(im, False, p, lambda f, x, y, w, h: mix(navy, mid, 0.5) if y < 2 and f != "bottom" else None)
+
+    def leg(f, x, y, w, h):
+        if y == 11:
+            return off
+        if y >= 9:
+            return mid
+        return sh(deep, 0.04 if f == "front" else -0.04)
+    for p in ("rleg", "lleg"):
+        paint(im, False, p, leg)
+    for p, side in (("rpant", "right"), ("lpant", "left")):
+        paint(im, False, p, lambda f, x, y, w, h, side=side: off if f == side and 1 <= x <= 2 and y < 9 else None)
+    return im
+
+
+# ---------------------------------------------------------------- 2. Ember (slim): rust and charcoal, worn leather
 def ember():
-    s = Skin(True)
-    P = dict(skin=rgb("#c98f68"), skin_d=rgb("#a8714f"), hair=rgb("#7a3416"), hair_l=rgb("#93441d"), eyew=rgb("#f3e6d0"), iris=rgb("#c9792f"), brow=rgb("#4a1f0c"), mouth=rgb("#8e5037"), fringe=[0, 1, 4, 6, 7], outer_front=[0, 2, 5, 7])
-    head(s, P)
-    R, RD, RL, C, CL, BR, LE = rgb("#a64b22"), rgb("#7a3416"), rgb("#c4642f"), rgb("#2a2b30"), rgb("#3b3d45"), rgb("#d3ab4f"), rgb("#3b2418")
-    def leather(base, seed):
-        def g(ax, ay):
-            r = rnd(ax, ay, seed); c = mul(base, 1 + (r - .5) * .18)
-            if rnd(ax, ay, seed + 9) > .93: c = mul(base, 1.28)          # scuffed highlight
-            if rnd(ax // 2, ay, seed + 4) > .955: c = mul(base, .68)     # crease
-            return c
-        return g
-    LJ = leather(R, 1)
-    def body(f, x, y, w, h, ax, ay):
-        if f == "front":
-            if x in (3, 4) and y >= 1: return C if y != 9 else BR
-            if x in (2, 5) and y <= 6: return RD
-            if y == 9: return C
-            if x in (1, 6) and y >= 7: return RD if y % 2 == 0 else LJ(ax, ay)
-            return LJ(ax, ay)
-        if f == "back":
-            if x in (3, 4): return RD
-            if y == 3: return RD
-            return LJ(ax, ay)
-        return LJ(ax, ay) if y != 9 else C
-    def arm(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return RL if f == "top" else CL
-        if y >= 10: return C if y == 10 else CL
-        if y in (5, 6): return mul(RD, 1 + (rnd(ax, ay, 3) - .5) * .2)
-        return LJ(ax, ay)
-    def leg(f, x, y, w, h, ax, ay):
-        if f == "top": return C
-        if f == "bottom": return rgb("#241410")
-        if y >= 8:
-            if f == "front" and y in (8, 10) and x in (1, 2): return RL
-            return mul(LE, 1 + (rnd(ax, ay, 6) - .5) * .25) if y < 11 else rgb("#241410")
-        c = mul(C, 1 + (rnd(ax, ay, 5) - .5) * .2)
-        if y in (5, 6) and f == "front": c = mul(CL, 1.1)
+    im = Img()
+    rust, drust, char, lchar, stitch, skin = hx("#b4532a"), hx("#8a3d1d"), hx("#2b2b2e"), hx("#3d3d42"), hx("#d98b57"), hx("#c68a60")
+    rng = random.Random(41)
+
+    def leather(base, x, y):  # worn: per-pixel grain, creases, and scuffed patches
+        r = rng.random()
+        c = sh(base, (rng.random() - 0.5) * 0.18)
+        if r < 0.07:
+            c = sh(drust, rng.random() * 0.1)
+        elif r < 0.11:
+            c = sh(stitch, -0.15)
+        if (x * 7 + y * 5) % 11 == 0 and y % 3:
+            c = sh(c, -0.18)
         return c
-    def o_body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y <= 1: return mul(C, 1 + (rnd(ax, ay, 8) - .5) * .25)           # scarf
-        if y == 9 and f == "front" and x in (3, 4): return BR               # buckle
-    def o_arm(f, x, y, w, h, ax, ay):
-        if f == "top": return RD
-        if y <= 1: return RD
-    def o_leg(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y in (4, 5): return CL
-        if y >= 10: return mul(LE, .85)
-    P2 = P
-    limbs(s, arm, leg, body, o_arm, o_leg, o_body)
-    # headband on the outer head layer, row 2, with a brass stud
-    for f in ("front", "right", "left", "back"):
-        x0, y0, w, h = faces(s.parts["head"][1], s.parts["head"][2])[f]
-        for x in range(w): s.im.putpixel((x0 + x, y0 + 2), C)
-    x0, y0, w, h = faces(s.parts["head"][1], s.parts["head"][2])["front"]; s.im.putpixel((x0 + 3, y0 + 2), BR); s.im.putpixel((x0 + 4, y0 + 2), BR)
-    return s
+    head(im, True, skin, char, drust, hx("#f0a24a"), hx("#f4e6d4"), hx("#8f5a3a"), front="fringe", side="short")
+    for x, y in ((9, 13), (10, 14), (13, 14), (14, 13)):
+        im.set(x, y, sh(skin, -0.1))                    # freckles
 
-# ---------------------------------------------------------------- 3. Glasshouse (botanical back layer)
+    def body(f, x, y, w, h):  # charcoal shirt with a rust v-neck and a belt
+        if f == "front" and y < 3 and abs(x - 3.5) < 3 - y:
+            return sh(drust, -0.1)
+        if y >= h - 2:
+            return stitch if (f == "front" and x in (3, 4) and y == h - 2) else lchar
+        return sh(char, 0.03 if (x + y) % 2 else 0)
+    paint(im, True, "body", body)
+
+    def jacket(f, x, y, w, h):  # leather jacket, open at the front
+        if f == "front":
+            if x in (3, 4) and y >= 1:
+                return None
+            if y < 3 and x in (2, 5):
+                return sh(char, 0.08)                   # lapel edge
+        if f == "back" and y == 4:
+            return sh(drust, -0.1)                      # yoke seam
+        if f == "back" and y == 8 and 2 <= x <= 5:
+            return stitch
+        if y == h - 1:
+            return sh(drust, -0.05)
+        return leather(rust, x, y)
+    paint(im, True, "jacket", jacket)
+
+    def arm(f, x, y, w, h):
+        if y >= 10:
+            return char
+        if y in (8, 9):
+            return lchar
+        return leather(rust, x, y)
+    for p in ("rarm", "larm"):
+        paint(im, True, p, arm)
+
+    def sleeve(f, x, y, w, h):
+        if y > 7:
+            return None
+        if y in (3, 4) and f in ("left", "right", "back"):
+            return sh(drust, -0.05 + rng.random() * 0.1)  # elbow patch
+        return leather(rust, x, y)
+    for p in ("rsleeve", "lsleeve"):
+        paint(im, True, p, sleeve)
+
+    def leg(f, x, y, w, h):
+        if y >= 8:
+            return sh(drust, -0.12 + (0.06 if y == 8 else 0))   # boots
+        if f == "front" and y in (3, 4) and x in (1, 2):
+            return sh(char, 0.14)                               # knee patch
+        return sh(char, 0.02 if (x + y) % 3 == 0 else 0)
+    for p in ("rleg", "lleg"):
+        paint(im, True, p, leg)
+    for p in ("rpant", "lpant"):
+        paint(im, True, p, lambda f, x, y, w, h: leather(rust, x, y) if (y in (7, 8) and f not in ("top", "bottom")) else (stitch if (y == 9 and f == "front" and x in (0, 3)) else None))
+    return im
+
+
+# ---------------------------------------------------------------- 3. Glasshouse (classic): mint and white, botanical back
 def glasshouse():
-    s = Skin(False)
-    P = dict(skin=rgb("#f3cdb4"), skin_d=rgb("#d8aa8f"), hair=rgb("#cfeee0"), hair_l=rgb("#e6f8ef"), eyew=rgb("#ffffff"), iris=rgb("#2f9b73"), brow=rgb("#8fb9a6"), mouth=rgb("#d4837a"), fringe=[0, 1, 2, 5, 6, 7], outer_front=[0, 1, 2, 5, 6, 7])
-    head(s, P)
-    M, MD, W, LF, LD, FL, FY = rgb("#a9e5cd"), rgb("#7fcdb0"), rgb("#f7fffb"), rgb("#3f9c78"), rgb("#2b7a5c"), rgb("#ffffff"), rgb("#f2d27a")
-    def body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return W
-        if y == 11: return M
-        if f == "front" and x == 3 and 0 <= y <= 1: return MD
-        return W
-    def arm(f, x, y, w, h, ax, ay):
-        if f == "top": return W
-        if f == "bottom": return rgb("#f3cdb4")
-        return W if y < 10 else rgb("#f3cdb4")
-    def leg(f, x, y, w, h, ax, ay):
-        if f == "top": return rgb("#dff2ea")
-        if f == "bottom": return M
-        if y >= 9: return W if y < 11 else M
-        if y == 0: return MD
-        return rgb("#dff2ea")
-    VINE = [(4, 10), (4, 9), (3, 8), (3, 7), (4, 6), (4, 5), (3, 4), (3, 3), (4, 2)]
-    LEAVES = [(5, 10), (6, 9), (2, 8), (1, 7), (5, 6), (6, 5), (2, 4), (1, 3), (5, 2)]
-    LEAVES2 = [(6, 10), (7, 9)]
-    def o_body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if f == "front":
-            if x in (3, 4): return None
-            return MD if (x in (2, 5) and False) else M
-        if f == "back":
-            if (x, y) in VINE: return LD
-            if (x, y) in LEAVES: return LF
-            if (x, y) in LEAVES2: return LF
-            if (x, y) in [(3, 1), (4, 1), (3, 0), (4, 0)]: return FL if (x, y) != (3, 1) else FY
-            if (x, y) in [(2, 1), (5, 1)]: return alpha(FL, 255)
-            if y == 11: return MD
-            return M
-        return M if y < 11 else MD
-    def o_arm(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return M if f == "top" else None
-        if y >= 10: return W
-        return M
-    def o_leg(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y >= 10: return W if y == 10 else None
-    limbs(s, arm, leg, body, o_arm, o_leg, o_body)
-    # long hair falls on the outer head layer back
-    x0, y0, w, h = faces(s.parts["head"][1], s.parts["head"][2])["back"]
-    for y in range(6, 8):
-        for x in range(w): s.im.putpixel((x0 + x, y0 + y), P["hair_l"])
-    return s
+    im = Img()
+    mint, dmint, white, leaf, stem, skin = hx("#b9e6d0"), hx("#7cc4a2"), hx("#f7fbf9"), hx("#3f8f6b"), hx("#2d6b50"), hx("#f0c9a8")
+    head(im, False, skin, hx("#e4f3ea"), hx("#c9e6d6"), leaf, white, hx("#c98a78"), front="side", side="long", back_long=True, brow=hx("#9fc9b4"))
+    for k in range(2):
+        im.set(32 + 16 + 1, 8 + 3 + k, leaf)            # leaf clip on the hat layer, left side
+    im.set(32 + 16 + 2, 8 + 3, stem)
 
-# ---------------------------------------------------------------- 4. Nightshift (slim, sleeve gradient)
+    def body(f, x, y, w, h):
+        if f == "front" and y < 2 and 2 <= x <= 5:
+            return sh(skin, -0.02)                      # neckline
+        return white if (x + y) % 5 else sh(white, -0.03)
+    paint(im, False, "body", body)
+
+    def sx(y):
+        return 3 if y % 4 < 2 else 4
+
+    def jacket(f, x, y, w, h):  # outer layer: a mint over-shirt; the back carries the vine
+        if f == "front" and x in (3, 4) and y >= 1:
+            return None
+        if y == h - 1:
+            return dmint
+        c = mint if (x * 3 + y) % 7 else sh(mint, 0.08)
+        if f == "back":
+            if x == sx(y):
+                return stem
+            for i, ly in enumerate((2, 5, 8, 10)):
+                d = -1 if i % 2 == 0 else 1
+                if (x, y) in ((sx(ly) + d, ly), (sx(ly) + 2 * d, ly), (sx(ly) + 2 * d, ly - 1)):
+                    return leaf
+                if (x, y) == (sx(ly) + 3 * d, ly - 1):
+                    return white                        # blossom
+        return c
+    paint(im, False, "jacket", jacket)
+
+    def arm(f, x, y, w, h):
+        if y >= 10:
+            return skin
+        if y in (8, 9):
+            return mint
+        return white
+    for p in ("rarm", "larm"):
+        paint(im, False, p, arm)
+    for p in ("rsleeve", "lsleeve"):
+        paint(im, False, p, lambda f, x, y, w, h: mint if 2 <= y <= 5 and f not in ("top", "bottom") else None)
+
+    def leg(f, x, y, w, h):
+        if y >= 10:
+            return white
+        return dmint if y == 9 else (mint if (x + y) % 6 else sh(mint, 0.07))
+    for p in ("rleg", "lleg"):
+        paint(im, False, p, leg)
+    for p, side in (("rpant", "right"), ("lpant", "left")):  # a small sprig on each outer thigh
+        paint(im, False, p, lambda f, x, y, w, h, side=side: (stem if (x, y) == (1, 4) else leaf) if (f == side and (x, y) in ((1, 3), (2, 4), (1, 5), (2, 2), (1, 4))) else None)
+    return im
+
+
+# ---------------------------------------------------------------- 4. Nightshift (slim): black and violet, gradient sleeves
 def nightshift():
-    s = Skin(True)
-    P = dict(skin=rgb("#ead3c8"), skin_d=rgb("#c9aea4"), hair=rgb("#0b0b10"), hair_l=rgb("#17171f"), eyew=rgb("#e8e0ff"), iris=rgb("#a67cff"), brow=rgb("#050508"), mouth=rgb("#a9726f"), fringe=[0, 1, 3, 4, 6, 7], outer_front=[0, 1, 4, 7])
-    head(s, P)
-    B, BL, V, VL, VD = rgb("#0b0b10"), rgb("#17171f"), rgb("#6a3dd8"), rgb("#a67cff"), rgb("#3c2380")
-    # violet streaks in the hair (base layer top + back)
-    for (x, y) in [(2, 1), (5, 2), (6, 1)]:
-        x0, y0, w, h = faces(s.parts["head"][0], s.parts["head"][2])["front"]; s.im.putpixel((x0 + x, y0 + y), V)
-    x0, y0, w, h = faces(s.parts["head"][0], s.parts["head"][2])["back"]
-    for (x, y) in [(1, 2), (2, 3), (5, 1), (6, 4)]: s.im.putpixel((x0 + x, y0 + y), V)
-    def body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return B
-        if f == "front":
-            if x in (2, 5) and 1 <= y <= 3: return VL            # drawstrings
-            if 7 <= y <= 10 and 1 <= x <= 6: return BL            # pocket
-            if y == 7 and 1 <= x <= 6: return VD
-        if f == "back":
-            moon = {(3, 3), (4, 3), (2, 4), (2, 5), (2, 6), (3, 7), (4, 7), (4, 4), (3, 5)}
-            if (x, y) in {(3, 3), (4, 3), (2, 4), (2, 5), (2, 6), (3, 7), (4, 7), (5, 6)}: return VL
-        if y == 11: return VD
-        return B
-    def grad(y, h): t = y / (h - 1); return mix(B, VD, t ** 1.4 * .85)
-    def arm(f, x, y, w, h, ax, ay):
-        if f == "top": return BL
-        if f == "bottom": return P["skin"]
-        if y >= 10: return V if y == 10 else VL
-        return grad(y, h)
-    def leg(f, x, y, w, h, ax, ay):
-        if f == "top": return B
-        if f == "bottom": return VL
-        if y == 11: return VL
-        if y >= 9: return BL
-        if f in ("right", "left") and x in (1, 2): return V if (ax + ay) % 1 == 0 and y < 9 else B
-        return B
-    def o_body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y <= 1: return BL
-        if y >= 9: return alpha(VD, 200 + (y - 9) * 18) if y < 11 else VD
-    def o_arm(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        return alpha(V, int(10 + 150 * (y / (h - 1)) ** 1.6)) if y > 2 else None
-    def o_leg(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y <= 1: return BL
-        if y >= 10: return BL
-    limbs(s, arm, leg, body, o_arm, o_leg, o_body)
-    return s
+    im = Img()
+    blk, nblk, vio, bvio, dvio, skin = hx("#0a0a0f"), hx("#14141c"), hx("#6d3fd9"), hx("#9b6bff"), hx("#3a1f7a"), hx("#b98a6b")
+    head(im, True, skin, blk, nblk, hx("#c3a3ff"), hx("#e9e0ff"), hx("#8a5c48"), front="fringe", side="short")
+    for x in (5, 6):
+        im.set(8 + x, 8 + 1, bvio)                     # violet streak in the fringe
+    im.set(8 + 6, 8 + 2, vio)
 
-# ---------------------------------------------------------------- 5. Paper (cream and ink, line art)
+    def body(f, x, y, w, h):
+        if f == "front" and x in (2, 5) and 1 <= y <= 4:
+            return vio if y < 4 else bvio               # drawstrings
+        if y >= h - 2:
+            return dvio
+        return nblk if (x + y) % 2 else blk
+    paint(im, True, "body", body)
+
+    def jacket(f, x, y, w, h):  # outer layer: hood rim at the neck, hem trim
+        if y == 0 and f in ("front", "back", "left", "right"):
+            return nblk
+        if y == 1 and f == "back" and 1 <= x <= 6:
+            return blk
+        if y == h - 1:
+            return vio
+        return None
+    paint(im, True, "jacket", jacket)
+
+    def arm(f, x, y, w, h):  # a gradient that stops short of full violet on the base layer
+        if y >= 10:
+            return skin
+        if f in ("top", "bottom"):
+            return nblk
+        return mix(nblk, vio, min(1.0, y / 9) * 0.85)
+    for p in ("rarm", "larm"):
+        paint(im, True, p, arm)
+    for p in ("rsleeve", "lsleeve"):  # outer layer: a faint violet wash that grows toward the cuff
+        paint(im, True, p, lambda f, x, y, w, h: None if (y < 4 or f in ("top", "bottom")) else mix(nblk, bvio, (y - 3) / 9 * 0.55))
+
+    def leg(f, x, y, w, h):
+        if y >= 10:
+            return vio if y == 11 else blk
+        if f in ("left", "right") and x == 1:
+            return vio
+        return sh(blk, 0.04 if (x + y) % 2 else 0)
+    for p in ("rleg", "lleg"):
+        paint(im, True, p, leg)
+    for p in ("rpant", "lpant"):
+        paint(im, True, p, lambda f, x, y, w, h: nblk if (y in (7, 8) and f not in ("top", "bottom")) else None)
+    return im
+
+
+# ---------------------------------------------------------------- 5. Paper (classic): cream and ink, line art
 def paper():
-    s = Skin(False)
-    CR, CD, K, KL = rgb("#f4ecd8"), rgb("#e3d8bd"), rgb("#1d1d24"), rgb("#55555f")
-    P = dict(skin=rgb("#f6efdc"), skin_d=CD, hair=K, hair_l=KL, eyew=CR, iris=K, brow=K, mouth=K, fringe=[0, 1, 2, 3, 5, 6, 7], outer_front=[1, 3, 6])
-    head(s, P)
-    # hair as hatching: alternate ink and cream columns on the base head
-    for f in ("top", "back", "right", "left", "front"):
-        x0, y0, w, h = faces(s.parts["head"][0], s.parts["head"][2])[f]
-        for y in range(h):
-            for x in range(w):
-                if s.im.getpixel((x0 + x, y0 + y))[:3] in (K[:3], KL[:3]): s.im.putpixel((x0 + x, y0 + y), K if x % 2 == 0 else mix(CR, K, .25))
-    PEAKS = {(2, 7), (3, 6), (4, 5), (5, 6), (6, 7), (1, 8), (0, 9), (7, 8), (2, 6), (4, 6)}
-    def body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return CR
-        if y == 0: return K if f == "front" and x in (3, 4) else CR
+    im = Img()
+    cream, dcream, ink, link, skin = hx("#f3ead6"), hx("#e0d3b4"), hx("#1f2430"), hx("#4a5163"), hx("#ecd0b0")
+    head(im, False, skin, ink, link, ink, cream, hx("#9a6f58"), front="dot", side="short")
+    peaks = {(0, 8), (1, 7), (2, 6), (3, 7), (4, 5), (5, 4), (6, 5), (7, 6)}  # a line of two peaks across the chest
+    bird = {(1, 4), (2, 3), (3, 4), (4, 4), (5, 3), (6, 4), (3, 5), (4, 5), (3, 6), (4, 7)}
+
+    def body(f, x, y, w, h):
         if f == "front":
-            line = {(1, 9), (2, 8), (3, 7), (4, 6), (5, 7), (6, 8), (6, 9), (5, 10), (4, 11)} if False else set()
-            peak = {(0, 10), (1, 9), (2, 8), (3, 7), (4, 8), (5, 9), (6, 10), (7, 11), (5, 7), (6, 6), (7, 7), (4, 4), (5, 4)}
-            return K if (x, y) in peak else CR
-        if y == 11: return K
-        return CR if f != "back" else (K if (x, y) in {(3, 4), (4, 4), (3, 5), (4, 5)} and False else CR)
-    def arm(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return CR
-        if y in (9, 11): return K
-        return CR
-    def leg(f, x, y, w, h, ax, ay):
-        if f in ("top",): return CR
-        if f == "bottom": return K
-        if y >= 10: return K
-        if y == 8: return KL
-        if f == "front" and x == 1 and 1 <= y <= 7: return KL
-        return CR
-    def o_body(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if f == "front" and ((x == 2 and y == 1) or (x == 5 and y == 1) or (x == 3 and y == 2) or (x == 4 and y == 2)): return K
-        if f == "back" and y in (2, 3) and 2 <= x <= 5: return K if y == 2 else None
-    def o_arm(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y == 0: return K
-    def o_leg(f, x, y, w, h, ax, ay):
-        if f in ("top", "bottom"): return None
-        if y == 0: return KL
-    limbs(s, arm, leg, body, o_arm, o_leg, o_body)
-    return s
+            if (x, y + 1) in peaks or (x, y) == (6, 2):  # peaks, and a small sun
+                return ink
+            if y == 0 and x in (3, 4):
+                return dcream
+        if f == "back" and (x, y) in bird:
+            return ink
+        if f in ("front", "back") and y == h - 1:
+            return ink                                   # hem line
+        return cream if (x * 7 + y * 3) % 9 else sh(cream, -0.03)
+    paint(im, False, "body", body)
+
+    def jacket(f, x, y, w, h):  # outer layer: a pencil-thin outline of a coat, no fill
+        if f in ("front", "back") and x in (0, w - 1) and y > 0:
+            return link
+        if y == 0 and f != "bottom":
+            return link
+        return None
+    paint(im, False, "jacket", jacket)
+
+    def arm(f, x, y, w, h):
+        if y >= 10:
+            return skin
+        if y == 9:
+            return ink
+        return cream if (x + y) % 5 else sh(cream, -0.03)
+    for p in ("rarm", "larm"):
+        paint(im, False, p, arm)
+    for p in ("rsleeve", "lsleeve"):
+        paint(im, False, p, lambda f, x, y, w, h: link if (y in (0, 7) and f not in ("top", "bottom")) else None)
+
+    def leg(f, x, y, w, h):
+        if y >= 10:
+            return ink
+        if f in ("front", "back") and x == 0:
+            return link
+        return dcream if (x + y) % 6 else sh(dcream, -0.04)
+    for p in ("rleg", "lleg"):
+        paint(im, False, p, leg)
+    for p in ("rpant", "lpant"):
+        paint(im, False, p, lambda f, x, y, w, h: link if (y == 8 and f not in ("top", "bottom")) else None)
+    return im
+
 
 SKINS = [
-    ("luminos-default", "Luminos Default", "classic", luminos, "Dark navy and off-white with clean panel lines and a small Luminos mark on the back."),
-    ("ember", "Ember", "slim", ember, "Rust and charcoal. Worn leather jacket, brass buckle, headband."),
-    ("glasshouse", "Glasshouse", "classic", glasshouse, "Mint and white with a botanical vine on the back layer."),
-    ("nightshift", "Nightshift", "slim", nightshift, "Black and violet hoodie with a gradient down the sleeves."),
-    ("paper", "Paper", "classic", paper, "Cream and ink. Minimal line art."),
+    ("luminos-default", "Luminos Default", "classic", luminos_default, "Dark navy and off-white with panel lines and the Luminos crescent on the back."),
+    ("ember", "Ember", "slim", ember, "Worn rust leather over charcoal, stitched cuffs and boots."),
+    ("glasshouse", "Glasshouse", "classic", glasshouse, "Mint and white with a vine pattern on the back layer."),
+    ("nightshift", "Nightshift", "slim", nightshift, "Black hoodie, violet trim, sleeves that fade toward the cuff."),
+    ("paper", "Paper", "classic", paper, "Cream and ink with thin line art."),
 ]
-def view(im, back=False):
-    """Flat front/back preview for the contact sheet (3D previews are rendered in the app)."""
-    out = Image.new("RGBA", (16, 32), (0, 0, 0, 0))
-    def blit(src_box, dst, layer_box=None):
-        for box in [src_box] + ([layer_box] if layer_box else []):
-            out.alpha_composite(im.crop(box), dst)
-    return out
+
+
+def validate(im, slim):
+    """A real skin has every base-layer face opaque and an outer layer that is only partly filled."""
+    lay = layout(slim)
+    for part in ("head", "body", "rarm", "larm", "rleg", "lleg"):
+        for name, (fx, fy, fw, fh) in faces(*lay[part]).items():
+            for y in range(fh):
+                for x in range(fw):
+                    assert im.get(fx + x, fy + y)[3] == 255, f"hole in {part}.{name} at {x},{y}"
+    outer = [im.get(fx + x, fy + y)[3] for part in ("hat", "jacket", "rsleeve", "lsleeve", "rpant", "lpant")
+             for (fx, fy, fw, fh) in faces(*lay[part]).values() for y in range(fh) for x in range(fw)]
+    filled = sum(1 for a in outer if a) / len(outer)
+    assert 0.08 < filled < 0.95, f"outer layer fill {filled:.2f}"
+    return filled
+
+
+def main():
+    man = []
+    for sid, name, model, fn, desc in SKINS:
+        im = fn()
+        filled = validate(im, model == "slim")
+        for rel in (("launcher", "crates", "luminos-core", "assets", "skins"), ("app", "public", "skins")):
+            png(os.path.join(ROOT, *rel, sid + ".png"), im)
+        man.append({"id": sid, "name": name, "model": model, "description": desc, "file": f"skins/{sid}.png", "author": "Luminos", "licence": "CC0-1.0", "builtin": True, "outerFill": round(filled, 2)})
+        print(f"{sid:16s} {model:8s} outer layer {filled:.0%}")
+    with open(os.path.join(ROOT, "app", "src", "data", "skins.json"), "w") as f:
+        json.dump(man, f, indent=1)
+
+
 if __name__ == "__main__":
-    (ROOT / "app/public/skins").mkdir(parents=True, exist_ok=True)
-    meta = []
-    for id_, name, model, fn, blurb in SKINS:
-        sk = fn(); sk.im.save(ROOT / f"app/public/skins/{id_}.png"); meta.append({"id": id_, "name": name, "model": model, "file": f"skins/{id_}.png", "blurb": blurb})
-    (ROOT / "app/src/data/skins.json").write_text(json.dumps(meta, indent=2))
-    # contact sheet: unfolded textures at 6x on a mid grey so the alpha layer reads
-    sheet = Image.new("RGBA", (5 * 64 * 5 + 6 * 12, 64 * 5 + 24), (96, 100, 108, 255))
-    for i, (id_, *_rest) in enumerate(SKINS):
-        im = Image.open(ROOT / f"app/public/skins/{id_}.png").resize((320, 320), Image.NEAREST); sheet.alpha_composite(im, (12 + i * 332, 12))
-    (ROOT / "docs/research").mkdir(parents=True, exist_ok=True); sheet.save(ROOT / "docs/research/skins-contact-sheet.png")
-    print("wrote", [m["id"] for m in meta])
+    main()

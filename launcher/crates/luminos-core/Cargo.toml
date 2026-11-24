@@ -23,3 +23,12 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 [dev-dependencies]
 luminos-auth = { path = "../luminos-auth" }
 tokio = { version = "1", features = ["rt-multi-thread", "net"] }
+
+# OS secure store for account tokens (Windows Credential Manager, macOS Keychain, Linux kernel keyring).
+# Nothing else may hold a token; see src/secrets.rs.
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"] }
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["linux-native"] }

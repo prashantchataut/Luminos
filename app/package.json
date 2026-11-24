@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "@types/three": "0.156.0",
     "react": "^19",
     "react-dom": "^19",
-    "three": "^0.156.1"
+    "three": "0.156.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4",

@@ -1,4 +1,4 @@
-//! Accounts. Offline accounts work today; Microsoft sign-in is on the roadmap (see CONTINUITY.md).
+//! Accounts: offline, Microsoft, Ely.by and Luminos. Session tokens are kept in the OS secure store, not in the JSON file.
 use crate::{paths, store};
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ pub struct Account {
     /// Yggdrasil API root for Ely.by / Luminos accounts.
     #[serde(default)]
     pub auth_server: Option<String>,
-    /// Session tokens. Stored in accounts.json (plain text, user-only file). TODO: OS keyring.
+    /// Session token. Held in memory; on disk it lives only in the OS secure store (see `secrets`), never in accounts.json.
     #[serde(default)]
     pub access_token: Option<String>,
     #[serde(default)]
@@ -94,11 +94,45 @@ impl Account {
 }
 
 impl AccountStore {
+    /// Reads accounts.json and brings each real session token back from the OS secure store.
+    /// A token found in the file (written by an older build) is moved into the store and the file is rewritten without it.
     pub fn load() -> Self {
-        store::read_json(&paths::accounts_file())
+        let mut s: AccountStore = store::read_json(&paths::accounts_file());
+        let mut migrated = false;
+        for a in &mut s.accounts {
+            if a.kind == AccountKind::Offline {
+                continue;
+            }
+            let key = crate::secrets::access_key(&a.uuid);
+            if a.access_token.is_some() {
+                migrated = true; // legacy plaintext: save() below moves it
+            } else {
+                a.access_token = crate::secrets::get(&key);
+            }
+        }
+        if migrated {
+            s.save();
+        }
+        s
     }
+    /// Writes accounts.json with every token removed; the tokens go to the OS secure store.
+    /// If the store refuses, the file is still written without the token (never plaintext), so the player re-signs in.
     pub fn save(&self) {
-        let _ = store::write_json(&paths::accounts_file(), self);
+        let mut on_disk = self.clone();
+        for a in &mut on_disk.accounts {
+            if a.kind == AccountKind::Offline {
+                a.access_token = None;
+                continue;
+            }
+            let key = crate::secrets::access_key(&a.uuid);
+            match a.access_token.take() {
+                Some(t) => {
+                    let _ = crate::secrets::put(&key, &t);
+                }
+                None => crate::secrets::delete(&key),
+            }
+        }
+        let _ = store::write_json(&paths::accounts_file(), &on_disk);
     }
     pub fn active(&self) -> Option<&Account> {
         self.accounts.get(self.active)
@@ -117,7 +151,9 @@ impl AccountStore {
     }
     pub fn remove(&mut self, idx: usize) {
         if idx < self.accounts.len() {
-            self.accounts.remove(idx);
+            let gone = self.accounts.remove(idx);
+            crate::secrets::delete(&crate::secrets::access_key(&gone.uuid));
+            crate::secrets::delete(&crate::secrets::refresh_key(&gone.uuid));
             if self.active >= self.accounts.len() {
                 self.active = self.accounts.len().saturating_sub(1);
             }
@@ -128,6 +164,99 @@ impl AccountStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn sandbox() -> std::path::PathBuf {
+        let d = std::env::temp_dir().join(format!(
+            "luminos-acc-{}-{}",
+            std::process::id(),
+            store::now_unix()
+        ));
+        let _ = std::fs::create_dir_all(&d);
+        d
+    }
+
+    #[test]
+    fn microsoft_token_round_trips_and_never_touches_the_json_file() {
+        let _g = crate::paths::test_home_lock();
+        let home = sandbox();
+        std::env::set_var("LUMINOS_HOME", &home);
+        let mut st = AccountStore::default();
+        let mut a = Account::offline("Notch");
+        a.uuid = "069a79f444e94726a5befca90e38aaf5".into();
+        a.kind = AccountKind::Microsoft;
+        a.access_token = Some("SECRET-MC-TOKEN-123".into());
+        st.add(a);
+        st.save();
+        let raw = std::fs::read_to_string(paths::accounts_file()).unwrap();
+        assert!(
+            !raw.contains("SECRET-MC-TOKEN-123"),
+            "token leaked into accounts.json: {raw}"
+        );
+        let back = AccountStore::load();
+        assert_eq!(
+            back.accounts[0].access_token.as_deref(),
+            Some("SECRET-MC-TOKEN-123")
+        );
+        let mut st = back;
+        st.remove(0);
+        st.save();
+        assert!(
+            crate::secrets::get(&crate::secrets::access_key(
+                "069a79f444e94726a5befca90e38aaf5"
+            ))
+            .is_none(),
+            "removed account left a token behind"
+        );
+    }
+
+    #[test]
+    fn legacy_plaintext_token_is_migrated_out_of_the_file() {
+        let _g = crate::paths::test_home_lock();
+        let home = sandbox();
+        std::env::set_var("LUMINOS_HOME", &home);
+        let legacy = r#"{"accounts":[{"username":"Old","uuid":"aaaa1111aaaa1111aaaa1111aaaa1111","kind":"microsoft","access_token":"LEGACY-PLAIN"}],"active":0}"#;
+        std::fs::write(paths::accounts_file(), legacy).unwrap();
+        let s = AccountStore::load();
+        assert_eq!(s.accounts[0].access_token.as_deref(), Some("LEGACY-PLAIN"));
+        assert!(!std::fs::read_to_string(paths::accounts_file())
+            .unwrap()
+            .contains("LEGACY-PLAIN"));
+    }
+
+    #[test]
+    fn offline_accounts_never_use_the_secure_store() {
+        let _g = crate::paths::test_home_lock();
+        let home = sandbox();
+        std::env::set_var("LUMINOS_HOME", &home);
+        let mut st = AccountStore::default();
+        st.add(Account::offline("Steve"));
+        st.save();
+        assert!(AccountStore::load().accounts[0].access_token.is_none());
+    }
+
+    /// Real OS store. On the Windows runner this is Credential Manager. LUMINOS_REQUIRE_OS_STORE=1 turns "unavailable" into a failure.
+    #[test]
+    fn real_os_store_round_trip() {
+        let key = format!("test:{}", std::process::id());
+        match crate::secrets::os_put(&key, "hello-os-store") {
+            Ok(()) => {
+                assert_eq!(
+                    crate::secrets::os_get(&key).unwrap().as_deref(),
+                    Some("hello-os-store")
+                );
+                crate::secrets::os_delete(&key).unwrap();
+                assert_eq!(crate::secrets::os_get(&key).unwrap(), None);
+                eprintln!("OS-STORE-ROUNDTRIP: PASSED on {}", std::env::consts::OS);
+            }
+            Err(e) => {
+                assert!(
+                    std::env::var("LUMINOS_REQUIRE_OS_STORE").is_err(),
+                    "OS store required but unavailable: {e}"
+                );
+                eprintln!("OS-STORE-ROUNDTRIP: SKIPPED ({e})");
+            }
+        }
+    }
 
     #[test]
     fn offline_uuid_matches_vanilla() {

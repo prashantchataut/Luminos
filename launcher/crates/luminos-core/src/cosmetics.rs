@@ -20,44 +20,43 @@ pub const SKINS: &[BuiltinSkin] = &[
     BuiltinSkin {
         id: "luminos-default",
         name: "Luminos Default",
-        blurb: "Dark navy and off-white with clean panel lines and a small Luminos mark on the back.",
+        blurb: "Dark navy and off-white, panel lines, crescent on the back.",
         slim: false,
         png: include_bytes!("../assets/skins/luminos-default.png"),
     },
     BuiltinSkin {
         id: "ember",
         name: "Ember",
-        blurb: "Rust and charcoal. Worn leather jacket, brass buckle, headband.",
+        blurb: "Worn rust leather over charcoal.",
         slim: true,
         png: include_bytes!("../assets/skins/ember.png"),
     },
     BuiltinSkin {
         id: "glasshouse",
         name: "Glasshouse",
-        blurb: "Mint and white with a botanical vine on the back layer.",
+        blurb: "Mint and white with a vine on the back.",
         slim: false,
         png: include_bytes!("../assets/skins/glasshouse.png"),
     },
     BuiltinSkin {
         id: "nightshift",
         name: "Nightshift",
-        blurb: "Black and violet hoodie with a gradient down the sleeves.",
+        blurb: "Black hoodie, violet trim, fading sleeves.",
         slim: true,
         png: include_bytes!("../assets/skins/nightshift.png"),
     },
     BuiltinSkin {
         id: "paper",
         name: "Paper",
-        blurb: "Cream and ink. Minimal line art.",
+        blurb: "Cream and ink with thin line art.",
         slim: false,
         png: include_bytes!("../assets/skins/paper.png"),
     },
 ];
-
 pub const CAPES: &[BuiltinCape] = &[BuiltinCape {
     id: "luminos-moon-cape",
     name: "Moon Cape",
-    blurb: "A crescent moon over deep blue.",
+    blurb: "A dithered moon over deep blue.",
     png: include_bytes!("../assets/skins/luminos-moon-cape.png"),
 }];
 

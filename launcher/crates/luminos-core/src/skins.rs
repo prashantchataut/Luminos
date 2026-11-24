@@ -1,5 +1,5 @@
 //! Skin library: save, import and fetch skins from open services.
-use crate::{http, paths, store};
+use crate::{paths, store};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -90,22 +90,16 @@ pub fn delete(id: &str) {
 }
 
 /// Open sources that serve any player's skin by name, tried in order.
-pub const OPEN_SOURCES: [(&str, &str); 2] = [
-    ("Minotar", "https://minotar.net/skin/{name}"),
-    ("MC-Heads", "https://mc-heads.net/skin/{name}"),
-];
+/// The only place a skin is looked up by name: Mojang's own API (see `skinlookup`).
+pub const OPEN_SOURCES: [(&str, &str); 1] =
+    [("Mojang", "api.mojang.com + sessionserver.mojang.com")];
 
 pub fn fetch_by_username(name: &str) -> Result<Vec<u8>> {
-    if !crate::accounts::valid_username(name) {
-        return Err(anyhow!("invalid Minecraft username"));
-    }
-    let mut last = anyhow!("no skin source answered");
-    for (_, tpl) in OPEN_SOURCES {
-        match http::get_bytes(&tpl.replace("{name}", name)) {
-            Ok(b) if b.len() > 8 && &b[1..4] == b"PNG" => return Ok(b),
-            Ok(_) => last = anyhow!("source returned a non-PNG response"),
-            Err(e) => last = e,
+    match crate::skinlookup::lookup(name)? {
+        crate::skinlookup::Outcome::Found(f) => Ok(f.png),
+        crate::skinlookup::Outcome::NoSuchPlayer => {
+            Err(anyhow!("no Minecraft account is named {name}"))
         }
+        crate::skinlookup::Outcome::NoSkin { .. } => Err(anyhow!("{name} has not set a skin")),
     }
-    Err(last)
 }

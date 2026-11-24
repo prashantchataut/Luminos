@@ -61,3 +61,10 @@ pub fn slugify(s: &str) -> String {
         out
     }
 }
+
+/// Tests that point `LUMINOS_HOME` at a temp dir take this lock so they cannot race each other.
+#[cfg(test)]
+pub fn test_home_lock() -> std::sync::MutexGuard<'static, ()> {
+    static L: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    L.lock().unwrap_or_else(|e| e.into_inner())
+}

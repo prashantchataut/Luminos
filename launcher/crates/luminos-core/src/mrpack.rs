@@ -128,3 +128,108 @@ pub fn install_modpack(project_id: &str, threads: usize, p: &Progress) -> Result
     let _ = content::identify(&inst, content::Kind::Mod);
     Ok(inst)
 }
+
+/// Export an instance as a `.mrpack` (Modrinth pack format 1) another launcher can import.
+/// Every jar and config travels under `overrides/`, so the file works offline and without Modrinth lookups.
+/// Saves are never included. Returns the number of files written.
+pub fn export(inst: &crate::instances::Instance, dest: &std::path::Path) -> Result<usize> {
+    use std::io::Write;
+    let loader_dep = match inst.loader {
+        crate::instances::Loader::Vanilla => None,
+        crate::instances::Loader::Fabric => Some("fabric-loader"),
+        crate::instances::Loader::Quilt => Some("quilt-loader"),
+        crate::instances::Loader::Forge => Some("forge"),
+        crate::instances::Loader::NeoForge => Some("neoforge"),
+    };
+    let mut deps = serde_json::Map::new();
+    deps.insert("minecraft".into(), inst.mc_version.clone().into());
+    if let (Some(k), Some(v)) = (loader_dep, inst.loader_version.as_ref()) {
+        deps.insert(k.into(), v.clone().into());
+    }
+    let index = serde_json::json!({
+        "formatVersion": 1, "game": "minecraft", "versionId": "1.0.0", "name": inst.name,
+        "summary": "Exported from Luminos", "files": [], "dependencies": deps
+    });
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut zw = zip::ZipWriter::new(fs::File::create(dest)?);
+    let opts = zip::write::SimpleFileOptions::default();
+    zw.start_file("modrinth.index.json", opts)?;
+    zw.write_all(serde_json::to_string_pretty(&index)?.as_bytes())?;
+    let mut n = 0usize;
+    for sub in ["mods", "config", "resourcepacks", "shaderpacks"] {
+        let root = inst.game_dir().join(sub);
+        let mut stack = vec![root.clone()];
+        while let Some(d) = stack.pop() {
+            let Ok(rd) = fs::read_dir(&d) else { continue };
+            for e in rd.flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if let Ok(rel) = p.strip_prefix(inst.game_dir()) {
+                    zw.start_file(
+                        format!("overrides/{}", rel.to_string_lossy().replace('\\', "/")),
+                        opts,
+                    )?;
+                    zw.write_all(&fs::read(&p)?)?;
+                    n += 1;
+                }
+            }
+        }
+    }
+    zw.finish()?;
+    Ok(n)
+}
+
+#[cfg(test)]
+mod export_tests {
+    use super::*;
+
+    #[test]
+    fn export_writes_index_and_overrides_but_never_saves() {
+        let _g = crate::paths::test_home_lock();
+        let home = std::env::temp_dir().join(format!("luminos-exp-{}", std::process::id()));
+        std::env::set_var("LUMINOS_HOME", &home);
+        let inst = crate::instances::Instance {
+            id: "exp1".into(),
+            name: "My Pack".into(),
+            mc_version: "1.21.4".into(),
+            loader: crate::instances::Loader::Fabric,
+            loader_version: Some("0.16.0".into()),
+            ..Default::default()
+        };
+        for (sub, f) in [
+            ("mods", "a.jar"),
+            ("config", "x/y.toml"),
+            ("saves", "world/level.dat"),
+        ] {
+            let p = inst.game_dir().join(sub).join(f);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, b"data").unwrap();
+        }
+        let out = home.join("out").join("My Pack.mrpack");
+        assert_eq!(export(&inst, &out).unwrap(), 2);
+        let mut z = zip::ZipArchive::new(fs::File::open(&out).unwrap()).unwrap();
+        let names: Vec<String> = (0..z.len())
+            .map(|i| {
+                z.by_index(i)
+                    .unwrap()
+                    .name()
+                    .map(|c| c.into_owned())
+                    .unwrap()
+            })
+            .collect();
+        assert!(names.contains(&"modrinth.index.json".to_string()));
+        assert!(names.contains(&"overrides/mods/a.jar".to_string()));
+        assert!(names.contains(&"overrides/config/x/y.toml".to_string()));
+        assert!(
+            !names.iter().any(|n| n.contains("saves")),
+            "saves must not be exported: {names:?}"
+        );
+        let idx: serde_json::Value =
+            serde_json::from_reader(z.by_name("modrinth.index.json").unwrap()).unwrap();
+        assert_eq!(idx["dependencies"]["minecraft"], "1.21.4");
+        assert_eq!(idx["dependencies"]["fabric-loader"], "0.16.0");
+    }
+}

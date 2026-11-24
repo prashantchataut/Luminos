@@ -278,7 +278,11 @@ pub fn install_first_party(inst: &Instance) -> Result<String> {
         let src = std::path::PathBuf::from(p);
         let mods = inst.game_dir().join("mods");
         std::fs::create_dir_all(&mods)?;
-        let name = src.file_name().context("LUMINOS_CLIENT_JAR has no file name")?.to_string_lossy().to_string();
+        let name = src
+            .file_name()
+            .context("LUMINOS_CLIENT_JAR has no file name")?
+            .to_string_lossy()
+            .to_string();
         std::fs::copy(&src, mods.join(&name))?;
         return Ok(name);
     }
@@ -355,9 +359,9 @@ pub fn install(
         .and_then(|v| v.java_version.map(|j| j.major_version))
         .filter(|m| *m > 0)
         .unwrap_or(21);
-    match crate::resolve::env_for(inst, major)
-        .and_then(|env| crate::resolve::install_wants(inst, &env, &wants, crate::resolve::Options { allow_beta }))
-    {
+    match crate::resolve::env_for(inst, major).and_then(|env| {
+        crate::resolve::install_wants(inst, &env, &wants, crate::resolve::Options { allow_beta })
+    }) {
         Ok(r) => {
             report.ok.extend(r.installed);
             report.notes.extend(r.notes);

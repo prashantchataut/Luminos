@@ -33,7 +33,6 @@ pub fn new_state() -> SkinState {
     }
 }
 
-
 /// The default skin: "Luminos Pilot", original artwork drawn by `tools/make_skins.py`.
 pub fn default_skin() -> Vec<Color32> {
     let b = luminos_core::cosmetics::skin(luminos_core::cosmetics::DEFAULT_SKIN_ID)

@@ -102,8 +102,6 @@ pub const REGISTRY: &[HostRule] = &[
     rule("sessionserver.mojang.com", "Read that player's current skin address", Category::Skins, false, "The UUID of the player you looked up."),
     rule("textures.minecraft.net", "Download the skin PNG you chose to copy", Category::Skins, false, "Nothing about you."),
     rule("authserver.ely.by", "Ely.by sign-in (authlib-injector)", Category::Accounts, false, "Only when you add an Ely.by account: the username and password you type, sent over HTTPS to Ely.by."),
-    rule("minotar.net", "Fetch a skin by username when you import one", Category::Skins, false, "The username you typed."),
-    rule("mc-heads.net", "Fallback skin lookup by username", Category::Skins, false, "The username you typed."),
 ];
 
 #[derive(Clone, Debug, Serialize)]
@@ -339,7 +337,7 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("turned off"), "{err}");
-        assert!(check("https://minotar.net/skin/Steve").is_ok());
+        assert!(check("https://sessionserver.mojang.com/session/minecraft/profile/x").is_ok());
         set_disabled(&[]);
         assert!(check("https://authserver.ely.by/x").is_ok());
     }

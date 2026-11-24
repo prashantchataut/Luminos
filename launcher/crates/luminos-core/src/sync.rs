@@ -261,7 +261,8 @@ impl Syncer {
                 if let Some(p) = sfile.parent() {
                     fs::create_dir_all(p)?;
                 }
-                fs::write(&sfile, &bytes).with_context(|| format!("writing {}", sfile.display()))?;
+                fs::write(&sfile, &bytes)
+                    .with_context(|| format!("writing {}", sfile.display()))?;
                 meta.items.insert(
                     id.into(),
                     ItemMeta {
@@ -344,7 +345,11 @@ impl Syncer {
                     } else {
                         let inst_wins = self.decide(inst_ts, store_ts);
                         let loser = if inst_wins { sv } else { iv };
-                        self.backup(instance, &format!("options:{k}"), format!("{k}:{loser}\n").as_bytes());
+                        self.backup(
+                            instance,
+                            &format!("options:{k}"),
+                            format!("{k}:{loser}\n").as_bytes(),
+                        );
                         rep.conflicts.push(Conflict {
                             item: format!("options:{k}"),
                             winner: if inst_wins { "instance" } else { "store" }.into(),
@@ -364,7 +369,10 @@ impl Syncer {
         if !pulls.is_empty() {
             let mut out = String::with_capacity(text.len());
             for line in text.lines() {
-                match line.split_once(':').and_then(|(k, _)| pulls.get(k).map(|v| (k, v))) {
+                match line
+                    .split_once(':')
+                    .and_then(|(k, _)| pulls.get(k).map(|v| (k, v)))
+                {
                     Some((k, v)) => out.push_str(&format!("{k}:{v}\n")),
                     None => {
                         out.push_str(line);
@@ -463,26 +471,55 @@ mod tests {
         write(&a.join("servers.dat"), "SERVERS-A");
         let s = Syncer::at(root.join("sync"), Policy::NewestWins);
         let r = s.reconcile("A", &a).unwrap();
-        assert!(r.pushed.contains(&"options".to_string()) && r.pushed.contains(&"client-config".to_string()));
+        assert!(
+            r.pushed.contains(&"options".to_string())
+                && r.pushed.contains(&"client-config".to_string())
+        );
 
         // B is a different Minecraft version: it has its own, unrelated keys and a different binding for the panel.
         write(&b.join("options.txt"), "version:3955\nkey_key.attack:key.mouse.left\nkey_key.luminos.panel:key.keyboard.right.shift\nkey_key.only_in_b:key.keyboard.j\nfov:70.0\n");
         let s2 = Syncer::at(root.join("sync"), Policy::KeepStore);
         let r = s2.reconcile("B", &b).unwrap();
         let opts = fs::read_to_string(b.join("options.txt")).unwrap();
-        assert!(opts.contains("key_key.luminos.panel:key.keyboard.right.control"), "store value wins: {opts}");
+        assert!(
+            opts.contains("key_key.luminos.panel:key.keyboard.right.control"),
+            "store value wins: {opts}"
+        );
         assert!(opts.contains("fov:90.0"));
-        assert!(opts.contains("version:3955"), "unsynced lines are untouched");
-        assert!(!opts.contains("renderDistance"), "keys B never had are not invented");
+        assert!(
+            opts.contains("version:3955"),
+            "unsynced lines are untouched"
+        );
+        assert!(
+            !opts.contains("renderDistance"),
+            "keys B never had are not invented"
+        );
         assert!(opts.contains("key_key.only_in_b:key.keyboard.j"));
-        assert_eq!(fs::read_to_string(b.join("config/luminos-client.json")).unwrap(), "{\"snap\":true}");
-        assert_eq!(fs::read_to_string(b.join("servers.dat")).unwrap(), "SERVERS-A");
-        assert!(r.conflicts.iter().any(|c| c.item == "options:key_key.luminos.panel" && c.winner == "store"));
+        assert_eq!(
+            fs::read_to_string(b.join("config/luminos-client.json")).unwrap(),
+            "{\"snap\":true}"
+        );
+        assert_eq!(
+            fs::read_to_string(b.join("servers.dat")).unwrap(),
+            "SERVERS-A"
+        );
+        assert!(r
+            .conflicts
+            .iter()
+            .any(|c| c.item == "options:key_key.luminos.panel" && c.winner == "store"));
         // the losing value is recoverable
-        let kept: Vec<_> = fs::read_dir(root.join("sync/conflicts")).unwrap().flatten().collect();
+        let kept: Vec<_> = fs::read_dir(root.join("sync/conflicts"))
+            .unwrap()
+            .flatten()
+            .collect();
         assert!(!kept.is_empty());
         // read_dir order differs per OS and several keys conflicted (fov too): look through every backup
-        assert!(kept.iter().any(|e| fs::read_to_string(e.path()).unwrap().contains("right.shift")), "losing panel binding must be kept");
+        assert!(
+            kept.iter().any(|e| fs::read_to_string(e.path())
+                .unwrap()
+                .contains("right.shift")),
+            "losing panel binding must be kept"
+        );
 
         // key only B has flows back to the store, then to a third instance that knows it
         s2.reconcile("B", &b).unwrap();
@@ -491,31 +528,58 @@ mod tests {
         // C already has its own, different binding and no sync history: a genuine conflict. KeepStore makes B's win.
         let s3 = Syncer::at(root.join("sync"), Policy::KeepStore);
         let r = s3.reconcile("C", &c).unwrap();
-        assert!(r.conflicts.iter().any(|x| x.item == "options:key_key.only_in_b" && x.winner == "store"), "{r:?}");
-        assert!(fs::read_to_string(c.join("options.txt")).unwrap().contains("key.keyboard.j"), "{r:?}");
+        assert!(
+            r.conflicts
+                .iter()
+                .any(|x| x.item == "options:key_key.only_in_b" && x.winner == "store"),
+            "{r:?}"
+        );
+        assert!(
+            fs::read_to_string(c.join("options.txt"))
+                .unwrap()
+                .contains("key.keyboard.j"),
+            "{r:?}"
+        );
     }
 
     #[test]
     fn second_run_is_quiet_and_one_sided_edits_propagate_without_conflict() {
         let root = tmp("quiet");
         let (a, b) = (root.join("a"), root.join("b"));
-        write(&a.join("options.txt"), "fov:80.0\nkey_key.jump:key.keyboard.space\n");
+        write(
+            &a.join("options.txt"),
+            "fov:80.0\nkey_key.jump:key.keyboard.space\n",
+        );
         write(&a.join("config/luminos-client.json"), "v1");
         let s = Syncer::at(root.join("sync"), Policy::NewestWins);
         s.reconcile("A", &a).unwrap();
         s.reconcile("B", &b).unwrap(); // fresh: seeded
-        assert_eq!(fs::read_to_string(b.join("options.txt")).unwrap().lines().count(), 2);
+        assert_eq!(
+            fs::read_to_string(b.join("options.txt"))
+                .unwrap()
+                .lines()
+                .count(),
+            2
+        );
         assert!(s.reconcile("A", &a).unwrap().is_quiet());
         assert!(s.reconcile("B", &b).unwrap().is_quiet());
         // B edits; A picks it up on its next launch, no conflict
         write(&b.join("config/luminos-client.json"), "v2");
-        write(&b.join("options.txt"), "fov:100.0\nkey_key.jump:key.keyboard.space\n");
+        write(
+            &b.join("options.txt"),
+            "fov:100.0\nkey_key.jump:key.keyboard.space\n",
+        );
         let rb = s.reconcile("B", &b).unwrap();
         assert!(rb.conflicts.is_empty() && rb.pushed.contains(&"client-config".to_string()));
         let ra = s.reconcile("A", &a).unwrap();
         assert!(ra.conflicts.is_empty(), "{ra:?}");
-        assert_eq!(fs::read_to_string(a.join("config/luminos-client.json")).unwrap(), "v2");
-        assert!(fs::read_to_string(a.join("options.txt")).unwrap().contains("fov:100.0"));
+        assert_eq!(
+            fs::read_to_string(a.join("config/luminos-client.json")).unwrap(),
+            "v2"
+        );
+        assert!(fs::read_to_string(a.join("options.txt"))
+            .unwrap()
+            .contains("fov:100.0"));
     }
 
     #[test]
@@ -530,9 +594,22 @@ mod tests {
         write(&b.join("config/luminos-client.json"), "from-b");
         s.reconcile("A", &a).unwrap(); // pushes from-a
         let r = s.reconcile("B", &b).unwrap(); // B changed too: KeepLocal => B wins
-        assert_eq!(r.conflicts, vec![Conflict { item: "client-config".into(), winner: "instance".into() }]);
-        assert_eq!(fs::read_to_string(b.join("config/luminos-client.json")).unwrap(), "from-b");
-        let lost = fs::read_dir(root.join("sync/conflicts")).unwrap().flatten().next().unwrap();
+        assert_eq!(
+            r.conflicts,
+            vec![Conflict {
+                item: "client-config".into(),
+                winner: "instance".into()
+            }]
+        );
+        assert_eq!(
+            fs::read_to_string(b.join("config/luminos-client.json")).unwrap(),
+            "from-b"
+        );
+        let lost = fs::read_dir(root.join("sync/conflicts"))
+            .unwrap()
+            .flatten()
+            .next()
+            .unwrap();
         assert_eq!(fs::read_to_string(lost.path()).unwrap(), "from-a");
     }
 
@@ -540,7 +617,10 @@ mod tests {
     fn export_then_import_moves_the_store_to_another_machine() {
         let root = tmp("export");
         let a = root.join("a");
-        write(&a.join("options.txt"), "key_key.attack:key.mouse.left\nfov:75.0\n");
+        write(
+            &a.join("options.txt"),
+            "key_key.attack:key.mouse.left\nfov:75.0\n",
+        );
         write(&a.join("config/luminos-profiles/pvp.json"), "{}");
         let s = Syncer::at(root.join("one/sync"), Policy::NewestWins);
         s.reconcile("A", &a).unwrap();
@@ -550,7 +630,13 @@ mod tests {
         assert!(other.import(&out).unwrap() >= 2);
         let fresh = root.join("fresh");
         let r = other.reconcile("Fresh", &fresh).unwrap();
-        assert!(r.pulled.contains(&"options".to_string()) && r.pulled.contains(&"profile/pvp.json".to_string()), "{r:?}");
-        assert!(fs::read_to_string(fresh.join("options.txt")).unwrap().contains("fov:75.0"));
+        assert!(
+            r.pulled.contains(&"options".to_string())
+                && r.pulled.contains(&"profile/pvp.json".to_string()),
+            "{r:?}"
+        );
+        assert!(fs::read_to_string(fresh.join("options.txt"))
+            .unwrap()
+            .contains("fov:75.0"));
     }
 }
