@@ -138,10 +138,10 @@ async fn ms_device_finish(device_code: String, expires_in: u64, interval: u64) -
 #[tauri::command]
 async fn mojang_lookup(name: String) -> R<Value> {
     blocking(move || {
-        Ok(match luminos_core::mojang::lookup(&name) {
-            Ok(luminos_core::mojang::Found::NoUser) => json!({ "status": "nouser", "why": format!("No Minecraft account is named \u{201c}{name}\u{201d}.") }),
-            Ok(luminos_core::mojang::Found::NoSkin(n)) => json!({ "status": "noskin", "why": format!("{n} has no custom skin. They use the default Steve or Alex.") }),
-            Ok(luminos_core::mojang::Found::Skin { name, id, png, slim }) => json!({ "status": "found", "name": name, "id": id, "model": if slim { "slim" } else { "classic" }, "data": format!("data:image/png;base64,{}", b64(&png)) }),
+        Ok(match luminos_core::mojang_skin::lookup(&name) {
+            Ok(luminos_core::mojang_skin::Found::NoUser) => json!({ "status": "nouser", "why": format!("No Minecraft account is named \u{201c}{name}\u{201d}.") }),
+            Ok(luminos_core::mojang_skin::Found::NoSkin(n)) => json!({ "status": "noskin", "why": format!("{n} has no custom skin. They use the default Steve or Alex.") }),
+            Ok(luminos_core::mojang_skin::Found::Skin { name, id, png, slim }) => json!({ "status": "found", "name": name, "id": id, "model": if slim { "slim" } else { "classic" }, "data": format!("data:image/png;base64,{}", b64(&png)) }),
             Err(e) => json!({ "status": "error", "why": format!("Could not reach Mojang: {}", err(e)) }),
         })
     })
@@ -156,8 +156,8 @@ async fn mojang_set_skin(png: String, slim: bool) -> R<()> {
         let acc = store.active().filter(|a| a.kind == AccountKind::Microsoft).ok_or("Sign in with Microsoft first. Offline accounts have no Mojang skin to change.".to_string())?;
         let token = acc.access_token.clone().ok_or("The Microsoft sign-in has expired. Sign in again.".to_string())?;
         let data = png.split_once(',').map(|x| x.1).ok_or("That skin is not a PNG data URL.".to_string())?;
-        let bytes = luminos_core::mojang::b64_decode(data).map_err(err)?;
-        luminos_core::mojang::set_skin(&token, &bytes, slim).map_err(err)
+        let bytes = luminos_core::mojang_skin::b64_decode(data).map_err(err)?;
+        luminos_core::mojang_skin::set_skin(&token, &bytes, slim).map_err(err)
     })
     .await
 }
