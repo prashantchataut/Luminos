@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Luminos default cosmetics library: 48 original skins + 14 original capes (6 animated).
+"""Luminos cape library: 14 original capes (6 animated). Skins live in tools/make_luminos_skins.py.
 
 Everything is drawn from rectangles, an ordered Bayer dither and a hand-picked palette. No Mojang texture, no community
 skin and no scraped image is read, traced or recoloured. Deterministic, stdlib only.
@@ -360,6 +360,7 @@ SKINS = [
     S("rose-gold", "Rose Gold", "minimal", "Warm metallic pink, flat-shaded.", "minimal", accent="#fbe4d6", shirt="#d9958f", pants="#8a5a63", shoes="#5a3a42", hair="#5a3a2a", hairstyle="long"),
     S("steel", "Steel", "minimal", "Cool greys and nothing to distract.", "minimal", accent="#e8edf5", shirt="#7a8498", pants="#4a5266", shoes="#2a3040", hair="#2b2f38", hairstyle="short"),
 ]
+SKINS = []  # the 48 generated skins were removed in v0.9.1; the five Luminos skins come from tools/make_luminos_skins.py
 
 
 # ---- capes ---------------------------------------------------------------------------------------------------------

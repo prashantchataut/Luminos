@@ -1,7 +1,7 @@
 //! Luminos desktop shell: a thin Tauri 2 layer over `luminos-core`, which stays the engine.
 //! Every command is async and runs engine work on a blocking thread so the window never stalls.
 use luminos_core::{
-    accounts::{Account, AccountStore},
+    accounts::{Account, AccountKind, AccountStore},
     config::Settings,
     content, cosmetics,
     download::Progress,
@@ -117,7 +117,69 @@ async fn ms_device_finish(device_code: String, expires_in: u64, interval: u64) -
         };
         let (access, refresh) = luminos_core::msauth::wait_for_approval(&id, &dc, &|| false).map_err(err)?;
         let session = luminos_core::msauth::minecraft_login(&access, &refresh).map_err(err)?;
+        // Keep the session so the skin can be applied to this Mojang account later (mojang_set_skin).
+        let mut store = AccountStore::load();
+        let mut acc = Account::offline(&session.username);
+        acc.uuid = session.uuid.clone();
+        acc.kind = AccountKind::Microsoft;
+        acc.skin_id = None;
+        acc.access_token = Some(session.minecraft_token.clone());
+        store.add(acc);
+        if let Some(a) = store.accounts.iter_mut().find(|a| a.username == session.username) {
+            a.access_token = Some(session.minecraft_token.clone());
+        }
+        store.save();
         Ok(json!({ "username": session.username, "uuid": session.uuid }))
+    })
+    .await
+}
+
+/// Copy a player's current skin by name. Mojang API only.
+#[tauri::command]
+async fn mojang_lookup(name: String) -> R<Value> {
+    blocking(move || {
+        Ok(match luminos_core::mojang_skin::lookup(&name) {
+            Ok(luminos_core::mojang_skin::Found::NoUser) => json!({ "status": "nouser", "why": format!("No Minecraft account is named \u{201c}{name}\u{201d}.") }),
+            Ok(luminos_core::mojang_skin::Found::NoSkin(n)) => json!({ "status": "noskin", "why": format!("{n} has no custom skin. They use the default Steve or Alex.") }),
+            Ok(luminos_core::mojang_skin::Found::Skin { name, id, png, slim }) => json!({ "status": "found", "name": name, "id": id, "model": if slim { "slim" } else { "classic" }, "data": format!("data:image/png;base64,{}", b64(&png)) }),
+            Err(e) => json!({ "status": "error", "why": format!("Could not reach Mojang: {}", err(e)) }),
+        })
+    })
+    .await
+}
+
+/// Apply a skin (PNG data URL) to the signed-in Microsoft account.
+#[tauri::command]
+async fn mojang_set_skin(png: String, slim: bool) -> R<()> {
+    blocking(move || {
+        let store = AccountStore::load();
+        let acc = store.active().filter(|a| a.kind == AccountKind::Microsoft).ok_or("Sign in with Microsoft first. Offline accounts have no Mojang skin to change.".to_string())?;
+        let token = acc.access_token.clone().ok_or("The Microsoft sign-in has expired. Sign in again.".to_string())?;
+        let data = png.split_once(',').map(|x| x.1).ok_or("That skin is not a PNG data URL.".to_string())?;
+        let bytes = luminos_core::mojang_skin::b64_decode(data).map_err(err)?;
+        luminos_core::mojang_skin::set_skin(&token, &bytes, slim).map_err(err)
+    })
+    .await
+}
+
+/// Persist the locker next to the other config so the client can read it after a restart.
+#[tauri::command]
+async fn write_cosmetics(json: String) -> R<()> {
+    blocking(move || {
+        serde_json::from_str::<Value>(&json).map_err(err)?;
+        let dir = luminos_core::paths::accounts_file().parent().map(|p| p.to_path_buf()).ok_or("no config directory".to_string())?;
+        std::fs::write(dir.join("luminos-cosmetics.json"), json).map_err(err)
+    })
+    .await
+}
+
+/// Settings the in-game client reads: luminos-client-settings.json (theme, crosshair, keystrokes, fog, fonts, classic client).
+#[tauri::command]
+async fn write_client_settings(json: String) -> R<()> {
+    blocking(move || {
+        serde_json::from_str::<Value>(&json).map_err(err)?;
+        let dir = luminos_core::paths::accounts_file().parent().map(|p| p.to_path_buf()).ok_or("no config directory".to_string())?;
+        std::fs::write(dir.join("luminos-client-settings.json"), json).map_err(err)
     })
     .await
 }
@@ -345,6 +407,10 @@ pub fn run() {
             create_account,
             ms_device_begin,
             ms_device_finish,
+            mojang_lookup,
+            mojang_set_skin,
+            write_cosmetics,
+            write_client_settings,
             create_instance,
             launch_instance,
             sync_run,

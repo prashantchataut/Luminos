@@ -1,0 +1,37 @@
+[
+  {
+    "id": "luminos-default",
+    "name": "Luminos Default",
+    "model": "classic",
+    "file": "skins/luminos-default.png",
+    "blurb": "Dark navy and off-white with clean panel lines and a small Luminos mark on the back."
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "model": "slim",
+    "file": "skins/ember.png",
+    "blurb": "Rust and charcoal. Worn leather jacket, brass buckle, headband."
+  },
+  {
+    "id": "glasshouse",
+    "name": "Glasshouse",
+    "model": "classic",
+    "file": "skins/glasshouse.png",
+    "blurb": "Mint and white with a botanical vine on the back layer."
+  },
+  {
+    "id": "nightshift",
+    "name": "Nightshift",
+    "model": "slim",
+    "file": "skins/nightshift.png",
+    "blurb": "Black and violet hoodie with a gradient down the sleeves."
+  },
+  {
+    "id": "paper",
+    "name": "Paper",
+    "model": "classic",
+    "file": "skins/paper.png",
+    "blurb": "Cream and ink. Minimal line art."
+  }
+]

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useRef } from "react";
 import { Icon, P } from "./ui";
-export { Icon, Sky, Cover } from "./ui";
+export { Icon, Cover } from "./ui";
 
 // Extra glyphs for the 0.9 screens (same 24px / 1.6 stroke family as ui.tsx).
 Object.assign(P, {
@@ -31,7 +31,7 @@ export function Badge({ tone = "mute", children }: { tone?: "ok" | "warn" | "bad
 export function LRow({ icon, name, desc, children, onClick }: { icon: string; name: string; desc: string; children?: ReactNode; onClick?: () => void }) {
   return (
     <div className="lrow" onClick={onClick} data-row={name}>
-      <span className="grid place-items-center w-6 h-6 rounded-md shrink-0" style={{ background: "rgba(160,190,255,.1)" }}><Icon n={icon} s={14} /></span>
+      <span className="grid place-items-center w-6 h-6 rounded-md shrink-0" style={{ background: "color-mix(in srgb, var(--color-fg) 10%, transparent)" }}><Icon n={icon} s={14} /></span>
       <span className="min-w-0 flex-1 leading-[15px]"><span className="block t2 font-medium truncate">{name}</span><span className="block t1 mute truncate leading-[13px]">{desc}</span></span>
       {children}
     </div>
@@ -45,7 +45,7 @@ export function SearchBox({ value, onChange, placeholder, autoFocus, inputRef }:
 }
 export function Modal({ onClose, children, w = 520, title }: { onClose: () => void; children: ReactNode; w?: number; title: string }) {
   useEffect(() => { const f = (e: KeyboardEvent) => e.key === "Escape" && onClose(); addEventListener("keydown", f); return () => removeEventListener("keydown", f); }, [onClose]);
-  return <div className="fixed inset-0 z-50 grid place-items-center" style={{ background: "rgba(2,4,13,.55)" }} onMouseDown={onClose}><div role="dialog" aria-label={title} className="glass rise p-4" style={{ width: w, maxWidth: "92vw" }} onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-3"><div className="t3 font-semibold">{title}</div><button className="ibtn" aria-label="Close" onClick={onClose}><Icon n="x" s={14} /></button></div>{children}</div></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center" style={{ background: "color-mix(in srgb, var(--inset) 55%, transparent)" }} onMouseDown={onClose}><div role="dialog" aria-label={title} className="panel rise p-4" style={{ width: w, maxWidth: "92vw" }} onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-3"><div className="t3 font-semibold">{title}</div><button className="ibtn" aria-label="Close" onClick={onClose}><Icon n="x" s={14} /></button></div>{children}</div></div>;
 }
 export const fmtTime = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.max(1, Math.floor(s / 60))}m`);
 export const fmtNum = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}k` : String(n));

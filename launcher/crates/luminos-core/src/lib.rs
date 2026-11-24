@@ -15,6 +15,7 @@ pub mod launch;
 pub mod modrinth;
 pub mod mojang;
 pub mod mrpack;
+pub mod mojang_skin;
 pub mod msauth;
 pub mod netaudit;
 pub mod news;

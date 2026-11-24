@@ -14,10 +14,8 @@ public final class Features {
 
 	public static final List<Feature> ALL = new ArrayList<>();
 	/** Opens the appearance popover (glass intensity, solid panels, reduced motion). Not part of ALL. */
-	public static final Feature APPEARANCE = new Feature("@appearance", "Panel appearance", "Glass intensity and accessibility", "glass", Group.UTILITY,
+	public static final Feature APPEARANCE = new Feature("@appearance", "Panel appearance", "Theme colours, motion and density", "glass", Group.UTILITY,
 			() -> true, v -> {}, List.of(
-					Opt.slider("@glass", "Glass intensity", 0, 100, 70, 5, "%"),
-					Opt.toggle("@solid", "Solid panels", false),
 					Opt.toggle("@motion", "Reduce motion", false),
 					Opt.toggle("@comfy", "Comfortable rows", false)), null, null);
 

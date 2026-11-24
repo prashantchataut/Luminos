@@ -180,6 +180,30 @@
       "category_label": "Sign-in"
     },
     {
+      "host": "api.mojang.com",
+      "purpose": "Look up a player's UUID when you copy their skin by name",
+      "category": "skins",
+      "required_to_play": false,
+      "sends": "The username you typed.",
+      "category_label": "Skins"
+    },
+    {
+      "host": "sessionserver.mojang.com",
+      "purpose": "Read that player's current skin address",
+      "category": "skins",
+      "required_to_play": false,
+      "sends": "The UUID of the player you looked up.",
+      "category_label": "Skins"
+    },
+    {
+      "host": "textures.minecraft.net",
+      "purpose": "Download the skin PNG you chose to copy",
+      "category": "skins",
+      "required_to_play": false,
+      "sends": "Nothing about you.",
+      "category_label": "Skins"
+    },
+    {
       "host": "authserver.ely.by",
       "purpose": "Ely.by sign-in (authlib-injector)",
       "category": "accounts",

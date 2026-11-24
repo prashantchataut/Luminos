@@ -1,6 +1,7 @@
 name: Luminos Client (Fabric mod)
 on:
   push:
+    branches: ["feat/**"]
     paths: ["client/**", "client26/**", ".github/workflows/client.yml"]
     tags: ["client-v*"]
   pull_request:
@@ -34,6 +35,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/core"
           javac --release 21 -d "$RUNNER_TEMP/core" $(find src/shared/java/dev/luminos/client/core tests -name '*.java')
           java -cp "$RUNNER_TEMP/core" dev.luminos.client.core.CoreTests
+          java -cp "$RUNNER_TEMP/core" dev.luminos.client.core.V091Tests
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build --no-daemon
       - name: Verify the jar's declared Minecraft range accepts this version

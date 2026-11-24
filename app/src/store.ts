@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from "react";
 import { call } from "./api";
+import { applyTheme, DEFAULT_THEME } from "./themes";
 
 /** Every key here is read by something real: either the UI itself (applied in `apply`) or the engine through `set_setting`. */
 export type Settings = {
-  glass: number; solid: boolean; reduceMotion: boolean; animatedSky: boolean; compact: boolean;
+  theme: string; classicClient: boolean; reduceMotion: boolean; compact: boolean;
   profile: "luminos-performance" | "sodium-baseline" | "vanilla";
   renderer: "sodium" | "vulkanmod" | "nvidium";
   inputSampling: boolean; hudFps: number; hudThrottle: boolean; startupCache: boolean; devProfiler: boolean;
@@ -11,25 +12,30 @@ export type Settings = {
   keystrokes: "A" | "B"; crosshair: string; fogOverworld: boolean; fogNether: boolean; fogEnd: boolean; lowFire: boolean; lowShield: boolean;
 };
 export const DEFAULTS: Settings = {
-  glass: 60, solid: false, reduceMotion: false, animatedSky: true, compact: true,
+  theme: DEFAULT_THEME, classicClient: false, reduceMotion: false, compact: true,
   profile: "luminos-performance", renderer: "sodium", inputSampling: true, hudFps: 30, hudThrottle: true, startupCache: true, devProfiler: false,
   memoryMb: 4096, allowBeta: false, offlineSkins: true, checkUpdates: true, closeOnLaunch: false, compliance: false,
   keystrokes: "A", crosshair: "dot-ring", fogOverworld: false, fogNether: true, fogEnd: false, lowFire: true, lowShield: true,
 };
-const KEY = "luminos.settings.v2";
+const KEY = "luminos.settings.v3";
 let state: Settings = { ...DEFAULTS };
 try { Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { /* first run */ }
 const subs = new Set<() => void>();
 
 export function apply(s: Settings) {
   const r = document.documentElement;
-  r.style.setProperty("--gi", String(s.glass / 100));
-  r.classList.toggle("solid", s.solid);
+  applyTheme(s.theme);
   r.classList.toggle("reduce", s.reduceMotion);
   r.classList.toggle("loose", !s.compact);
 }
 apply(state);
 
+const CLIENT_KEYS = ["theme", "classicClient", "lowFire", "lowShield", "compliance", "keystrokes", "fogOverworld", "fogNether", "fogEnd", "crosshair"];
+let crosshairObj: any = null;
+export function setCrosshairGeometry(c: any) { crosshairObj = c; writeClient(); }
+/** The file the in-game client reads. Written whenever a client setting changes. */
+export function clientSettings() { const o: any = {}; for (const k of CLIENT_KEYS) o[k] = (state as any)[k]; if (crosshairObj) o.crosshair = crosshairObj; return o; }
+function writeClient() { call("write_client_settings", { json: JSON.stringify(clientSettings()) }).catch(() => { /* browser */ }); }
 export function set<K extends keyof Settings>(k: K, v: Settings[K]) {
   state = { ...state, [k]: v };
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* private mode */ }
@@ -38,6 +44,7 @@ export function set<K extends keyof Settings>(k: K, v: Settings[K]) {
   if (["memoryMb", "allowBeta", "offlineSkins", "checkUpdates", "closeOnLaunch", "profile", "renderer", "inputSampling", "hudFps", "startupCache", "compliance"].includes(k)) {
     call("set_setting", { key: k, value: v }).catch(() => { /* engine unavailable in a plain browser */ });
   }
+  if (CLIENT_KEYS.includes(k as string)) writeClient();
   subs.forEach((f) => f());
 }
 export const useSettings = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => state);

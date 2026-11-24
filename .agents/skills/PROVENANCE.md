@@ -42,3 +42,12 @@ Session 15 (v0.9 finish):
 | better-icons | github.com/better-auth/better-icons @033316e `skills/SKILL.md` (open-design.ai catalog; iconography) | see repo |
 Already present from earlier sessions and used again: taste-skill, ui-ux-pro-max, uihall, reanimate, rea + rea-morluto, liquid-glass, game-ui-ux, game-ui-design, icon-system.
 skills.sh is client-rendered; browsed by search only. Nothing from it was installed beyond the entries above.
+
+Session 16 (v0.9.1), cloned with `git clone --depth 1`, files over 150 KB removed:
+| taste-skill | github.com/Leonxlnx/taste-skill @6c0b5c7 (refreshed from upstream; replaces the older copy) | MIT |
+| visual-design-foundations | github.com/wshobson/agents @c96b5f6 (skills.sh: 14,606 installs; typography, colour, spacing, iconography) | see repo |
+| drawcall-game-user-interface | github.com/drawcall-ai/game-skills @fbd8ab9 `user-interface` (skills.sh game UI) | see repo |
+| minecraft-pixel-art | github.com/smile-minecraft/mc-asset @3031eed (skills.sh; used for the skin UV work) | see repo |
+| minecraft-native-ui | github.com/siredvin/minecraft-modding-skills @9ac8a4f (skills.sh) | see repo |
+| ux-copy, accessibility-review | github.com/anthropics/knowledge-work-plugins @5e504ae (open-design.ai catalogue; used for the copy pass and the contrast table) | Apache-2.0 |
+Not installed: `lvtd-llc/skills` (clone failed). ui-ux-pro-max, uihall, reanimate, rea, rea-morluto were already present and were re-opened this session.

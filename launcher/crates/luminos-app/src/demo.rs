@@ -425,7 +425,7 @@ pub fn app(ctx: &egui::Context) -> App {
         );
     }
     if let Some(acc) = a.accounts.accounts.get_mut(0) {
-        acc.skin_id = Some("luminos-pilot".into());
+        acc.skin_id = Some("luminos-default".into());
         acc.cape_id = Some("luminos-moon-cape".into());
     }
     // Client page: pretend the Luminos Client instance is installed, with a few optional mods present.
@@ -453,7 +453,7 @@ pub fn app(ctx: &egui::Context) -> App {
         luminos_core::storage::Area { name: "Downloads cache", detail: "Temporary downloads.", path: Default::default(), bytes: 24_000_000, reclaimable: true },
         luminos_core::storage::Area { name: "Skins", detail: "Your skin library.", path: Default::default(), bytes: 90_000, reclaimable: false },
     ]);
-    a.skins.selected = Some("luminos-pilot".into());
+    a.skins.selected = Some("luminos-default".into());
     a.detail.tab = DTab::Content;
     a.page = Page::Home;
     a

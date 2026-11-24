@@ -54,13 +54,17 @@ public final class Glass {
 
 	public static boolean osReducedTransparency() { return osReduced; }
 
-	public static boolean solid() { return Config.get().solidPanels || osReduced; }
+	/** v0.9.1: panels are always solid. The glass system (blur, tint, intensity) was removed. */
+	public static boolean solid() { return true; }
+
+	/** The active theme: surfaces, text, accent. Read from the launcher's settings file. */
+	public static dev.luminos.client.core.Theme theme() { return dev.luminos.client.core.Theme.byId(Config.launcher().theme); }
 
 	/** 0..1 */
 	public static float intensity() { return Math.max(0, Math.min(100, Config.get().glassIntensity)) / 100f; }
 
 	/** Vanilla blur radius to borrow while a glass panel is open (0 = no blur pass at all, which is the cheap path). */
-	public static int blurLevel() { return solid() ? 0 : Math.round(intensity() * 8f); }
+	public static int blurLevel() { return 0; }
 
 	// ---------------------------------------------------------------- colour helpers
 	public static int argb(int a, int r, int g, int b) { return (Math.max(0, Math.min(255, a)) << 24) | (r << 16) | (g << 8) | b; }
@@ -71,19 +75,13 @@ public final class Glass {
 	}
 
 	/** White tint used for glass surfaces: alpha 0.08 (clear) to 0.18 (flat). */
-	public static int tint(float strength) {
-		if (solid()) return 0xF21B1E26;
-		return alpha(0xFFFFFFFF, (0.18f - 0.10f * intensity()) * strength);
-	}
+	public static int tint(float strength) { return theme().panelFill(); }
 
 	/**
 	 * Full-screen dim behind a panel. Legibility is the floor: at 0% there is no blur pass, so the dim is darkest (0.64); with the blur
 	 * at full strength it settles at 0.50. Measured round 5: at the old 0.34 a busy world showed straight through the labels.
 	 */
-	public static int scrim() {
-		float flat = 1f - intensity();
-		return solid() ? 0xB8070809 : alpha(0xFF050608, 0.50f + 0.14f * flat * flat);
-	}
+	public static int scrim() { return 0xB8000000 | theme().bg; }
 
 	// ---------------------------------------------------------------- shapes
 	private static float inset(int r, int row) {
@@ -141,18 +139,15 @@ public final class Glass {
 
 	/** The glass surface itself: shadow, tint, hairline, top highlight. */
 	public static void surface(Gfx g, int x, int y, int w, int h, int r, float strength) {
-		shadow(g, x, y, w, h, r, solid() ? 1.2f : 1f);
-		roundFill(g, x, y, w, h, r, tint(strength));
-		roundOutline(g, x, y, w, h, r, solid() ? 0x40FFFFFF : 0x38FFFFFF);
-		g.fill(x + r, y + 1, x + w - r, y + 2, solid() ? 0x18FFFFFF : 0x30FFFFFF);   // inset top highlight
+		roundFill(g, x, y, w, h, r, theme().panelFill());
+		roundOutline(g, x, y, w, h, r, theme().panelBorder());
 	}
 
 	/** A raised row or button. {@code hot} brightens the border and fill (no hue change). */
 	public static void card(Gfx g, int x, int y, int w, int h, int r, float hot) {
-		int fill = solid() ? argb(Math.round(235 + 0), 0x24 + Math.round(12 * hot), 0x27 + Math.round(12 * hot), 0x30 + Math.round(12 * hot))
-				: argb(Math.round(255 * (0.045f + 0.075f * hot)), 255, 255, 255);
-		roundFill(g, x, y, w, h, r, fill);
-		roundOutline(g, x, y, w, h, r, argb(Math.round(255 * (0.09f + 0.20f * hot)), 255, 255, 255));
+		dev.luminos.client.core.Theme t = theme();
+		roundFill(g, x, y, w, h, r, lerp(0xFF000000 | t.surface2, 0xFF000000 | t.line, Math.max(0f, Math.min(1f, hot * 0.6f))));
+		roundOutline(g, x, y, w, h, r, hot > 0.5f ? (0xFF000000 | t.accent) : t.line | 0xFF000000);
 	}
 
 	// ---------------------------------------------------------------- text

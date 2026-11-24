@@ -17,7 +17,7 @@ export const SEED = {
   ] as Inst[],
   audit: {
     ok: true, checked: 31,
-    replaced: ["Sodium 0.9.4-beta.1 → 0.9.3 (stable)", "Luminos Client 0.2.0 → 0.3.0 (built for Minecraft 26.3)"],
+    replaced: ["Sodium 0.9.4-beta.1 → 0.9.3 (stable)", "Luminos Client 0.2.0 → 0.3.0 (for Minecraft 26.3)"],
     dropped: [{ name: "Iris Shaders", reason: "Only beta builds exist for Minecraft 26.3. Turn on “Allow beta mods” to use them." }],
     notes: ["Using Sodium 0.9.3 so Sodium Extra and Reese's Sodium Options can load."],
   } as AuditReport,
@@ -29,8 +29,8 @@ export const SEED = {
   playtime: { total: 339000, week: 21600, streak: 5, daily: [["Mon", 3200], ["Tue", 0], ["Wed", 5400], ["Thu", 1800], ["Fri", 7200], ["Sat", 9800], ["Sun", 4300], ["Mon", 2600], ["Tue", 4100], ["Wed", 0], ["Thu", 6100], ["Fri", 3900], ["Sat", 8700], ["Sun", 5200]] as [string, number][] },
   mods: [
     { slug: "sodium", title: "Sodium", author: "jellysquid3", desc: "The fastest rendering engine for Minecraft, with big FPS gains.", downloads: 112000000, cat: "Performance", ver: "0.9.3", hue: 150 },
-    { slug: "lithium", title: "Lithium", author: "jellysquid3", desc: "Game logic, physics and AI optimisations without changing behaviour.", downloads: 84000000, cat: "Performance", ver: "0.21.2", hue: 120 },
-    { slug: "iris", title: "Iris Shaders", author: "coderbot", desc: "Shader pack support built for Sodium.", downloads: 61000000, cat: "Visuals", ver: "1.10.0-beta.2", beta: true, hue: 280 },
+    { slug: "lithium", title: "Lithium", author: "jellysquid3", desc: "Faster game logic and mob pathing. Behaviour is unchanged.", downloads: 84000000, cat: "Performance", ver: "0.21.2", hue: 120 },
+    { slug: "iris", title: "Iris Shaders", author: "coderbot", desc: "Shader packs for Sodium.", downloads: 61000000, cat: "Visuals", ver: "1.10.0-beta.2", beta: true, hue: 280 },
     { slug: "resourcify", title: "Resourcify", author: "DeDiamondPro", desc: "Browse and install resource packs, shaders and data packs from inside the game.", downloads: 3200000, cat: "Utility", ver: "1.8.1", hue: 205, builtin: true },
     { slug: "zoomify", title: "Zoomify", author: "isXander", desc: "Smooth, fully configurable zoom with scroll to adjust.", downloads: 9100000, cat: "Utility", ver: "2.15.0", hue: 40 },
     { slug: "entityculling", title: "Entity Culling", author: "tr7zw", desc: "Skips rendering entities you cannot see.", downloads: 47000000, cat: "Performance", ver: "1.9.1", hue: 12 },

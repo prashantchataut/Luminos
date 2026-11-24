@@ -53,10 +53,10 @@ public final class Config {
 	/** DEFAULT, DEUTERANOPIA, PROTANOPIA, TRITANOPIA or HIGH_CONTRAST; recolours status text in the quick panel. */
 	public String colorblind = "DEFAULT";
 
-	/** Liquid-glass material: 0 = flat and dark, 100 = clearest glass with the strongest blur. */
-	public int glassIntensity = 70;
-	/** Opaque panels: no blur, no translucency. For low-end GPUs and for anyone who finds glass hard to read. */
-	public boolean solidPanels = false;
+	/** Unused since v0.9.1: the glass material was removed. Kept so old config files still load. */
+	public int glassIntensity = 0;
+	/** Unused since v0.9.1: panels are always solid. */
+	public boolean solidPanels = true;
 	/** Snap springs and fades instead of animating them. */
 	public boolean reduceMotion = false;
 	/** Row density: false = Compact (24 px rows, default), true = Comfortable (30 px). */
@@ -130,5 +130,25 @@ public final class Config {
 
 	public void resetLayout() {
 		modules.clear();
+	}
+
+	// ---- settings written by the launcher (Client and Settings pages): luminos-client-settings.json ----
+	private static dev.luminos.client.core.ClientFile launcherFile = new dev.luminos.client.core.ClientFile();
+	private static long launcherStamp = -1, launcherChecked;
+	private static Path settingsPath() {
+		String o = System.getProperty("luminos.settings");
+		return o != null ? Path.of(o) : FabricLoader.getInstance().getConfigDir().resolve("luminos-client-settings.json");
+	}
+	/** The launcher's settings, re-read when the file changes (checked at most once a second). */
+	public static synchronized dev.luminos.client.core.ClientFile launcher() {
+		long now = System.nanoTime();
+		if (now - launcherChecked < 1_000_000_000L && launcherStamp != -1) return launcherFile;
+		launcherChecked = now;
+		try {
+			Path p = settingsPath();
+			long m = Files.exists(p) ? Files.getLastModifiedTime(p).toMillis() : 0;
+			if (m != launcherStamp) { launcherFile = m == 0 ? new dev.luminos.client.core.ClientFile() : dev.luminos.client.core.ClientFile.parse(Files.readString(p)); launcherStamp = m; }
+		} catch (IOException | RuntimeException e) { launcherStamp = 0; }
+		return launcherFile;
 	}
 }

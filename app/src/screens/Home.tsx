@@ -28,11 +28,11 @@ export function LaunchButton({ inst, big = true }: { inst: string; big?: boolean
   useEffect(() => () => clearInterval(timer.current), []);
   const run = phase === "run";
   return (
-    <button onClick={start} aria-live="polite" className="relative overflow-hidden lift" style={{ height: big ? 44 : 32, minWidth: big ? 220 : 120, borderRadius: 12, padding: "0 18px", background: run ? "rgba(127,224,176,.16)" : "var(--color-accent)", color: run ? "var(--color-ok)" : "#04102e", border: run ? "1px solid rgba(127,224,176,.5)" : "1px solid transparent", transition: "background 300ms, color 300ms, min-width 420ms var(--ease-spring)" }}>
-      {(phase === "prepare" || phase === "start") && <span className="absolute inset-y-0 left-0" style={{ width: `${p * 100}%`, background: "rgba(255,255,255,.35)", transition: "width 160ms linear" }} />}
+    <button onClick={start} aria-live="polite" className="relative overflow-hidden lift" style={{ height: big ? 44 : 32, minWidth: big ? 220 : 120, borderRadius: 12, padding: "0 18px", background: run ? "color-mix(in srgb, var(--color-ok) 16%, transparent)" : "var(--color-accent)", color: run ? "var(--color-ok)" : "var(--accent-ink)", border: run ? "1px solid color-mix(in srgb, var(--color-ok) 50%, transparent)" : "1px solid transparent", transition: "background 300ms, color 300ms, min-width 420ms var(--ease-spring)" }}>
+      {(phase === "prepare" || phase === "start") && <span className="absolute inset-y-0 left-0" style={{ width: `${p * 100}%`, background: "color-mix(in srgb, var(--color-fg) 35%, transparent)", transition: "width 160ms linear" }} />}
       <span className="relative flex items-center justify-center gap-2 font-semibold t3">
         {phase === "idle" && <Icon n="play" s={16} />}
-        {(phase === "prepare" || phase === "start") && <span className="h-3.5 w-3.5 rounded-full border-2 border-[#04102e]/30 border-t-[#04102e]" style={{ animation: "spin .8s linear infinite" }} />}
+        {(phase === "prepare" || phase === "start") && <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--accent-ink)]/30 border-t-[var(--accent-ink)]" style={{ animation: "spin .8s linear infinite" }} />}
         {run && <Icon n="stop" s={14} />}
         {LABEL[phase]}{run && <span className="num t2 font-medium">{String(Math.floor(sec / 60)).padStart(2, "0")}:{String(sec % 60).padStart(2, "0")}</span>}
       </span>
@@ -50,9 +50,9 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   return (
     <div className="flex flex-col gap-3 max-w-[1180px]">
       {/* hero */}
-      <div className="glass overflow-hidden relative" style={{ height: 212 }}>
+      <div className="panel overflow-hidden relative" style={{ height: 212 }}>
         <div className="absolute inset-0"><Cover version={last.mc} /></div>
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(2,4,13,.9) 0%, rgba(2,4,13,.62) 48%, rgba(2,4,13,.1) 100%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--inset) 90%, transparent) 0%, color-mix(in srgb, var(--inset) 62%, transparent) 48%, color-mix(in srgb, var(--inset) 10%, transparent) 100%)" }} />
         <div className="relative h-full p-5 flex flex-col justify-between">
           <div>
             <div className="eyebrow mb-1.5">Continue playing</div>
@@ -69,23 +69,23 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
             </div>
           </div>
         </div>
-        <div className="absolute right-8 top-3 flex flex-col items-center"><SkinThumb src="/library/skins/vanguard.png" scale={4} className="drop-shadow-[0_10px_16px_rgba(0,0,0,.5)]" /></div>
+        <div className="absolute right-8 top-3 flex flex-col items-center"><SkinThumb src="/skins/luminos-default.png" scale={4} className="drop-shadow-[0_10px_16px_color-mix(in srgb, var(--inset) 50%, transparent)]" /></div>
       </div>
 
       {/* quick play */}
       <div className="grid grid-cols-3 gap-3 stagger">
-        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("servers")}>
+        <button className="panel lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("servers")}>
           <img src={QUICK.server.icon} alt="" className="w-10 h-10 rounded-lg skin-px" />
           <span className="min-w-0 flex-1"><span className="eyebrow block">Last server</span><span className="t2 font-medium block truncate">{QUICK.server.name}</span><span className="t1 mute block truncate num">{QUICK.server.online.toLocaleString()} online · {QUICK.server.ago}</span></span>
           <span className="ibtn"><Icon n="play" s={14} /></span>
         </button>
-        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("instances")}>
+        <button className="panel lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("instances")}>
           <span className="w-10 h-10 rounded-lg overflow-hidden shrink-0"><Cover version="26.3" /></span>
           <span className="min-w-0 flex-1"><span className="eyebrow block">Last world</span><span className="t2 font-medium block truncate">{QUICK.world.name}</span><span className="t1 mute block truncate">{QUICK.world.mode} · {QUICK.world.ago}</span></span>
           <span className="ibtn"><Icon n="play" s={14} /></span>
         </button>
-        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("library")}>
-          <span className="w-10 h-10 rounded-lg grid place-items-center shrink-0" style={{ background: "rgba(143,180,255,.16)" }}><Icon n="bolt" s={18} className="text-[var(--color-accent)]" /></span>
+        <button className="panel lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("library")}>
+          <span className="w-10 h-10 rounded-lg grid place-items-center shrink-0" style={{ background: "color-mix(in srgb, var(--color-accent) 16%, transparent)" }}><Icon n="bolt" s={18} className="text-[var(--color-accent)]" /></span>
           <span className="min-w-0 flex-1"><span className="eyebrow block">Last modpack</span><span className="t2 font-medium block truncate">{QUICK.pack.name}</span><span className="t1 mute block truncate">{QUICK.pack.detail}</span></span>
           <span className="ibtn"><Icon n="chev" s={14} /></span>
         </button>
@@ -96,7 +96,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           <div className="eyebrow mb-1.5 px-1">Recent instances</div>
           <div className="grid grid-cols-2 gap-3 stagger">
             {recent.map((i) => (
-              <button key={i.id} className="glass lift flex items-stretch overflow-hidden text-left" onClick={() => go("instances")} style={{ height: 76 }}>
+              <button key={i.id} className="panel lift flex items-stretch overflow-hidden text-left" onClick={() => go("instances")} style={{ height: 76 }}>
                 <span className="w-[112px] shrink-0 relative"><Cover version={i.mc} /></span>
                 <span className="min-w-0 flex-1 p-2.5 flex flex-col justify-between">
                   <span className="flex items-center gap-1.5"><span className="t2 font-semibold truncate">{i.name}</span></span>
@@ -109,7 +109,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
         </div>
         <div>
           <div className="eyebrow mb-1.5 px-1 flex justify-between"><span>News · Mojang patch notes</span></div>
-          <div className="glass p-1.5">
+          <div className="panel p-1.5">
             {news.slice(0, 5).map((n) => (
               <div key={n.version} className="lrow" title={n.text}>
                 <Badge tone={n.type === "release" ? "ok" : "warn"}>{n.type === "release" ? "Release" : "Snapshot"}</Badge>
@@ -123,13 +123,13 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
       <div className="grid gap-3" style={{ gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)" }}>
         <div>
           <div className="eyebrow mb-1.5 px-1 flex justify-between"><span>Playtime · last 14 days</span><span className="num normal-case tracking-normal">{fmtTime(SEED.playtime.week)} this week · {SEED.playtime.streak}-day streak</span></div>
-          <div className="glass p-3 flex items-end gap-1.5" style={{ height: 96 }}>
-            {SEED.playtime.daily.map(([d, v], i) => <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full" title={`${d}: ${fmtTime(v || 60)}`}><div className="w-full rounded-[3px]" style={{ height: `${Math.max(4, (v / 9800) * 100)}%`, background: i === 13 ? "var(--color-accent)" : "rgba(143,180,255,.38)", minHeight: 3 }} /><span className="t1 mute">{d[0]}</span></div>)}
+          <div className="panel p-3 flex items-end gap-1.5" style={{ height: 96 }}>
+            {SEED.playtime.daily.map(([d, v], i) => <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full" title={`${d}: ${fmtTime(v || 60)}`}><div className="w-full rounded-[3px]" style={{ height: `${Math.max(4, (v / 9800) * 100)}%`, background: i === 13 ? "var(--color-accent)" : "color-mix(in srgb, var(--color-accent) 38%, transparent)", minHeight: 3 }} /><span className="t1 mute">{d[0]}</span></div>)}
           </div>
         </div>
         <div>
           <div className="eyebrow mb-1.5 px-1">Luminos Performance</div>
-          <div className="glass p-1.5">
+          <div className="panel p-1.5">
             <div className="lrow"><Icon n="cpu" s={14} /><span className="t2 flex-1">Renderer</span><Badge tone="accent">{s.renderer === "sodium" ? "Sodium" : s.renderer === "vulkanmod" ? "VulkanMod" : "Nvidium"}</Badge></div>
             <div className="lrow"><Icon n="layers" s={14} /><span className="t2 flex-1">HUD at {s.hudFps} fps</span><Switch label="Throttle HUD" on={s.hudThrottle} onChange={(v) => set("hudThrottle", v)} /></div>
             <div className="lrow"><Icon n="mouse" s={14} /><span className="t2 flex-1">Per-frame input</span><Switch label="Sample input every frame" on={s.inputSampling} onChange={(v) => set("inputSampling", v)} /></div>
