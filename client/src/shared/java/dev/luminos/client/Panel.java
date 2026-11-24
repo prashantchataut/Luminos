@@ -412,7 +412,7 @@ public final class Panel {
 			hits.add(new Hit(sx + cw - 20, py - 3, 20, 14, () -> page = Math.min(pages - 1, page + 1)));
 		}
 		if (System.currentTimeMillis() - toastAt < 2200) g.text(fit(g, toast, cw - (pages > 1 ? 64 : 4)), sx + 4, py, a(ok()));
-		else g.text(query.length() > 0 ? rows.size() + " results across all tabs" : tab == Tab.MODULES ? "Right-click a module for options  -  Esc closes" : "Esc closes", sx + 4, py, a(DIM));
+		else g.text(query.length() > 0 ? rows.size() + " results across all tabs" : tab == Tab.MODULES ? "Right-click: options  -  Esc closes" : "Esc closes", sx + 4, py, a(DIM));
 		if (ctxId != null) drawContext(g);
 		g.pop();
 	}
