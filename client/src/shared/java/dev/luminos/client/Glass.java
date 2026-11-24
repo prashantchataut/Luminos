@@ -76,9 +76,13 @@ public final class Glass {
 		return alpha(0xFFFFFFFF, (0.18f - 0.10f * intensity()) * strength);
 	}
 
-	/** Full-screen dim behind a panel. Darker when the glass is clearer so text keeps its contrast. */
+	/**
+	 * Full-screen dim behind a panel. Legibility is the floor: at 0% there is no blur pass, so the dim is darkest (0.64); with the blur
+	 * at full strength it settles at 0.50. Measured round 5: at the old 0.34 a busy world showed straight through the labels.
+	 */
 	public static int scrim() {
-		return solid() ? 0xB8070809 : alpha(0xFF050608, 0.34f + 0.16f * intensity());
+		float flat = 1f - intensity();
+		return solid() ? 0xB8070809 : alpha(0xFF050608, 0.50f + 0.14f * flat * flat);
 	}
 
 	// ---------------------------------------------------------------- shapes
