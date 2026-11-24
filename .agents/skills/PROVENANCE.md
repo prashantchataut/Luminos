@@ -21,3 +21,17 @@ Not browsed: skills.sh, skill-issue.in, open-design.ai (not fetched this session
 Session 12: browsed open-design.ai/skills (407 entries) and picked the web/React design, motion and a11y entries above.
 Anthropic frontend-design / webapp-testing / theme-factory and vercel web-design-guidelines were already installed (session 11).
 "UI Hall design skills": searched GitHub and the web again in session 12 -- still no public skills repo by that name. NOT installed; not claimed.
+| uihall | github.com/NikitHamal/UiHall @ad8aa4e (skills/uihall only; the 142 MB gallery, MCP and screenshots pruned) | MIT |
+| rea-morluto | github.com/morluto/rea (already present from session 12; an MCP server, not a SKILL.md) | see repo LICENSE |
+
+Session 13: UI Hall **does** exist (github.com/NikitHamal/UiHall); the session 12 note above saying it was not found was wrong. Installed now.
+Not installed this session despite the brief: any additional game-UI / animation / accessibility skills beyond those listed (emil-kowalski-skills, ibelick-ui-skills incl. fixing-accessibility, reanimate). skills.sh was not browsed.
+
+Session 14 (client UI overhaul):
+| liquid-glass | github.com/fengshao1227/ccg-workflow @main, templates/skills/domains/frontend-design/liquid-glass/SKILL.md | MIT (per SKILL.md front matter) |
+| game-ui-ux | github.com/gamedev-skills/awesome-gamedev-agent-skills @c6ca6c4, skills/disciplines/game-ui-ux | see repo |
+| game-ui-design | github.com/omer-metin/skills-for-antigravity @e8dcf4e, skills/game-ui-design | Apache-2.0 (per catalog) |
+| icon-system | github.com/Owl-Listener/designer-skills @9a6930c, design-systems/skills/icon-system | see repo |
+Not installed: `icon-designer` (eddiebe147/claude-settings): the repository could not be cloned anonymously, so it was skipped rather than faked.
+Already present and used again: taste-skill, ui-ux-pro-max, uihall, reanimate, rea (+ rea-morluto), emil-kowalski-skills (animate / review-animations: the motion skills).
+skills.sh was browsed through search only (its catalogue is client-rendered); open-design.ai/skills was read in full (407 entries).

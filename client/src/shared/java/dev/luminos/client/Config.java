@@ -42,8 +42,29 @@ public final class Config {
 	public String activeProfile = "default";
 	public String cosmeticSkin = "";
 	public String cosmeticCape = "";
-	public int crosshairColor = 0xFF4F8CFF;
+	public int crosshairColor = 0xFFF2F4F8;
 	public long playtimeMs = 0;
+	/** Module ids pinned to the top of the quick panel. */
+	public java.util.List<String> favourites = new java.util.ArrayList<>();
+	/** Saved panel order of module ids; unlisted modules follow in default order. */
+	public java.util.List<String> moduleOrder = new java.util.ArrayList<>();
+	/** Waypoints as {@code name|x|y|z|dimension|rrggbb}; see core.Waypoint. */
+	public java.util.List<String> waypoints = new java.util.ArrayList<>();
+	/** DEFAULT, DEUTERANOPIA, PROTANOPIA, TRITANOPIA or HIGH_CONTRAST; recolours status text in the quick panel. */
+	public String colorblind = "DEFAULT";
+
+	/** Liquid-glass material: 0 = flat and dark, 100 = clearest glass with the strongest blur. */
+	public int glassIntensity = 70;
+	/** Opaque panels: no blur, no translucency. For low-end GPUs and for anyone who finds glass hard to read. */
+	public boolean solidPanels = false;
+	/** Snap springs and fades instead of animating them. */
+	public boolean reduceMotion = false;
+	/** minimal | competitive | full | custom. Minimal is the default: FPS, CPS, ping, armor and potions only. */
+	public String hudPreset = "minimal";
+	/** Developer tools (startup profile card). Off for players. */
+	public boolean devTools = false;
+	/** Free-form numeric options, key = {@code moduleId.option}; booleans are stored as 0 or 1. */
+	public Map<String, Float> opt = new LinkedHashMap<>();
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static Config instance = new Config();
@@ -83,6 +104,23 @@ public final class Config {
 			LuminosClient.LOGGER.warn("Could not save config", e);
 		}
 	}
+
+	public static boolean flag(String key, boolean def) {
+		Float v = instance.opt == null ? null : instance.opt.get(key);
+		return v == null ? def : v >= 0.5f;
+	}
+
+	public static float num(String key, float def) {
+		Float v = instance.opt == null ? null : instance.opt.get(key);
+		return v == null ? def : v;
+	}
+
+	public static void setNum(String key, float v) {
+		if (instance.opt == null) instance.opt = new LinkedHashMap<>();
+		instance.opt.put(key, v);
+	}
+
+	public static void setFlag(String key, boolean v) { setNum(key, v ? 1f : 0f); }
 
 	public ModuleCfg of(HudModule m) {
 		return modules.computeIfAbsent(m.id(), k -> new ModuleCfg(m.enabledByDefault(), m.defaultX(), m.defaultY()));

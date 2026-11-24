@@ -22,7 +22,7 @@ public final class TitleView {
 	private final long born = System.currentTimeMillis();
 	private long frozen = -1;
 	private final String splash = SPLASHES[(int) ((System.currentTimeMillis() / 86400000L) % SPLASHES.length)];
-	private int ix, iy, iw = 176, ih = 18, pitch = 21;
+	private int ix, iy, iw = 150, ih = 18, pitch = 21;
 
 	public TitleView(Screen self, Minecraft mc) {
 		this.self = self;
@@ -35,43 +35,41 @@ public final class TitleView {
 	}
 
 	public void render(Gfx g, Minecraft mc, int mx, int my) {
+		Anim.frame();
 		long now = System.currentTimeMillis();
 		if (!Nav.windowActive(mc)) { if (frozen < 0) frozen = now; } else frozen = -1;
 		long t = (frozen >= 0 ? frozen : now) - born;
 		TitleArt.draw(g, t);
 		int w = g.width(), h = g.height();
-		ix = Math.max(24, w / 11);
-		// compact layouts first: a 240 px tall GUI (854x480 at scale 2) must still show all six items, the instance line and the footer
-		iy = Math.max(58, Math.min(h / 2 - 8, h - 40 - items.size() * pitch - 36));
-		int logoScale = h < 300 ? 2 : 3;
-		float fade = Math.min(1f, (now - born) / 350f);
-		// logo
-		g.push(ix, Math.max(8, iy - (logoScale * 8 + 22)), (float) logoScale);
-		g.text("Luminos", 0, 0, 0xFFE8EEFF);
-		g.pop();
-		g.fill(ix, iy - 22, ix + 46, iy - 20, 0xFF4F8CFF);
-		g.text(splash, ix, iy - 15, 0xFFFFD866);
-		for (int i = 0; i < items.size(); i++) {
+		// a glass column holds the menu so it stays readable over the moving sky
+		int colW = iw + 28, rows = items.size();
+		ix = Math.max(26, w / 11);
+		iy = Math.max(62, Math.min(h / 2 - 4, h - 40 - rows * pitch - 40));
+		int colX = ix - 14, colY = iy - 52, colH = 52 + rows * pitch + 38;
+		float fade = Math.max(0f, Math.min(1f, Anim.spring("title.in", 1f)));
+		colX -= Math.round((1f - fade) * 16);
+		Glass.surface(g, colX, colY, colW, colH, 9, 1f);
+		int lx = colX + 14;
+		Glass.text(g, "Luminos", lx, colY + 10, Glass.TITLE * 1.34f, Glass.INK);
+		Glass.text(g, splash, lx, colY + 34, Glass.LABEL, Glass.INK3);
+		for (int i = 0; i < rows; i++) {
 			int y = iy + i * pitch;
-			boolean hot = mx >= ix && mx < ix + iw && my >= y && my < y + ih;
+			boolean hot = mx >= lx && mx < lx + iw && my >= y && my < y + ih;
 			if (hot) focus = i;
 			boolean f = focus == i;
-			g.fill(ix, y, ix + iw, y + ih, f ? 0xDD2C4F9C : 0xAA080D28);
-			g.fill(ix, y, ix + 2, y + ih, f ? 0xFF9CC2FF : 0xFF2B4488);
-			g.outline(ix, y, iw, ih, f ? 0xFF6F9CFF : 0x44FFFFFF);
-			g.text(items.get(i).label, ix + 12, y + 5, f ? 0xFFFFFFFF : 0xFFC8D4F5);
+			float k = Anim.soft("title." + i, f ? 1f : 0f);
+			Glass.card(g, lx, y, iw, ih, 5, k);
+			g.text(items.get(i).label, lx + 10, y + 5, f ? Glass.INK : Glass.INK2);
+			Icons.draw(g, "chevron_r", lx + iw - 14 + Math.round(2 * k), y + 5, f ? Glass.INK : Glass.INK3);
 		}
 		String inst = System.getenv("LUMINOS_INSTANCE") != null ? System.getenv("LUMINOS_INSTANCE") : "Default";
-		String info = inst + "  -  Minecraft " + Nav.version(mc);
-		g.text(info, ix, iy + items.size() * pitch + 4, 0xFFB4C4F0);
-		g.text("Right Ctrl: quick panel in game", ix, iy + items.size() * pitch + 15, 0xFF8FA4DE);
+		Glass.text(g, inst + "  -  Minecraft " + Nav.version(mc), lx, iy + rows * pitch + 4, Glass.LABEL, Glass.INK3);
+		Glass.text(g, "Right Ctrl opens the quick panel in game", lx, iy + rows * pitch + 14, Glass.LABEL, Glass.INK3);
 		String use = "Use vanilla title screen";
-		int uw = g.textWidth(use);
-		boolean uh = mx >= 8 && mx < 8 + uw && my >= h - 16 && my < h - 4;
-		g.text(use, 8, h - 14, uh ? 0xFFFFFFFF : 0xFF8FA4DE);
+		boolean uh = mx >= 8 && mx < 8 + Glass.width(g, use, Glass.LABEL) && my >= h - 16 && my < h - 4;
+		Glass.text(g, use, 8, h - 13, Glass.LABEL, uh ? Glass.INK : Glass.INK2);
 		String v = "Luminos Client " + LuminosClient.VERSION;
-		g.text(v, w - g.textWidth(v) - 8, h - 14, 0xFF8FA4DE);
-		if (fade < 1f) g.fill(0, 0, w, h, ((int) ((1f - fade) * 255) << 24) | 0x040716);
+		Glass.text(g, v, w - Glass.width(g, v, Glass.LABEL) - 8, h - 13, Glass.LABEL, Glass.INK2);
 	}
 
 	public boolean click(Minecraft mc, double mx, double my, int button) {

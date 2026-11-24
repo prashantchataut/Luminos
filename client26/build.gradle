@@ -18,6 +18,10 @@ sourceSets {
 	}
 }
 
+loom {
+	accessWidenerPath = file('src/main/resources/luminos26.accesswidener')
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -28,7 +32,9 @@ processResources {
 	inputs.property "version", project.mod_version
 	inputs.property "minecraft_range", project.minecraft_range
 	inputs.property "java_min", "25"
+	exclude "luminos.accesswidener"   // the 1.21 file uses the named namespace; this line uses luminos26.accesswidener (official)
 	filesMatching("fabric.mod.json") {
+		filter { it.replace("luminos.accesswidener", "luminos26.accesswidener") }
 		expand "version": project.mod_version, "minecraft_range": project.minecraft_range, "java_min": "25"
 	}
 }
