@@ -263,3 +263,10 @@ Handover: `docs/START_HERE.md` (VERIFIED / UNVERIFIED / NOT DONE). Teardown: `do
 - Built: quick panel (Right Ctrl, Right Shift = search), Luminos title screen, 8 new HUD modules, snapping editor, profiles, compliance mode, `sync.rs`, signing step + `docs/SIGNING.md`.
 - Fixed: CI capture (Xauthority), title/panel layout bugs found from real captures.
 - Lesson: llvmpipe frames lag the game by seconds; hold the scene and wait before `import`.
+
+## Session 13: client foundation (PR #13, no release)
+Handover: `docs/START_HERE.md`. Evidence: `docs/client-shots/README.md` (feature table, manual tests, anti-slop result).
+- Built: `client/.../core/` (ShareCode, ModuleSearch, CrashAssistant, LogTail, Waypoint, ColorblindPalette, FrameStats, BenchReport) with `client/tests/CoreTests.java` (106 assertions, run in `client.yml`); panel search ranking, favourites, right-click menu, Move up/down, share-code rows, Waypoints tab, Support tab, colour-blind row; `ToolModules` (PerfOverlay, WaypointsHud), `WaypointStore`; smoke tour captures the new screens.
+- Verified: CI builds on 26.3 and 1.21.11; smoke passes; screenshots viewed and three defects fixed from them.
+- Not verified: everything listed under COMPILED in START_HERE. Not built: most of the brief (see START_HERE).
+- Gotcha: put dependency-free tests in `client/tests`, not `client/src/test`, or Gradle's `:test` fails the 1.21.x build (no framework).
