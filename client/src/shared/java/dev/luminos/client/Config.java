@@ -59,6 +59,8 @@ public final class Config {
 	public boolean solidPanels = false;
 	/** Snap springs and fades instead of animating them. */
 	public boolean reduceMotion = false;
+	/** Row density: false = Compact (24 px rows, default), true = Comfortable (30 px). */
+	public boolean comfortable = false;
 	/** minimal | competitive | full | custom. Minimal is the default: FPS, CPS, ping, armor and potions only. */
 	public String hudPreset = "minimal";
 	/** Developer tools (startup profile card). Off for players. */

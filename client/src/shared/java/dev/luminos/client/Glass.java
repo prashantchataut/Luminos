@@ -167,6 +167,22 @@ public final class Glass {
 		return t + "..";
 	}
 
+	/** Word-wraps {@code t} to at most {@code maxLines} lines of {@code max} pixels; the last line is ellipsised only if the text still does not fit. */
+	public static java.util.List<String> wrap(Gfx g, String t, float scale, int max, int maxLines) {
+		java.util.List<String> out = new java.util.ArrayList<>();
+		String rest = t.trim();
+		while (!rest.isEmpty() && out.size() < maxLines) {
+			if (out.size() == maxLines - 1 || width(g, rest, scale) <= max) { out.add(fit(g, rest, scale, max)); break; }
+			int cut = rest.length();
+			while (cut > 1 && width(g, rest.substring(0, cut), scale) > max) cut--;
+			int sp = rest.lastIndexOf(' ', cut);
+			if (sp > 0 && cut < rest.length()) cut = sp;
+			out.add(rest.substring(0, cut).trim());
+			rest = rest.substring(cut).trim();
+		}
+		return out;
+	}
+
 	// ---------------------------------------------------------------- controls
 	/** 18x10 switch. {@code t} is 0..1 and may overshoot slightly (spring). */
 	public static void toggle(Gfx g, int x, int y, float t, boolean enabled) {

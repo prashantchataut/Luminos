@@ -25,7 +25,7 @@ sleep 2
 export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460 vblank_mode=0
 export LUMINOS_SMOKE=1 LUMINOS_SMOKE_ACK_DIR="$OUT" JAVA_TOOL_OPTIONS="-Xmx1000m"
 : > "$OUT/run.log"; : > "$OUT/capture.log"
-( for shot in title panel panel-all panel-search panel-popover panel-appearance panel-solid panel-hud panel-performance panel-cosmetics panel-keybinds panel-waypoints panel-support hud-editor hud-editor-full; do
+( for shot in $(cat "$ROOT/scripts/client-shots.txt"); do
     if timeout 1500 bash -c "until grep -q '\[luminos\] shot $shot\$' '$OUT/run.log'; do sleep 0.5; done"; then
       sleep 7
       import -display :99 -window root "$ROOT/docs/client-shots/rounds/$shot-$ROUND.png" 2>> "$OUT/capture.log" && echo "captured $shot" >> "$OUT/capture.log" || echo "capture $shot FAILED" >> "$OUT/capture.log"

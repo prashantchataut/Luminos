@@ -34,6 +34,7 @@ public final class Hud {
 	/** On-screen bounds of a module as {x, y, w, h}, scale applied. */
 	public static int[] bounds(Minecraft mc, HudModule m, Config.ModuleCfg c) {
 		int w = (int) (m.width(mc) * c.scale), h = (int) (m.height(mc) * c.scale);
+		if (!c.enabled) { w = Math.min(w, (int) (12 + (m.title().length() + 6) * 3.4)); h = Math.min(h, 14); }   // off modules are a label chip in the editor, not a ghost of their full size
 		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
 		return new int[]{m.centered() ? (sw - w) / 2 : px(sw, w, c), m.centered() ? (sh - h) / 2 : py(sh, h, c), w, h};
 	}

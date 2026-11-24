@@ -42,10 +42,12 @@ public final class Panel {
 
 	/** One list row. {@code id} set = a Feature (right-click opens its popover). {@code painter} set = custom card of height {@code h}. */
 	record Row(String title, String sub, String badge, boolean active, String reason, Runnable act, String id, int swatch, String icon, Painter painter, int h) {
-		Row(String title, String sub, String badge, boolean active, String reason, Runnable act) { this(title, sub, badge, active, reason, act, null, 0, null, null, 24); }
-		Row(String title, String sub, String badge, boolean active, String reason, Runnable act, String icon) { this(title, sub, badge, active, reason, act, null, 0, icon, null, 24); }
-		Row(String title, String sub, String badge, boolean active, String reason, Runnable act, String id, int swatch) { this(title, sub, badge, active, reason, act, id, swatch, null, null, 24); }
-		static Row card(String title, int h, Painter p) { return new Row(title, "", "", true, null, null, null, 0, null, p, h); }
+		Row(String title, String sub, String badge, boolean active, String reason, Runnable act) { this(title, sub, badge, active, reason, act, null, 0, null, null, rowH()); }
+		Row(String title, String sub, String badge, boolean active, String reason, Runnable act, String icon) { this(title, sub, badge, active, reason, act, null, 0, icon, null, rowH()); }
+		Row(String title, String sub, String badge, boolean active, String reason, Runnable act, String id, int swatch) { this(title, sub, badge, active, reason, act, id, swatch, null, null, rowH()); }
+		/** Comfortable: 30 px rows, Compact (default): 24 px. Nothing else changes between the two. */
+	static int rowH() { return Config.get().comfortable ? 30 : 24; }
+	static Row card(String title, int h, Painter p) { return new Row(title, "", "", true, null, null, null, 0, null, p, h); }
 	}
 
 	private record Hit(int x, int y, int w, int h, Runnable r) {}
@@ -101,7 +103,7 @@ public final class Panel {
 	private Row featureRow(Feature f, Minecraft mc) {
 		String lock = f.lock == null ? null : f.lock.apply(mc);
 		boolean fav = Config.get().favourites.contains(f.id);
-		return new Row(f.name, lock != null ? lock : f.desc, lock != null ? "LOCKED" : yn(f.on()), f.on() && lock == null, lock, lock != null ? null : f::toggle, f.id, 0, f.icon, null, 24);
+		return new Row(f.name, lock != null ? lock : f.desc, lock != null ? "LOCKED" : yn(f.on()), f.on() && lock == null, lock, lock != null ? null : f::toggle, f.id, 0, f.icon, null, rowH());
 	}
 
 	private List<Row> rows(Tab t, Minecraft mc) {
@@ -181,12 +183,12 @@ public final class Panel {
 				r.add(new Row("Refresh", "Read crash-reports and latest.log again", "RELOAD", true, null, () -> supportLoaded = false, "reset"));
 			}
 			case PERFORMANCE -> {
-				r.add(Row.card("Why is my FPS low?", 44, (g, x, y, w, h) -> doctorCard(g, x, y, w, mc)));
-				r.add(Row.card("Click test", 62, (g, x, y, w, h) -> clickTest(g, x, y, w)));
+				r.add(Row.card("Why is my FPS low?", 56, (g, x, y, w, h) -> doctorCard(g, x, y, w, mc)));
+				r.add(Row.card("Click test", 70, (g, x, y, w, h) -> clickTest(g, x, y, w)));
 				String gpu = Probes.gpu();
 				boolean shaders = Probes.loaded("iris") || Probes.loaded("oculus");
 				for (RendererAdvisor.Rec rec : RendererAdvisor.advise(gpu, Probes.vulkanRuntime(), Probes.loaded("sodium"), Probes.loaded("vulkanmod"), Probes.loaded("nvidium"), shaders))
-					r.add(Row.card(rec.name(), 32, (g, x, y, w, h) -> rendererRow(g, x, y, w, rec)));
+					r.add(Row.card(rec.name(), 40, (g, x, y, w, h) -> rendererRow(g, x, y, w, rec)));
 				r.add(note("GPU: " + gpu + ". Luminos never installs a renderer by itself; change it in the launcher."));
 				r.add(Row.card("Performance mods", 34, (g, x, y, w, h) -> modChips(g, x, y, w)));
 				r.add(new Row("Compliance mode", "Auto turns advantage-capable modules off on listed servers", Compliance.label().toUpperCase(Locale.ROOT), true, null, Compliance::cycle, "lock"));
@@ -210,7 +212,7 @@ public final class Panel {
 		return r;
 	}
 
-	private static Row note(String text) { return Row.card(text, 20, null); }
+	private static Row note(String text) { return Row.card(text, 8 + 8 * Math.max(1, (text.length() + 55) / 56), null); }
 
 	// ------------------------------------------------------------------ custom cards
 	private void presetChips(Gfx g, int x, int y, int w) {
@@ -234,24 +236,26 @@ public final class Panel {
 		FpsDoctor.Advice a = Probes.advice(mc, avg, sum.p99Ms());
 		Icons.draw(g, "bolt", x + 8, y + 7, "ok".equals(a.id()) ? Glass.OK : Glass.WARN);
 		g.text("Why is my FPS low?", x + 22, y + 5, Glass.INK);
-		Glass.text(g, Glass.fit(g, a.change(), 1f, w - 30), x + 22, y + 17, 1f, "ok".equals(a.id()) ? Glass.INK2 : Glass.WARN);
-		Glass.text(g, Glass.fit(g, a.why(), Glass.LABEL, (w - 30)), x + 22, y + 30, Glass.LABEL, Glass.INK3);
+		int ly = y + 16;
+		for (String line : Glass.wrap(g, a.change(), 1f, w - 30, 2)) { Glass.text(g, line, x + 22, ly, 1f, "ok".equals(a.id()) ? Glass.INK2 : Glass.WARN); ly += 9; }
+		for (String line : Glass.wrap(g, a.why(), Glass.LABEL, w - 30, 2)) { Glass.text(g, line, x + 22, ly + 2, Glass.LABEL, Glass.INK3); ly += 8; }
 	}
 
 	private void clickTest(Gfx g, int x, int y, int w) {
 		ClickStats st = InputSampler.stats();
 		long now = System.nanoTime();
 		st.onFrame(now);
-		boolean hot = inside(x, y, w, 62);
+		boolean hot = inside(x, y, w, 70);
 		Icons.draw(g, "pointer", x + 8, y + 7, Glass.INK);
 		g.text("Click test", x + 22, y + 5, Glass.INK);
-		Glass.text(g, Glass.fit(g, "Click this card as fast as you can. Vanilla merges presses inside one 50 ms tick.", Glass.LABEL, (w - 30)), x + 22, y + 16, Glass.LABEL, Glass.INK3);
-		int cw = (w - 24) / 3, by = y + 30;
+		int cy = y + 16;
+		for (String line : Glass.wrap(g, "Click this card as fast as you can. Vanilla merges presses that land inside one 50 ms tick; Luminos counts each one.", Glass.LABEL, w - 30, 2)) { Glass.text(g, line, x + 22, cy, Glass.LABEL, Glass.INK3); cy += 8; }
+		int cw = (w - 24) / 3, by = y + 38;
 		stat(g, x + 8, by, "Raw input", st.rawPerSecond(now) + "/s", Glass.INK);
 		stat(g, x + 8 + cw, by, "Vanilla tick", st.tickPerSecond(now) + "/s", Glass.INK2);
-		stat(g, x + 8 + cw * 2, by, "Waits before acting", st.samples() == 0 ? "-" : String.format(Locale.ROOT, "%.0f ms tick, %.0f ms frame", st.avgTickWaitMs(), st.avgFrameWaitMs()), Glass.OK);
-		addHit(x, y, w, 62, () -> st.press(System.nanoTime()));
-		if (hot) Glass.roundOutline(g, x, y, w, 62, 4, 0x30FFFFFF);
+		stat(g, x + 8 + cw * 2, by, "Wait tick / frame", st.samples() == 0 ? "-" : String.format(Locale.ROOT, "%.0f / %.0f ms", st.avgTickWaitMs(), st.avgFrameWaitMs()), Glass.OK);
+		addHit(x, y, w, 70, () -> st.press(System.nanoTime()));
+		if (hot) Glass.roundOutline(g, x, y, w, 70, 4, 0x30FFFFFF);
 	}
 
 	private void stat(Gfx g, int x, int y, String label, String value, int color) {
@@ -267,7 +271,8 @@ public final class Panel {
 		int cwid = Glass.width(g, chip, Glass.LABEL) + 8;
 		Glass.roundOutline(g, x + w - cwid - 8, y + 4, cwid, 11, 5, Glass.alpha(col, 0.7f));
 		Glass.text(g, chip, x + w - cwid - 4, y + 7, Glass.LABEL, col);
-		Glass.text(g, Glass.fit(g, rec.oneLine(), Glass.LABEL, (w - 30)), x + 22, y + 18, Glass.LABEL, Glass.INK3);
+		int ry = y + 17;
+		for (String line : Glass.wrap(g, rec.oneLine(), Glass.LABEL, w - 30, 2)) { Glass.text(g, line, x + 22, ry, Glass.LABEL, Glass.INK3); ry += 8; }
 	}
 
 	private void modChips(Gfx g, int x, int y, int w) {
@@ -312,6 +317,8 @@ public final class Panel {
 	public void smokeSearch(String q) { query.setLength(0); query.append(q); searchFocus = true; scrollTarget = 0; }
 
 	public void smokeContext(String featureId) { popId = featureId; popX = 150; popY = 60; }
+
+	public void smokeScroll(int px) { scrollTarget = px; Anim.snap("scroll", px); }
 
 	public void smokeOpenAll() { for (Feature.Group g : ORDER) open.add(g.name()); }
 
@@ -531,15 +538,17 @@ public final class Panel {
 		boolean enabled = r.reason == null && r.act != null;
 		boolean hot = enabled && inside(x, y, w, h) && popId == null;
 		if (r.painter == null && r.act == null && r.id == null && r.icon == null && r.badge.isEmpty()) {   // a quiet note: no card
-			Glass.text(g, Glass.fit(g, r.title, Glass.LABEL, (w - 12)), x + 6, y + 6, Glass.LABEL, Glass.INK3);
+			int ny = y + 4;
+			for (String line : Glass.wrap(g, r.title, Glass.LABEL, w - 12, 3)) { Glass.text(g, line, x + 6, ny, Glass.LABEL, Glass.INK3); ny += 8; }
 			return;
 		}
 		float lift = Anim.soft("row." + (r.id != null ? r.id : r.title), hot ? 1f : 0f);
 		Glass.card(g, x, y, w, h, 5, lift);
 		if (r.painter != null) { r.painter.paint(g, x, y, w, h); return; }
 		boolean on = r.active && r.reason == null;
+		int dy = Math.max(0, (h - 24) / 2);
 		String icon = r.icon != null ? r.icon : "grid";
-		Icons.draw(g, icon, x + 8, y + 8, r.reason != null ? Glass.INK3 : on || r.badge.length() > 3 || r.act != null && !isSwitch(r) ? Glass.INK : Glass.INK3);
+		Icons.draw(g, icon, x + 8, y + 8 + dy, r.reason != null ? Glass.INK3 : on || r.badge.length() > 3 || r.act != null && !isSwitch(r) ? Glass.INK : Glass.INK3);
 		int right = x + w - 8;
 		if (isSwitch(r)) {
 			float t = Anim.spring("tg." + (r.id != null ? r.id : r.title), on ? 1f : 0f);
@@ -558,9 +567,9 @@ public final class Panel {
 		int tx = x + 22;
 		if (r.swatch != 0) { Glass.roundFill(g, x + 3, y + 5, 2, h - 10, 1, 0xFF000000 | r.swatch); }
 		int max = right - tx - 2;
-		Glass.text(g, Glass.fit(g, r.title, 1f, max), tx, y + 4, 1f, r.reason != null ? Glass.INK2 : on || r.act != null ? Glass.INK : Glass.INK2);
+		Glass.text(g, Glass.fit(g, r.title, 1f, max), tx, y + 4 + dy, 1f, r.reason != null ? Glass.INK2 : on || r.act != null ? Glass.INK : Glass.INK2);
 		String sub = r.reason != null ? r.reason : r.sub;
-		Glass.text(g, Glass.fit(g, sub, Glass.LABEL, max), tx, y + 15, Glass.LABEL, r.reason != null ? Glass.WARN : Glass.INK3);
+		Glass.text(g, Glass.fit(g, sub, Glass.LABEL, max), tx, y + 15 + dy, Glass.LABEL, r.reason != null ? Glass.WARN : Glass.INK3);
 		if (Config.get().favourites.contains(r.id)) Icons.draw(g, "star", right - 10, y + 7, Glass.WARN);
 		rowHits.add(new RowHit(x, Math.max(y, viewTop()), w, Math.min(y + h, viewBottom()) - Math.max(y, viewTop()), r));
 		if (enabled) addHit(x, y, w, h, () -> { r.act.run(); corpusAt = 0; });
