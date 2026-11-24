@@ -144,12 +144,26 @@ public final class Modules {
 		@Override public int defaultY() { return 80; }
 		public int width(Minecraft mc) { return opt("numbers", true) ? 52 : 26; }
 		public int height(Minecraft mc) { return 4 * 18 + 4; }
+		private static ItemStack[] armorSampleCache;
+
+		/** Editor/title-screen sample. Built once; on 26.x item components are not bound until a world is loaded, so a failure means "draw nothing yet", never a crash. */
+		private static ItemStack[] armorSample() {
+			if (armorSampleCache != null) return armorSampleCache;
+			try {
+				armorSampleCache = new ItemStack[]{new ItemStack(Items.DIAMOND_HELMET), new ItemStack(Items.DIAMOND_CHESTPLATE), new ItemStack(Items.IRON_LEGGINGS), new ItemStack(Items.NETHERITE_BOOTS)};
+				return armorSampleCache;
+			} catch (RuntimeException notBoundYet) {
+				return new ItemStack[]{ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
+			}
+		}
+
 		public void render(Gfx g, Minecraft mc, boolean preview) {
 			panel(g, width(mc), height(mc));
-			ItemStack[] sample = {new ItemStack(Items.DIAMOND_HELMET), new ItemStack(Items.DIAMOND_CHESTPLATE), new ItemStack(Items.IRON_LEGGINGS), new ItemStack(Items.NETHERITE_BOOTS)};
+			boolean sampleMode = mc.player == null || preview;
+			ItemStack[] sample = sampleMode ? armorSample() : null;
 			int[] dmg = {40, 120, 61, 8};
 			for (int i = 0; i < 4; i++) {
-				ItemStack st = (mc.player == null || preview) ? sample[i] : mc.player.getItemBySlot(SLOTS[i]);
+				ItemStack st = sampleMode ? sample[i] : mc.player.getItemBySlot(SLOTS[i]);
 				if (st == null || st.isEmpty()) continue;
 				if (preview || mc.player == null) st.setDamageValue(dmg[i]);
 				int y = 2 + i * 18;
@@ -554,12 +568,17 @@ public final class Modules {
 		@Override public boolean enabledByDefault() { return false; }
 		public int width(Minecraft mc) { return 9 * 18 + 6; }
 		public int height(Minecraft mc) { return 3 * 18 + 6; }
+		private static ItemStack invSample(int i) {
+			try { return i % 4 == 0 ? new ItemStack(Items.COBBLESTONE, 64) : i % 7 == 0 ? new ItemStack(Items.GOLDEN_APPLE, 3) : ItemStack.EMPTY; }
+			catch (RuntimeException notBoundYet) { return ItemStack.EMPTY; }   // 26.x: components are bound only once a world is loaded
+		}
+
 		public void render(Gfx g, Minecraft mc, boolean preview) {
 			panel(g, width(mc), height(mc));
 			for (int i = 0; i < 27; i++) {
 				int x = 3 + (i % 9) * 18, y = 3 + (i / 9) * 18;
 				Glass.roundFill(g, x, y, 17, 17, 2, 0x18FFFFFF);
-				ItemStack st = (preview || mc.player == null) ? (i % 4 == 0 ? new ItemStack(Items.COBBLESTONE, 64) : i % 7 == 0 ? new ItemStack(Items.GOLDEN_APPLE, 3) : ItemStack.EMPTY) : mc.player.getInventory().getItem(9 + i);
+				ItemStack st = (preview || mc.player == null) ? invSample(i) : mc.player.getInventory().getItem(9 + i);
 				if (st.isEmpty()) continue;
 				g.item(st, x + 1, y + 1);
 				g.itemDecorations(st, x + 1, y + 1);
