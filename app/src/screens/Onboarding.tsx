@@ -1,51 +1,67 @@
 import { useEffect, useState } from "react";
-import { Sky, Icon, Badge, Toggle } from "../ui";
+import { Badge, Icon, Sky, Switch, SkinThumb } from "../kit";
 import { call, isTauri } from "../api";
+
+type Dev = { state: "idle" | "asking" | "waiting" | "done" | "error"; code?: string; uri?: string; msg?: string; who?: string };
+
 export default function Onboarding({ step, setStep, done }: { step: number; setStep: (n: number) => void; done: (name: string) => void }) {
   const q = new URLSearchParams(location.search);
   const [name, setName] = useState(q.get("name") || ""); const [chk, setChk] = useState<any>(null); const [load, setLoad] = useState(false);
-  const [imp, setImp] = useState<Record<string, boolean>>({ prism: true, modrinth: true, official: false }); const [pre, setPre] = useState(true); const [prog, setProg] = useState(0);
+  const [imp, setImp] = useState<Record<string, boolean>>({ prism: true, modrinth: true, official: false }); const [pre, setPre] = useState(true); const [prog, setProg] = useState(0); const [err, setErr] = useState("");
+  const [dev, setDev] = useState<Dev>({ state: q.get("demo") === "device" ? "idle" : "idle" });
   useEffect(() => { if (!name) { setChk(null); return; } setLoad(true); const t = setTimeout(() => call("name_check", { name }).then((r: any) => { setChk(r); setLoad(false); }), 350); return () => clearTimeout(t); }, [name]);
-  const [err, setErr] = useState("");
-  // Step 4 runs the real engine in the app (creates the instance, installs the solver-checked preset); in a browser it plays a seeded run.
   useEffect(() => {
-    if (step !== 4) return;
-    let p = 0;
-    const t = setInterval(() => { p = isTauri ? p + (0.92 - p) * 0.03 : p + 0.04; setProg(Math.min(1, p)); if (!isTauri && p >= 1) { clearInterval(t); setTimeout(() => done(name || "Player"), 500); } }, 140);
-    if (isTauri) {
-      call("create_instance", { name: "Luminos", mc: "26.3", withPreset: pre })
-        .then(() => call("set_setting", { key: "setup_done", value: true }))
-        .then(() => { clearInterval(t); setProg(1); setTimeout(() => done(name || "Player"), 600); })
-        .catch((e) => { clearInterval(t); setErr(String(e)); });
-    }
+    if (step !== 4) return; let p = 0;
+    const t = setInterval(() => { p = isTauri ? p + (0.92 - p) * 0.03 : p + 0.04; setProg(Math.min(1, p)); if (!isTauri && p >= 1) { clearInterval(t); setTimeout(() => done(name || dev.who || "Player"), 500); } }, 140);
+    if (isTauri) call("create_instance", { name: "Luminos", mc: "26.3", withPreset: pre }).then(() => call("set_setting", { key: "setup_done", value: true })).then(() => { clearInterval(t); setProg(1); setTimeout(() => done(name || dev.who || "Player"), 600); }).catch((e) => { clearInterval(t); setErr(String(e)); });
     return () => clearInterval(t);
   }, [step]);
+  const signIn = async () => {
+    if (!isTauri) { setDev({ state: "error", msg: "Microsoft sign-in talks to your Microsoft account from the desktop app. Open Luminos on Windows to use it, or continue with an offline profile." }); return; }
+    setDev({ state: "asking" });
+    try {
+      const d: any = await call("ms_device_begin"); setDev({ state: "waiting", code: d.user_code, uri: d.verification_uri });
+      const who: any = await call("ms_device_finish", { deviceCode: d.device_code, expiresIn: d.expires_in, interval: d.interval });
+      setDev({ state: "done", who: who.username }); setName(who.username);
+    } catch (e) { setDev({ state: "error", msg: String(e) }); }
+  };
   const tone = !chk ? "mute" : chk.status === "invalid" ? "bad" : chk.status === "premium" ? "warn" : chk.status === "free" ? "ok" : "mute";
-  const msg = !name ? "Pick the name other players will see." : load ? "Checking…" : !chk ? "" : chk.status === "invalid" ? chk.reason : chk.status === "premium" ? "This name belongs to a premium account. You can still use it offline, but online servers will ask for that account." : chk.status === "free" ? "Free: no premium account uses this name." : "Couldn't reach Mojang. Format is fine; we'll check again later.";
-  const steps = ["Welcome", "Your name", "Bring your stuff", "Get ready"];
+  const msg = !name ? "Pick the name other players will see." : load ? "Checking…" : !chk ? "" : chk.status === "invalid" ? chk.reason : chk.status === "premium" ? "This name belongs to a premium account. You can still use it offline, but online servers will not accept it." : chk.status === "free" ? "Free to use." : chk.reason || "Could not check the name; you can continue.";
+  const labels = ["Welcome", "Sign in", "Bring your stuff", "Get ready"];
+  const found: [string, string, string, string][] = isTauri ? [] : [["prism", "Prism Launcher", "3 instances · 1.21.11, 26.2", "folder"], ["modrinth", "Modrinth App", "2 profiles · 26.3", "cube"], ["official", "Minecraft Launcher", "Saves, options and servers.dat", "layers"]];
+  const Card = ({ children, w = 760 }: { children: React.ReactNode; w?: number }) => <div className="glass rise p-4 text-left" style={{ width: w, maxWidth: "92vw" }}>{children}</div>;
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0"><Sky tone={step} /></div>
-      <div className="absolute inset-0" style={{ background: "radial-gradient(70% 60% at 50% 40%, transparent, rgba(2,4,13,.55))" }} />
+      <div className="absolute inset-0"><Sky tone={step} animate={!document.documentElement.classList.contains("reduce")} /></div>
+      <div className="absolute inset-0" style={{ background: "radial-gradient(70% 60% at 50% 40%, rgba(2,4,13,.2), rgba(2,4,13,.7))" }} />
       <div className="relative h-full flex flex-col items-center justify-center px-8">
-        <div className="absolute top-8 left-10 flex items-center gap-3"><img src="/luminos.png" className="h-8 w-8 rounded-lg" alt="" /><span className="font-semibold tracking-tight">Luminos</span></div>
-        <div className="absolute top-9 flex gap-2">{steps.map((s, i) => <div key={s} className="h-1.5 rounded-full transition-all" style={{ width: i + 1 === step ? 44 : 14, background: i + 1 <= step ? "var(--color-accent)" : "rgba(160,190,255,.25)", transitionDuration: "var(--dur-slow)" }} />)}</div>
-        <div key={step} className="rise w-full max-w-[640px] text-center">
-          {step === 1 && <><div className="eyebrow mb-5">Launcher and client, one product</div><h1 className="display text-[104px]">Minecraft, <span className="accent-word">lit</span> properly.</h1><p className="text-[17px] text-fg/75 mt-6 max-w-[48ch] mx-auto leading-relaxed">Fast to start, honest about what it installs, and your client is set up in the same place you launch from.</p><div className="mt-9 flex gap-3 justify-center"><button className="btn btn-primary !h-12 !px-7" onClick={() => setStep(2)}>Get started<Icon n="play" s={14} /></button></div></>}
-          {step === 2 && <><div className="eyebrow mb-4">Step 1 of 3</div><h2 className="display text-[64px]">What should we <span className="accent-word">call you?</span></h2>
-            <div className="glass rounded-[20px] p-5 mt-8 text-left"><input autoFocus className="field !h-14 !text-[18px]" placeholder="Your player name" value={name} onChange={(e) => setName(e.target.value.trim())} maxLength={20} aria-label="Player name" />
-              <div className="mt-3 flex items-start gap-2.5 min-h-[44px]"><Badge tone={tone as any}>{load ? <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white" style={{ animation: "spin .8s linear infinite" }} /> : <Icon n={chk?.status === "free" ? "check" : chk?.status === "invalid" ? "x" : "user"} s={12} />}{!chk || load ? "Checking" : chk.status === "free" ? "Available" : chk.status === "premium" ? "Premium name" : chk.status === "invalid" ? "Not valid" : "Unverified"}</Badge><span className="text-[13px] text-mute leading-snug pt-0.5">{msg}</span></div>
-              <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-[14px] p-3.5 hair" style={{ background: "rgba(143,180,255,.1)", borderColor: "rgba(143,180,255,.5)" }}><div className="font-semibold text-[14px]">Play offline</div><div className="text-[12px] text-mute mt-0.5">Single player and offline-friendly servers. Your skin and cape work.</div></div><div className="rounded-[14px] p-3.5 hair"><div className="font-semibold text-[14px]">Microsoft account</div><div className="text-[12px] text-mute mt-0.5">Needed for premium servers. Sign-in isn't available in this release yet.</div></div></div></div>
-            <div className="mt-7 flex gap-3 justify-center"><button className="btn btn-ghost" onClick={() => setStep(1)}>Back</button><button className="btn btn-primary" disabled={!name || chk?.status === "invalid"} onClick={() => { if (isTauri) call("create_account", { name }); setStep(3); }}>Continue</button></div></>}
-          {step === 3 && <><div className="eyebrow mb-4">Step 2 of 3</div><h2 className="display text-[64px]">Bring your <span className="accent-word">worlds</span></h2><p className="text-mute mt-3">We found other launchers on this PC. Importing copies; nothing is moved or changed.</p>
-            <div className="glass rounded-[20px] p-2 mt-7 text-left">{(isTauri ? [] : [["prism", "Prism Launcher", "3 instances · 1.21.11, 26.2", "folder"], ["modrinth", "Modrinth App", "2 profiles · 26.3", "cube"], ["official", "Minecraft Launcher", "1 profile · 1.21.4", "globe"]]).map(([k, n, d, ic]) => (
-              <div key={k} className="flex items-center gap-4 p-3.5 rounded-[14px] hover:bg-white/5 transition-colors"><div className="h-11 w-11 rounded-[12px] grid place-items-center hair bg-ink-2"><Icon n={ic} s={20} className="text-accent" /></div><div className="flex-1"><div className="font-semibold">{n}</div><div className="text-[12.5px] text-mute">{d}</div></div><Toggle on={imp[k]} onChange={(v) => setImp({ ...imp, [k]: v })} label={n} /></div>))}
-              {isTauri && <div className="p-8 text-center text-mute">No other launchers found. You can import later from Instances.</div>}</div>
-            <div className="mt-7 flex gap-3 justify-center"><button className="btn btn-ghost" onClick={() => setStep(2)}>Back</button><button className="btn btn-primary" onClick={() => setStep(4)}>Continue</button></div></>}
-          {step === 4 && <><div className="eyebrow mb-4">Last step</div><h2 className="display text-[64px]">Setting up <span className="accent-word">{name || "Player"}'s</span> client</h2>
-            <div className="glass rounded-[20px] p-6 mt-8 text-left"><div className="flex items-center justify-between"><div><div className="font-semibold">Luminos Client for Minecraft 26.3</div><div className="text-[12.5px] text-mute">Sodium, Lithium and friends, version-matched and checked</div></div><Toggle on={pre} onChange={setPre} label="Preset" /></div>
-              <div className="h-2.5 rounded-full bg-white/10 mt-6 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${prog * 100}%`, background: "linear-gradient(90deg,#3b6cf0,#8fb4ff)", transition: "width 160ms linear" }} /></div>
-              <div className="mt-3 text-[12.5px] text-mute num">{err ? err : prog < 0.3 ? "Reading mod metadata…" : prog < 0.7 ? "Solving versions for 26.3 (stable only)…" : prog < 1 ? "Downloading 31 mods…" : "Ready."}</div></div></>}
+        <div className="absolute top-6 left-8 flex items-center gap-2.5"><img src="/luminos.png" className="h-7 w-7 rounded-lg" alt="" /><span className="t3 font-semibold">Luminos</span></div>
+        <div className="absolute top-8 flex gap-1.5" aria-label={`Step ${step} of 4`}>{labels.map((s, i) => <div key={s} className="h-1 rounded-full transition-all" style={{ width: i + 1 === step ? 40 : 14, background: i + 1 <= step ? "var(--color-accent)" : "rgba(190,210,255,.25)" }} />)}</div>
+        <div key={step} className="rise flex flex-col items-center text-center">
+          {step === 1 && <><div className="eyebrow mb-4">Launcher and client, one product</div><h1 className="display text-[96px] m-0">Minecraft, <span className="accent-word">lit</span> properly.</h1><p className="t3 mute mt-4 max-w-[480px]">A fast launcher and an in-game client that share one config. Nothing is installed without asking.</p><button className="btn btn-primary mt-7 !h-11 !px-6 t3" onClick={() => setStep(2)}>Get started<Icon n="chev" s={14} /></button></>}
+          {step === 2 && <><div className="eyebrow mb-2">Step 1 of 3</div><h2 className="display text-[52px] m-0">Who’s <span className="accent-word">playing?</span></h2>
+            <div className="grid grid-cols-2 gap-3 mt-6 text-left" style={{ width: 760, maxWidth: "92vw" }}>
+              <div className="glass p-4 flex flex-col"><div className="flex items-center gap-2 mb-1"><span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "rgba(143,180,255,.16)" }}><Icon n="lock" s={16} /></span><span className="t3 font-semibold">Microsoft account</span><Badge tone="ok">Online servers</Badge></div>
+                <p className="t2 mute m-0 mb-3">Sign in with a device code. You approve at microsoft.com/link, so your password never touches Luminos.</p>
+                {dev.state === "waiting" ? <div className="rounded-lg p-3 text-center" style={{ background: "rgba(2,4,13,.45)", border: "1px solid var(--color-line)" }}><div className="t1 mute">Enter this code at {dev.uri}</div><div className="font-semibold num tracking-[.25em] my-1" style={{ fontSize: 20 }}>{dev.code}</div><div className="t1 mute flex items-center justify-center gap-1.5"><span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white" style={{ animation: "spin .8s linear infinite" }} />Waiting for approval…</div></div>
+                  : dev.state === "done" ? <div className="flex items-center gap-2 t2" style={{ color: "var(--color-ok)" }}><Icon n="check" s={14} />Signed in as {dev.who}</div>
+                  : <button className="btn btn-primary !h-9" disabled={dev.state === "asking"} onClick={signIn}>{dev.state === "asking" ? "Asking Microsoft…" : "Sign in with Microsoft"}</button>}
+                {dev.state === "error" && <div className="t1 mt-2" role="alert" style={{ color: "var(--color-warn)" }}>{dev.msg}</div>}
+              </div>
+              <div className="glass p-4 flex flex-col"><div className="flex items-center gap-2 mb-1"><span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "rgba(143,180,255,.16)" }}><Icon n="user" s={16} /></span><span className="t3 font-semibold">Offline profile</span><Badge>Singleplayer · LAN</Badge></div>
+                <p className="t2 mute m-0 mb-2">Pick a name. Works anywhere offline-mode is allowed.</p>
+                <div className="relative"><Icon n="user" s={14} className="absolute left-2.5 top-[8px] mute" /><input autoFocus className="field" placeholder="Player name" value={name} maxLength={20} onChange={(e) => setName(e.target.value.trim())} aria-label="Offline player name" /></div>
+                <div className="t1 mt-1.5 min-h-[30px] flex gap-1.5 items-start"><Badge tone={tone as any}>{load ? "…" : chk?.status === "free" ? "Free" : chk?.status === "premium" ? "Premium" : chk?.status === "invalid" ? "Invalid" : "Name"}</Badge><span className="mute">{msg}</span></div>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-2"><button className="btn" onClick={() => setStep(1)}>Back</button><button className="btn btn-primary" disabled={(!name || chk?.status === "invalid") && dev.state !== "done"} onClick={async () => { if (name && dev.state !== "done" && isTauri) await call("create_account", { name }).catch(() => {}); setStep(3); }}>Continue</button></div></>}
+          {step === 3 && <><div className="eyebrow mb-2">Step 2 of 3</div><h2 className="display text-[52px] m-0">Bring your <span className="accent-word">worlds</span></h2><p className="t2 mute mt-2 mb-5">We looked for other launchers on this PC. Nothing is moved; we copy.</p>
+            <Card>{found.length ? found.map(([k, n, d, ic]) => <div key={k} className="lrow !min-h-[44px]"><span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "rgba(160,190,255,.12)" }}><Icon n={ic} s={16} /></span><span className="flex-1"><span className="t2 font-semibold block">{n}</span><span className="t1 mute">{d}</span></span><Switch label={`Import from ${n}`} on={!!imp[k]} onChange={(v) => setImp({ ...imp, [k]: v })} /></div>) : <div className="p-6 text-center t2 mute">No other launchers found. You can import later from Instances.</div>}</Card>
+            <div className="mt-5 flex gap-2"><button className="btn" onClick={() => setStep(2)}>Back</button><button className="btn btn-primary" onClick={() => setStep(4)}>Continue</button></div></>}
+          {step === 4 && <><div className="eyebrow mb-2">Last step</div><h2 className="display text-[52px] m-0">Setting up <span className="accent-word">{name || dev.who || "Player"}’s</span> client</h2>
+            <div className="mt-6"><Card w={640}><div className="flex items-center gap-3"><SkinThumb src="/library/skins/vanguard.png" scale={3} bust className="rounded-md" /><div className="flex-1"><div className="t3 font-semibold">Luminos Client for Minecraft 26.3</div><div className="t1 mute">Luminos Performance profile · Sodium baseline · stable mods only</div></div><label className="flex items-center gap-2 t2">Starter mods<Switch label="Install starter mods" on={pre} onChange={setPre} /></label></div>
+              <div className="h-2 rounded-full bg-white/10 mt-4 overflow-hidden"><div className="h-full rounded-full bg-[var(--color-accent)]" style={{ width: `${prog * 100}%`, transition: "width 160ms linear" }} /></div>
+              <div className="mt-2 t1 mute num">{err ? err : prog < 0.3 ? "Reading mod metadata…" : prog < 0.7 ? "Solving versions for 26.3 (stable only)…" : prog < 1 ? "Downloading 31 mods…" : "Ready."}</div></Card></div></>}
         </div>
       </div>
     </div>

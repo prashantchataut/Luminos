@@ -83,3 +83,31 @@ three machines running the benchmark once it exists (manual script: `docs/client
 | "Why is my FPS low?" | **BUILT, VERIFIED** | `core/FpsDoctor` (8 assertions). In the real client it read the 1000 MB heap used for the capture and said to raise RAM (`docs/client-shots/rounds/panel-performance-*.png`) |
 
 Reproduce a startup number: launch twice (Luminos jar alone, then the same jar plus Sodium) and compare the `[luminos] startup ... total` lines in `logs/latest.log`.
+
+
+## Session 15: launcher-side performance tooling, and what is still NOT measured
+
+**Nothing in this section is a measured FPS or startup number from real hardware.** This sandbox has no Java, no GPU and no Rust toolchain; CI has llvmpipe only. The three-profile table below is therefore empty on purpose.
+
+| Brief item | Status | Where |
+|---|---|---|
+| Renderer picker: Sodium baseline, VulkanMod (Vulkan 1.2, no shaders), Nvidium (Turing+ NVIDIA with Sodium) | **BUILT + VERIFIED (logic: 13 node tests, render)**; never installs anything; one sentence per renderer | `app/src/perf.ts` `recommend()`, `app/tools/perf.test.mjs` (`npm test`), Settings > Performance |
+| "Why is my FPS low?" reads renderer, mod count, RAM, frame time, returns one change | **BUILT + VERIFIED** in the launcher WebView: reads the real WebGL renderer string, `navigator.deviceMemory`, 60 measured frames, the instance's mod count. In the render it correctly reported "No GPU is being used" (SwiftShader). A "test with another GPU" select shows the other branches | `perf.ts` `whyLow()` |
+| Click test: raw input rate vs processed CPS | **BUILT + VERIFIED** (unit test: sampling on has lower added delay than off; live panel in Settings). It exercises a model of the sampler in the WebView; the in-game sampler is the Java `InputSampler` from session 14 and is still UNVERIFIED in a world | `perf.ts` `ClickProbe` |
+| Startup profiler behind a dev toggle | **BUILT, launcher only**: measured `domInteractive`, first paint, first contentful paint, engine bootstrap, load. Game stages (JVM, discovery, mixins, resource reload, first frame) are **not recorded**: the engine does not write them yet | Settings > Developer |
+| Luminos Performance as the default profile, HUD throttle, input sampling, startup cache toggles | **Settings only**: the toggles persist and are forwarded to the engine through `set_setting`; the engine and client behaviour behind `startupCache` and mixin caching is **NOT BUILT** | `app/src/store.ts` |
+| Exordium-style HUD throttling in the client | **PARTIAL (session 14)**: HUD *data* at 30 Hz, no pixel cache. Not changed this session | `client/` |
+| Keep Sodium, Lithium, ... drop conflicts instead of crashing | **PARTIAL**: Library shows requires/conflicts warnings (VulkanMod vs Sodium and Iris; Nvidium and Sodium Extra need Sodium) and blocks the conflicting install. The solver does not auto-drop mods | `app/src/data/launcher.ts` |
+| Startup under 60% of Sodium-only | **UNVERIFIED, no data.** `smoke.yml` already runs 3 alternating Sodium-only / Luminos starts and prints the ratio, but on llvmpipe; read the PR's smoke job for that figure and treat it as software-GL only | `.github/workflows/smoke.yml` |
+| Benchmark on integrated / mid-range / high-end | **NOT RUN** | below |
+
+### Three-profile comparison (to be filled by a person with the hardware)
+
+| Profile | Sodium-only FPS (avg / 1% low) | Luminos Performance FPS | Sodium-only time to title | Luminos time to title |
+|---|---|---|---|---|
+| Integrated | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED |
+| Mid-range | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED |
+| High-end | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED |
+
+Manual test: fixed seed, 16 chunks, 60 s flight path, use the Luminos Benchmark card (`FrameStats`). Run Sodium-only and Luminos alternately three times; record median.
+Honest limits: VulkanMod and Nvidium only work on qualifying GPUs and can conflict with shader packs; a renderer is never switched silently.

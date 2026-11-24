@@ -84,6 +84,44 @@ async fn name_check(name: String) -> R<Value> {
     .await
 }
 
+const NO_MS_ID: &str = "No Microsoft app id is configured. Set LUMINOS_MS_CLIENT_ID (an Azure public-client app with device-code flow) or use an offline profile.";
+
+/// Step 1 of Microsoft sign-in: ask Microsoft for a device code the player types at microsoft.com/link.
+#[tauri::command]
+async fn ms_device_begin() -> R<Value> {
+    blocking(|| {
+        let id = luminos_core::msauth::client_id().ok_or_else(|| NO_MS_ID.to_string())?;
+        let dc = luminos_core::msauth::begin(&id).map_err(err)?;
+        Ok(json!({
+            "user_code": dc.user_code,
+            "device_code": dc.device_code,
+            "verification_uri": dc.verification_uri,
+            "expires_in": dc.expires_in,
+            "interval": dc.interval,
+        }))
+    })
+    .await
+}
+
+/// Step 2: block on a worker thread until the player approves, then run the Xbox, XSTS and Minecraft chain.
+#[tauri::command]
+async fn ms_device_finish(device_code: String, expires_in: u64, interval: u64) -> R<Value> {
+    blocking(move || {
+        let id = luminos_core::msauth::client_id().ok_or_else(|| NO_MS_ID.to_string())?;
+        let dc = luminos_core::msauth::DeviceCode {
+            user_code: String::new(),
+            device_code,
+            verification_uri: String::new(),
+            expires_in,
+            interval,
+        };
+        let (access, refresh) = luminos_core::msauth::wait_for_approval(&id, &dc, &|| false).map_err(err)?;
+        let session = luminos_core::msauth::minecraft_login(&access, &refresh).map_err(err)?;
+        Ok(json!({ "username": session.username, "uuid": session.uuid }))
+    })
+    .await
+}
+
 #[tauri::command]
 async fn create_account(name: String) -> R<()> {
     blocking(move || {
@@ -305,6 +343,8 @@ pub fn run() {
             set_setting,
             name_check,
             create_account,
+            ms_device_begin,
+            ms_device_finish,
             create_instance,
             launch_instance,
             sync_run,

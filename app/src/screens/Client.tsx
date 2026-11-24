@@ -1,71 +1,132 @@
-import { useState } from "react";
-import { call } from "../api";
-import { Badge, Cover, Icon, Row, Slider, Toggle, Tile } from "../ui";
-const MODS = [
-  { id: "fps", t: "FPS", d: "Frames per second", x: 12, y: 12, w: 70, h: 20, text: "240 FPS" },
-  { id: "cps", t: "CPS", d: "Clicks per second", x: 12, y: 40, w: 86, h: 20, text: "7 | 3 CPS" },
-  { id: "coords", t: "Coordinates", d: "Position and facing", x: 12, y: 68, w: 130, h: 52, text: "X 128.4  Y 71\nZ -310.9\nnorth" },
-  { id: "keys", t: "Keystrokes", d: "WASD, space and clicks", x: 12, y: 290, w: 98, h: 92, text: "" },
-  { id: "potions", t: "Potion effects", d: "Timers for active effects", x: 560, y: 12, w: 168, h: 48, text: "Speed II  1:42\nNight Vision  6:10" },
-  { id: "armor", t: "Armor HUD", d: "Armour and durability", x: 700, y: 150, w: 36, h: 120, text: "" },
-];
-const OPT = [["Resourcify", "Browse packs, shaders and data packs in game", "ok", "Installed 1.8.1"], ["Zoomify", "Smooth zoom with scroll to adjust", "ok", "Installed 2.15.0"], ["Controlify", "Controller support with radial menus", "mute", "Not installed"], ["Iris Shaders", "Shader packs on top of Sodium", "warn", "Beta only for 26.3"]] as const;
-function SyncCard() {
-  const [rep, setRep] = useState<Record<string, { pulled: string[]; pushed: string[]; conflicts: { item: string; winner: string }[] }> | null>(null);
-  const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
-  const run = async () => { setBusy(true); try { setRep(await call("sync_run")); } finally { setBusy(false); } };
-  const move = async (cmd: "sync_export" | "sync_import") => { const n = await call<number>(cmd, { path: "" }); setNote(`${cmd === "sync_export" ? "Exported" : "Imported"} ${n} files (folder “sync-export” in your Luminos data folder).`); };
-  return (
-    <div className="panel p-4 flex flex-col">
-      <div className="flex items-center justify-between mb-2"><div className="eyebrow">Sync across instances</div><Badge tone="ok">Keybinds · HUD · servers</Badge></div>
-      <p className="text-[12.5px] text-mute mb-3">Runs before every launch and after every exit. Same keys and layout on every version; when two copies disagree the newest edit wins and the other is kept.</p>
-      <div className="flex flex-col gap-1.5 min-h-[88px]">
-        {rep ? Object.entries(rep).map(([n, r]) => (
-          <div key={n} className="flex items-center justify-between text-[12.5px] rounded-[10px] px-3 h-8" style={{ background: "rgba(120,160,255,.07)" }}>
-            <span className="truncate">{n}</span>
-            <span className="text-mute whitespace-nowrap">{r.pulled.length ? `received ${r.pulled.length}` : r.pushed.length ? `shared ${r.pushed.length}` : "in sync"}{r.conflicts.length ? ` · ${r.conflicts.length} conflict kept` : ""}</span>
-          </div>
-        )) : <div className="text-[12.5px] text-mute">Not run in this session yet.</div>}
-      </div>
-      {note && <div className="text-[12px] text-ok mt-2">{note}</div>}
-      <div className="flex gap-2 mt-3">
-        <button className="btn-primary h-9 px-4 rounded-full text-[13px]" onClick={run} disabled={busy}>{busy ? "Syncing…" : "Sync now"}</button>
-        <button className="btn-ghost h-9 px-3 rounded-full text-[13px]" onClick={() => move("sync_export")}>Export</button>
-        <button className="btn-ghost h-9 px-3 rounded-full text-[13px]" onClick={() => move("sync_import")}>Import</button>
-      </div>
-    </div>
-  );
+import { useEffect, useRef, useState } from "react";
+import { Badge, Chip, Icon, LRow, Slider, Switch } from "../kit";
+import { PRESETS } from "../data/launcher";
+import { set, useSettings } from "../store";
+
+/* ---- crosshair model: also the file format the client reads (luminos-client.json -> "crosshair") ---- */
+export type Cross = { name: string; shape: "cross" | "dot" | "circle" | "T" | "X"; thickness: number; gap: number; length: number; outline: number; color: string; opacity: number; dot?: boolean; ring?: boolean; spread: boolean };
+export const CROSS_PRESETS: Record<string, Cross> = {
+  "cross-gap": { name: "Gap Cross", shape: "cross", thickness: 2, gap: 3, length: 6, outline: 1, color: "#8fb4ff", opacity: 1, spread: true },
+  "dot-ring": { name: "Dot + Ring", shape: "dot", thickness: 2, gap: 0, length: 0, outline: 1, color: "#ffffff", opacity: 1, ring: true, spread: false },
+  "tiny-dot": { name: "Tiny Dot", shape: "dot", thickness: 3, gap: 0, length: 0, outline: 1, color: "#7fe0b0", opacity: 1, spread: false },
+  "tactical-t": { name: "Tactical T", shape: "T", thickness: 2, gap: 3, length: 7, outline: 1, color: "#ffd37a", opacity: 1, spread: true },
+  "x-sharp": { name: "X Sharp", shape: "X", thickness: 2, gap: 2, length: 5, outline: 1, color: "#ff8d9a", opacity: 1, spread: false },
+  "open-circle": { name: "Open Circle", shape: "circle", thickness: 1, gap: 0, length: 7, outline: 1, color: "#ffffff", opacity: .9, spread: true },
+  "plus-dot": { name: "Plus Dot", shape: "cross", thickness: 2, gap: 4, length: 5, outline: 1, color: "#b6f06a", opacity: 1, dot: true, spread: true },
+  "wide-hair": { name: "Wide Hairline", shape: "cross", thickness: 1, gap: 5, length: 7, outline: 0, color: "#ffffff", opacity: .85, spread: true },
+};
+const hexA = (h: string, a: number) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+export function drawCross(g: CanvasRenderingContext2D, c: Cross, cx: number, cy: number, px: number, spread = 0) {
+  const gap = c.gap + spread, col = hexA(c.color, c.opacity), out = hexA("#02040d", Math.min(1, c.opacity));
+  const rect = (x: number, y: number, w: number, h: number) => { if (c.outline) { g.fillStyle = out; g.fillRect((x - c.outline) * px, (y - c.outline) * px, (w + 2 * c.outline) * px, (h + 2 * c.outline) * px); } g.fillStyle = col; g.fillRect(x * px, y * px, w * px, h * px); };
+  const t = c.thickness, h = t / 2;
+  const arms = (dirs: string) => { if (dirs.includes("u")) rect(cx - h, cy - gap - c.length, t, c.length); if (dirs.includes("d")) rect(cx - h, cy + gap, t, c.length); if (dirs.includes("l")) rect(cx - gap - c.length, cy - h, c.length, t); if (dirs.includes("r")) rect(cx + gap, cy - h, c.length, t); };
+  const ring = (r: number, w: number) => { if (c.outline) { g.strokeStyle = out; g.lineWidth = (w + 2 * c.outline) * px; g.beginPath(); g.arc(cx * px, cy * px, r * px, 0, 7); g.stroke(); } g.strokeStyle = col; g.lineWidth = w * px; g.beginPath(); g.arc(cx * px, cy * px, r * px, 0, 7); g.stroke(); };
+  if (c.shape === "cross") arms("udlr"); else if (c.shape === "T") arms("dlr");
+  else if (c.shape === "dot") rect(cx - h, cy - h, t, t);
+  else if (c.shape === "circle") ring(c.length + spread, t);
+  else if (c.shape === "X") for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (let i = 0; i < c.length; i++) rect(cx + (sx > 0 ? gap + i : -(gap + i) - t), cy + (sy > 0 ? gap + i : -(gap + i) - t), t, t);
+  if (c.dot && c.shape !== "dot") rect(cx - h, cy - h, t, t);
+  if (c.ring) ring(5 + spread, 1);
 }
-export default function Client({ mc }: { mc: string }) {
-  const [on, setOn] = useState<Record<string, boolean>>({ fps: true, cps: true, coords: true, keys: true, potions: true, armor: true });
-  const [sprint, setSprint] = useState(true); const [zoom, setZoom] = useState(30); const [bg, setBg] = useState(true);
+function Cross({ c, size = 96, spread = 0, bg = "/covers/26.3.jpg" }: { c: Cross; size?: number; spread?: number; bg?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const cv = ref.current!, g = cv.getContext("2d")!, px = size < 100 ? 3 : 4, n = size / px; cv.width = size; cv.height = size;
+    const im = new Image(); im.src = bg; const paint = () => { g.clearRect(0, 0, size, size); if (im.complete && im.naturalWidth) g.drawImage(im, im.naturalWidth * .3, im.naturalHeight * .25, im.naturalHeight * .5, im.naturalHeight * .5, 0, 0, size, size); drawCross(g, c, n / 2, n / 2, px, spread); };
+    paint(); im.onload = paint;
+  }, [c, size, spread, bg]);
+  return <canvas ref={ref} style={{ width: size, height: size, imageRendering: "pixelated" }} className="rounded-lg" />;
+}
+
+const QOL: [string, string, string, string, boolean?][] = [
+  ["lowFire", "Low fire", "flame", "Shrinks the fire overlay so it stops covering the screen."],
+  ["lowShield", "Low shield", "shield", "Lowers the shield in your hand so you can see past it."],
+  ["compactTotem", "Compact totem", "star", "Shrinks the totem pop animation."],
+  ["noPumpkin", "Remove pumpkin overlay", "eye", "Hides the pumpkin face when you wear one.", true],
+  ["noFrost", "Remove powder-snow frost", "eye", "Hides the blue frost border.", true],
+  ["noNausea", "Remove nausea wobble", "eye", "Stops the screen warping with Nausea.", true],
+  ["noSpyglass", "Remove spyglass vignette", "eye", "Clear edges while zoomed with the spyglass.", true],
+  ["noFlash", "Remove explosion flash", "bolt", "Hides the white flash on nearby explosions."],
+  ["noRipple", "Remove rain ripples", "cloud", "Drops the splash particles on the ground in rain."],
+  ["clearWater", "Crystal-clear water", "eye", "Removes underwater fog and tint.", true],
+  ["clearLava", "Crystal-clear lava", "eye", "Lets you see through lava. Server may flag.", true],
+  ["tameParticles", "Particle taming", "cpu", "Caps particle counts from big fights."],
+];
+const FLAGGED = new Set(QOL.filter((q) => q[4]).map((q) => q[0]));
+const loadCfg = () => { try { return JSON.parse(localStorage.getItem("luminos.client.v1") || "{}"); } catch { return {}; } };
+
+export default function ClientPage() {
+  const s = useSettings();
+  const [cfg, setCfg] = useState<Record<string, any>>(() => ({ lowFireOffset: 40, fogMult: 100, noFlash: true, tameParticles: true, ...loadCfg() }));
+  const [cross, setCross] = useState<Cross>(() => ({ ...(CROSS_PRESETS[s.crosshair] || CROSS_PRESETS["dot-ring"]) }));
+  const [spread, setSpread] = useState(0);
+  const [customPng, setCustomPng] = useState<string | null>(null);
+  const put = (k: string, v: any) => setCfg((c) => { const n = { ...c, [k]: v }; localStorage.setItem("luminos.client.v1", JSON.stringify(n)); return n; });
+  const pick = (id: string) => { set("crosshair", id); setCross({ ...CROSS_PRESETS[id] }); setCustomPng(null); };
+  const edit = (p: Partial<Cross>) => setCross((c) => ({ ...c, ...p }));
+  const attack = () => { setSpread(5); setTimeout(() => setSpread(0), 260); };
+  const comp = s.compliance;
+  const on = (k: string) => !!cfg[k] && !(comp && FLAGGED.has(k));
   return (
-    <div className="page-in h-full overflow-y-auto px-12 py-10 max-w-[1280px]">
-      <div className="flex items-end justify-between mb-6"><div><div className="eyebrow">One product</div><h1 className="display text-[56px] mt-1">Your <span className="accent-word">client</span></h1><p className="text-mute mt-2 max-w-[60ch]">Everything you change here is what the in-game panel shows (Right Ctrl). Same file, same look.</p></div><Badge tone="accent"><Icon n="bolt" s={12} />Luminos Client 0.4.0 · Minecraft {mc}</Badge></div>
-      <div className="grid grid-cols-[1.6fr_1fr] gap-6">
-        <div>
-          <div className="panel p-3"><div className="relative aspect-video rounded-[12px] overflow-hidden">
-            <Cover version={mc} />
-            <div className="absolute inset-x-0 bottom-0 h-10 flex justify-center items-end pb-1"><div className="flex gap-0.5 p-0.5 bg-black/55 rounded">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="h-7 w-7 border border-white/25 bg-black/30" />)}</div></div>
-            {MODS.map((m) => (
-              <div key={m.id} className="absolute text-[11px] leading-[14px] text-[#e8eeff] whitespace-pre px-2 py-[3px] transition-all" style={{ left: `${(m.x / 740) * 100}%`, top: `${(m.y / 416) * 100}%`, opacity: on[m.id] ? 1 : 0, transform: on[m.id] ? "none" : "scale(.94)", background: bg ? "rgba(8,13,32,.62)" : "transparent", borderLeft: bg ? "2px solid #4f8cff" : "none", transitionDuration: "var(--dur-base)", pointerEvents: "none" }}>
-                {m.id === "keys" ? <div className="grid grid-cols-3 gap-0.5 w-[74px]">{["", "W", "", "A", "S", "D"].map((k, i) => <div key={i} className="h-5 grid place-items-center text-[10px] border" style={{ visibility: k ? "visible" : "hidden", borderColor: k === "W" ? "#4f8cff" : "rgba(255,255,255,.2)", background: k === "W" ? "rgba(44,79,156,.8)" : "transparent" }}>{k}</div>)}</div> : m.id === "armor" ? <div className="grid gap-1">{["#9fb4d8", "#9fb4d8", "#9fb4d8", "#9fb4d8"].map((c, i) => <div key={i} className="h-5 w-5" style={{ background: c, opacity: 0.8 }} />)}</div> : m.text}
-              </div>))}
-          </div><div className="flex items-center justify-between px-1 pt-3 text-[12px] text-mute"><span>Live preview of your HUD on Minecraft {mc}</span><span>Drag to place in game · Right-click toggles</span></div></div>
-          <div className="mt-6 grid grid-cols-2 gap-3 items-start">
-            <div className="panel p-4"><div className="eyebrow mb-2">Quick panel</div><img src="/ingame/panel.jpg" alt="The Luminos quick panel open inside Minecraft" className="rounded-[10px] w-full border border-white/10" /><p className="text-[12.5px] text-mute mt-2">Right Ctrl opens it in game, Right Shift jumps to search. Rebind both under Keybinds.</p></div>
-            <SyncCard />
+    <div className="max-w-[1180px] grid gap-3" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr)" }}>
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          {(["pvp", "survival"] as const).map((id) => { const P = PRESETS[id]; const active = Object.entries(P.set).every(([k, v]) => (s as any)[k] === v); return (
+            <div key={id} className="glass p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-lg grid place-items-center" style={{ background: "rgba(143,180,255,.16)" }}><Icon n={P.icon} s={15} /></span><span className="t3 font-semibold flex-1">{P.name}</span>{active && <Badge tone="ok"><Icon n="check" s={10} />Active</Badge>}</div>
+              <p className="t1 mute m-0" style={{ minHeight: 30 }}>{P.line}</p>
+              <button className="btn btn-primary" onClick={() => { Object.entries(P.set).forEach(([k, v]) => set(k as any, v as any)); setCross({ ...CROSS_PRESETS[P.set.crosshair] }); }}>Apply preset</button>
+            </div>); })}
+        </div>
+
+        <div className="glass p-3">
+          <div className="flex items-center justify-between mb-2"><div className="eyebrow">Crosshair</div><div className="flex gap-1.5 items-center"><button className="btn !h-6" onClick={attack}><Icon n="target" s={11} />Preview attack</button><label className="btn !h-6 cursor-pointer"><Icon n="upload" s={11} />Import PNG<input className="sr-only" type="file" accept="image/png" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => setCustomPng(String(r.result)); r.readAsDataURL(f); }} /></label></div></div>
+          <div className="grid grid-cols-8 gap-1.5 mb-3">{Object.entries(CROSS_PRESETS).map(([id, c]) => <button key={id} onClick={() => pick(id)} aria-label={`Crosshair preset ${c.name}`} aria-pressed={s.crosshair === id} title={c.name} className="lift rounded-lg p-0.5" style={{ border: `1px solid ${s.crosshair === id ? "var(--color-accent)" : "var(--color-line)"}` }}><Cross c={c} size={64} /></button>)}</div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "140px 1fr" }}>
+            <div className="relative">{customPng ? <div className="rounded-lg overflow-hidden relative" style={{ width: 140, height: 140, background: "url(/covers/26.3.jpg) 40% 30%/cover" }}><img src={customPng} alt="Imported crosshair" className="skin-px absolute" style={{ left: 40, top: 40, width: 60, height: 60 }} /></div> : <Cross c={cross} size={140} spread={spread} />}<div className="t1 mute mt-1 text-center truncate">{customPng ? "Imported PNG (15×15 best)" : cross.name}</div></div>
+            <div className="flex flex-col gap-0.5">
+              <div className="lrow justify-between"><span className="t2">Shape</span><div className="flex gap-1">{(["cross", "dot", "circle", "T", "X"] as const).map((sh) => <Chip key={sh} on={cross.shape === sh} onClick={() => edit({ shape: sh })}>{sh}</Chip>)}</div></div>
+              {([["thickness", "Thickness", 1, 5], ["gap", "Gap", 0, 10], ["length", "Length", 1, 14], ["outline", "Outline", 0, 2]] as const).map(([k, l, a, b]) => <div key={k} className="lrow justify-between"><span className="t2">{l}</span><Slider label={l} value={cross[k]} min={a} max={b} onChange={(v) => edit({ [k]: v } as any)} /></div>)}
+              <div className="lrow justify-between"><span className="t2">Opacity</span><Slider label="Opacity" value={Math.round(cross.opacity * 100)} min={20} max={100} fmt={(v) => v + "%"} onChange={(v) => edit({ opacity: v / 100 })} /></div>
+              <div className="lrow justify-between"><span className="t2">Colour</span><div className="flex items-center gap-1.5">{["#ffffff", "#8fb4ff", "#7fe0b0", "#ffd37a", "#ff8d9a", "#b6f06a"].map((c) => <button key={c} aria-label={`Colour ${c}`} onClick={() => edit({ color: c })} className="w-5 h-5 rounded-md" style={{ background: c, outline: cross.color === c ? "2px solid #fff" : "1px solid rgba(255,255,255,.25)", outlineOffset: 1 }} />)}</div></div>
+              <div className="lrow justify-between"><span className="t2">Spread on attack</span><Switch label="Dynamic spread on attack" on={cross.spread} onChange={(v) => edit({ spread: v })} /></div>
+            </div>
           </div>
-          <div className="mt-6"><div className="eyebrow mb-3">Optional mods</div><div className="grid grid-cols-2 gap-3">{OPT.map(([n, d, tone, st]) => <div key={n} className="lift panel p-3.5 flex gap-3 items-center"><Tile name={n} hue={n.length * 30} size={42} /><div className="min-w-0 flex-1"><div className="font-semibold text-[14px]">{n}</div><div className="text-[12px] text-mute truncate">{d}</div></div><Badge tone={tone as any}>{st}</Badge></div>)}</div></div>
         </div>
-        <div className="panel p-5 h-fit">
-          <div className="eyebrow mb-1">Modules</div>
-          {MODS.map((m) => <Row key={m.id} title={m.t} desc={m.d}><Toggle on={on[m.id]} onChange={(v) => setOn({ ...on, [m.id]: v })} label={m.t} /></Row>)}
-          <div className="eyebrow mt-5 mb-1">Behaviour</div>
-          <Row title="Toggle sprint" desc="Hold nothing: sprint until you stop."><Toggle on={sprint} onChange={setSprint} label="Toggle sprint" /></Row>
-          <Row title="HUD backgrounds"><Toggle on={bg} onChange={setBg} label="Backgrounds" /></Row>
-          <Row title="Zoom field of view" desc="While the zoom key (C) is held."><Slider value={zoom} min={10} max={70} onChange={setZoom} fmt={(v) => v + "°"} /></Row>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="glass p-3">
+          <div className="eyebrow mb-2">Keystrokes layout</div>
+          <div className="grid grid-cols-2 gap-2">
+            {(["A", "B"] as const).map((k) => (
+              <button key={k} onClick={() => set("keystrokes", k)} aria-pressed={s.keystrokes === k} className="lift text-left rounded-lg p-1" style={{ border: `1px solid ${s.keystrokes === k ? "var(--color-accent)" : "var(--color-line)"}` }}>
+                <div className="relative rounded-md overflow-hidden" style={{ aspectRatio: "16/9", background: "url(/covers/26.3.jpg) center/cover" }}>
+                  {k === "A" ? <div className="absolute left-2 top-2 flex flex-col gap-[5px] items-start"><div className="grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "rgba(2,4,13,.6)" : "transparent", color: "#fff" }}>{c}</span>)}</div><div className="flex gap-[3px]"><span className="w-[23px] h-3 rounded-[3px] bg-[rgba(2,4,13,.6)]" /><span className="w-[23px] h-3 rounded-[3px] bg-[rgba(2,4,13,.6)]" /></div><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">240 FPS</span></div>
+                    : <><div className="absolute left-1/2 -translate-x-1/2 bottom-[26px] grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "rgba(2,4,13,.6)" : "transparent" }}>{c}</span>)}</div><div className="absolute left-1/2 -translate-x-1/2 bottom-1.5 flex gap-px">{Array.from({ length: 9 }).map((_, i) => <span key={i} className="w-3 h-3 rounded-[2px] bg-[rgba(2,4,13,.55)] border border-white/20" />)}</div><div className="absolute right-3 bottom-1.5 flex flex-col gap-[3px] items-end"><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">240 FPS</span></div></>}
+                </div>
+                <div className="px-1 pt-1 flex items-center gap-1.5"><span className="t2 font-semibold whitespace-nowrap">Preset {k}</span>{k === "A" && <Badge>Default</Badge>}<span className="t1 mute truncate">{k === "A" ? "Top-left stack" : "Above hotbar"}</span></div>
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div className="glass p-2.5">
+          <div className="flex items-center justify-between mb-1"><div className="eyebrow">Quality of life · built in</div><div className="flex items-center gap-2"><span className="t1 mute">Compliance mode</span><Switch label="Compliance mode" on={comp} onChange={(v) => set("compliance", v)} /></div></div>
+          {comp && <div className="t1 mb-1 px-1" style={{ color: "var(--color-warn)" }}>Compliance on: options servers may flag are switched off and locked.</div>}
+          <div className="overflow-y-auto" style={{ maxHeight: 392 }}>
+            {QOL.map(([k, name, ic, desc, flagged]) => (
+              <LRow key={k} icon={ic === "flame" ? "bolt" : ic} name={name} desc={comp && flagged ? "Disabled by compliance mode" : desc}>
+                {k === "lowFire" && on(k) && <Slider label="Low fire offset" value={cfg.lowFireOffset} min={0} max={100} fmt={(v) => v + "%"} onChange={(v) => put("lowFireOffset", v)} />}
+                <Switch label={name} on={on(k)} onChange={(v) => !(comp && flagged) && put(k, v)} />
+              </LRow>
+            ))}
+            {(["Overworld", "Nether", "End"] as const).map((d) => { const key = "fog" + d; return <LRow key={d} icon="cloud" name={`Fog: ${d}`} desc="Turns the distance fog off in this dimension."><Switch label={`Fog ${d}`} on={!(s as any)[key]} onChange={(v) => set(key as any, !v)} /></LRow>; })}
+            <LRow icon="gauge" name="Fog distance" desc="Multiplies how far fog starts."><Slider label="Fog distance multiplier" value={cfg.fogMult} min={50} max={300} step={10} fmt={(v) => (v / 100).toFixed(1) + "×"} onChange={(v) => put("fogMult", v)} /></LRow>
+          </div>
+        </div>
+        <div className="t1 mute px-1 flex items-start gap-1.5"><Icon n="warn" s={12} className="shrink-0 mt-0.5" />These are written to luminos-client.json. The in-game reader for this file is not in the shipped client yet (UNVERIFIED in game), so changes here are saved but not yet applied.</div>
       </div>
     </div>
   );
