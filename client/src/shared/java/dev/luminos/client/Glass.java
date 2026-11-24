@@ -76,9 +76,13 @@ public final class Glass {
 		return alpha(0xFFFFFFFF, (0.18f - 0.10f * intensity()) * strength);
 	}
 
-	/** Full-screen dim behind a panel. Darker when the glass is clearer so text keeps its contrast. */
+	/**
+	 * Full-screen dim behind a panel. Legibility is the floor: at 0% there is no blur pass, so the dim is darkest (0.64); with the blur
+	 * at full strength it settles at 0.50. Measured round 5: at the old 0.34 a busy world showed straight through the labels.
+	 */
 	public static int scrim() {
-		return solid() ? 0xB8070809 : alpha(0xFF050608, 0.34f + 0.16f * intensity());
+		float flat = 1f - intensity();
+		return solid() ? 0xB8070809 : alpha(0xFF050608, 0.50f + 0.14f * flat * flat);
 	}
 
 	// ---------------------------------------------------------------- shapes
@@ -165,6 +169,22 @@ public final class Glass {
 		if (width(g, t, scale) <= max) return t;
 		while (t.length() > 1 && width(g, t + "..", scale) > max) t = t.substring(0, t.length() - 1);
 		return t + "..";
+	}
+
+	/** Word-wraps {@code t} to at most {@code maxLines} lines of {@code max} pixels; the last line is ellipsised only if the text still does not fit. */
+	public static java.util.List<String> wrap(Gfx g, String t, float scale, int max, int maxLines) {
+		java.util.List<String> out = new java.util.ArrayList<>();
+		String rest = t.trim();
+		while (!rest.isEmpty() && out.size() < maxLines) {
+			if (out.size() == maxLines - 1 || width(g, rest, scale) <= max) { out.add(fit(g, rest, scale, max)); break; }
+			int cut = rest.length();
+			while (cut > 1 && width(g, rest.substring(0, cut), scale) > max) cut--;
+			int sp = rest.lastIndexOf(' ', cut);
+			if (sp > 0 && cut < rest.length()) cut = sp;
+			out.add(rest.substring(0, cut).trim());
+			rest = rest.substring(cut).trim();
+		}
+		return out;
 	}
 
 	// ---------------------------------------------------------------- controls

@@ -52,6 +52,7 @@ public final class InputSampler {
 	/** End of every rendered frame (the last HUD layer): drop a GL fence so the next frame can tell whether the GPU kept up. */
 	public static void frameEnd(Minecraft mc) {
 		if (guardBroken || !Config.flag("frame_guard.on", false)) return;
+		if (!Probes.glCurrent()) { guardBroken = true; LuminosClient.LOGGER.info("frame guard off: this renderer has no OpenGL context (Vulkan backend)"); return; }
 		try {
 			if (fence != 0) org.lwjgl.opengl.GL32.glDeleteSync(fence);
 			fence = org.lwjgl.opengl.GL32.glFenceSync(org.lwjgl.opengl.GL32.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -63,7 +64,7 @@ public final class InputSampler {
 	 * input will be drawn late), wait for it, but never longer than frame_guard.max ms. Costs nothing when the CPU is the bottleneck.
 	 */
 	private static void guard() {
-		if (guardBroken || fence == 0 || !Config.flag("frame_guard.on", false)) return;
+		if (guardBroken || fence == 0 || !Config.flag("frame_guard.on", false) || !Probes.glCurrent()) return;
 		long t0 = System.nanoTime();
 		try {
 			long cap = (long) (Math.max(0.2f, Config.num("frame_guard.max", 2f)) * 1e6);

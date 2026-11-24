@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      only:
+        description: "all | shots (screenshot tour only) | bench (startup benchmark only)"
+        default: all
 
 jobs:
   client-jars:
@@ -31,6 +35,7 @@ jobs:
 
   smoke:
     needs: client-jars
+    if: ${{ github.event.inputs.only != 'bench' }}
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +88,7 @@ jobs:
           : > out/run.log; : > out/capture.log
           # one capture per marker the client logs: cover = vanilla panorama (per-version cover art), title = Luminos title
           # screen, panel / panel-hud = the quick panel. Errors are kept in out/capture.log.
-          ( for shot in title panel panel-all panel-search panel-popover panel-appearance panel-solid panel-hud panel-performance panel-cosmetics panel-keybinds panel-waypoints panel-support hud-editor hud-editor-full; do
+          ( for shot in $(cat scripts/client-shots.txt); do
               if timeout 900 bash -c "until grep -q '\[luminos\] shot $shot\$' out/run.log; do sleep 0.5; done"; then
                 sleep 8   # llvmpipe renders a frame every few seconds; the client holds the scene still until we ack
                 import -display :99 -window root "out/$shot-${{ matrix.mc }}.png" 2>> out/capture.log && echo "captured $shot" >> out/capture.log || echo "capture $shot FAILED" >> out/capture.log
@@ -104,3 +109,73 @@ jobs:
         with:
           name: smoke-${{ matrix.mc }}-${{ matrix.variant }}
           path: out
+
+  startup-bench:
+    needs: client-jars
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.only != 'shots' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - uses: actions/download-artifact@v4
+        with:
+          name: smoke-jar-1.21.11
+          path: jar
+      - name: System libraries (software GL + X)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 libopenal1 libxrandr2 libxxf86vm1 libxcursor1 libxi6 libxinerama1 libpulse0 x11-utils mesa-vulkan-drivers
+      - name: Build the harness
+        working-directory: launcher
+        run: cargo build -p luminos-core --example smoke --release
+      - name: Run 3 x (Sodium-only, Luminos profile), alternating
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          GALLIUM_DRIVER: llvmpipe
+          vblank_mode: "0"
+          MESA_GL_VERSION_OVERRIDE: "4.6"
+          MESA_GLSL_VERSION_OVERRIDE: "460"
+          LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
+          LUMINOS_STARTUP_ONLY: "1"
+        run: |
+          export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc1.21.11.jar | head -1)"
+          Xvfb :99 -ac -screen 0 1920x1080x24 +extension GLX +render -noreset > xvfb.log 2>&1 &
+          sleep 2; export DISPLAY=:99
+          mkdir -p bench
+          for i in 1 2 3; do
+            for v in sodium-only full; do
+              LUMINOS_SMOKE_VARIANT=$v launcher/target/release/examples/smoke 1.21.11 bench/$v-$i > bench/$v-$i.log 2>&1 || true
+              echo "run $i $v: $(cat bench/$v-$i/result.json 2>/dev/null | tr -d '\n ' | cut -c1-300)"
+            done
+          done
+      - name: Table
+        if: always()
+        run: |
+          cat > table.py <<'PY'
+          import json, glob, statistics as st
+          rows = {}
+          for f in sorted(glob.glob('bench/*-[0-9]/result.json')):
+              d = json.load(open(f)); rows.setdefault(d['variant'], []).append(d)
+          print('| variant | mods | runs | resources-ready s (each run) | median s |')
+          print('|---|---|---|---|---|')
+          med = {}
+          for v, rs in rows.items():
+              xs = [r.get('gui_atlas_seconds') for r in rs if r.get('gui_atlas_seconds')]
+              med[v] = st.median(xs) if xs else None
+              if xs: print(f"| {v} | {rs[0].get('mods')} | {len(rs)} | {', '.join(f'{x:.1f}' for x in xs)} | {med[v]:.1f} |")
+              else: print(f"| {v} | - | {len(rs)} | no marker seen | - |")
+          if med.get('sodium-only') and med.get('full'):
+              print(f"\nLuminos profile / Sodium-only = {med['full']/med['sodium-only']:.2f}x (target in the brief: <= 0.60x)")
+          PY
+          python3 table.py | tee bench/startup-table.md >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: startup-bench
+          path: bench

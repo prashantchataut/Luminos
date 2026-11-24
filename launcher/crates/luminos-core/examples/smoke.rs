@@ -38,12 +38,19 @@ fn main() {
         .filter(|m| m.default_on)
         .filter(|m| match variant.as_str() {
             "minimal" => m.slug == "fabric-api",
+            // the baseline the brief compares against: Fabric API + Sodium and nothing else (the Luminos jar is left out below)
+            "sodium-only" => m.slug == "fabric-api" || m.slug == "sodium",
             "no-skin" => !m.slug.contains("skin"),
             "no-render" => !render_mods.iter().any(|r| m.slug.contains(r)),
             _ => true,
         })
         .collect();
     println!("VARIANT {variant}: {} mods", mods.len());
+    if variant == "sodium-only" {
+        std::env::remove_var("LUMINOS_CLIENT_JAR");
+    }
+    // LUMINOS_STARTUP_ONLY=1: stop as soon as the game is ready (title marker, or the last vanilla atlas for the baseline) and record timings.
+    let startup_only = std::env::var("LUMINOS_STARTUP_ONLY").is_ok() || variant == "sodium-only";
     let report = preset::install(&inst, &mods, |i, t, n| eprintln!("install {i}/{t} {n}"));
     println!("INSTALLED {} mods; skipped {}", report.ok.len(), report.skipped.len());
     for (n, why) in &report.skipped {
@@ -83,12 +90,20 @@ fn main() {
     let mut bad: Vec<String> = vec![];
     let mut last_growth = Instant::now();
     let mut dumps = 0;
+    // Same vanilla marker in every variant: the GUI atlas is stitched at the end of the first resource reload, just before the title screen.
+    let mut atlas_at: Option<f64> = None;
+    let mut title_at: Option<f64> = None;
+    let mut ready_since: Option<Instant> = None;
     loop {
         let lines = h.log_tail(100_000);
         for l in lines.iter().skip(seen) {
             println!("GAME {l}");
+            if atlas_at.is_none() && l.contains("textures/atlas/gui.png-atlas") {
+                atlas_at = Some(started.elapsed().as_secs_f64());
+            }
             if l.contains("[luminos] title-screen reached") {
                 title = true;
+                title_at = Some(started.elapsed().as_secs_f64());
             }
             if l.contains("[luminos] smoke-ok") {
                 ok = true;
@@ -108,6 +123,15 @@ fn main() {
             last_growth = Instant::now();
         }
         seen = lines.len();
+        if startup_only {
+            // baseline has no Luminos marker: give the game 8 s after the atlas line to reach the title, then count it as ready
+            if atlas_at.is_some() && ready_since.is_none() { ready_since = Some(Instant::now()); }
+            if (title && atlas_at.is_some()) || ready_since.map_or(false, |t| t.elapsed() > Duration::from_secs(8)) {
+                title = true;
+                ok = true;
+                break;
+            }
+        }
         let exited = h.child.lock().unwrap().try_wait().ok().flatten().is_some();
         if (ok && exited) || exited || started.elapsed() > Duration::from_secs(420) {
             break;
@@ -121,6 +145,9 @@ fn main() {
     std::fs::write(out.join("result.json"), serde_json::to_string_pretty(&serde_json::json!({
         "minecraft": version, "variant": variant, "title_screen": title, "clean_exit_marker": ok, "incompatibilities": bad, "pass": pass,
         "seconds": started.elapsed().as_secs(),
+        "mods": mods.len(),
+        "gui_atlas_seconds": atlas_at, "title_marker_seconds": title_at,
+        "note": "seconds are measured from process spawn by the harness (500 ms polling); gui_atlas_seconds is the same vanilla log line in every variant",
     })).unwrap()).unwrap();
     println!("RESULT minecraft={version} title_screen={title} smoke_ok={ok} incompatibilities={} pass={pass}", bad.len());
     if !pass {

@@ -52,6 +52,6 @@ public final class TitleArt {
 			}
 		}
 		// horizon glow, dithered
-		for (int x = 0; x < w; x += CELL * 2) g.fill(x + (x / (CELL * 2) % 2) * CELL, horizon - CELL, x + (x / (CELL * 2) % 2) * CELL + CELL, horizon, 0xFF3C6BE0);
+		g.fill(0, horizon - 1, w, horizon, 0x663C6BE0);
 	}
 }

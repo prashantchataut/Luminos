@@ -216,6 +216,11 @@ public final class CoreTests {
 		check("doctor: low RAM first", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 900, 1536, 200, 8, 12, false, false)).id().equals("ram"));
 		check("doctor: full heap", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 3800, 4096, 200, 8, 12, false, false)).id().equals("heap"));
 		check("doctor: vanilla renderer", FpsDoctor.diagnose(new FpsDoctor.Snapshot(false, false, 40, 1500, 4096, 90, 14, 12, false, false)).id().equals("renderer"));
+		check("doctor: software renderer beats everything else", FpsDoctor.diagnose(new FpsDoctor.Snapshot(false, false, 40, 900, 1536, 5, 8, 12, false, false, true)).id().equals("software"));
+		check("doctor: llvmpipe is software", FpsDoctor.isSoftwareRenderer("llvmpipe (LLVM 15.0.7, 256 bits)"));
+		check("doctor: lavapipe is software", FpsDoctor.isSoftwareRenderer("llvmpipe / Lavapipe"));
+		check("doctor: a GeForce is not software", !FpsDoctor.isSoftwareRenderer("NVIDIA GeForce RTX 3060/PCIe/SSE2"));
+		check("doctor: null name is not software", !FpsDoctor.isSoftwareRenderer(null));
 		check("doctor: stutter vs low fps", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 200, 40, 12, false, false)).id().equals("stutter"));
 		check("doctor: distance", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 70, 18, 24, false, false)).id().equals("distance"));
 		check("doctor: vsync pinned", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 60, 17, 12, true, false)).id().equals("vsync"));

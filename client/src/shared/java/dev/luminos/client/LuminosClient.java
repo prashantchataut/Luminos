@@ -100,7 +100,24 @@ public final class LuminosClient implements ClientModInitializer {
 			new Step("panel-waypoints", mc -> { smokeSeedWaypoints(); panelScreen(mc, Panel.Tab.WAYPOINTS); }),
 			new Step("panel-support", mc -> { smokeSeedCrash(); panelScreen(mc, Panel.Tab.SUPPORT); }),
 			new Step("hud-editor", mc -> { Features.applyPreset("minimal"); Nav.open(mc, new HudEditorScreen(null)); }),
-			new Step("hud-editor-full", mc -> { Features.applyPreset("full"); Nav.open(mc, new HudEditorScreen(null)); }));
+			new Step("hud-editor-full", mc -> { Features.applyPreset("full"); Nav.open(mc, new HudEditorScreen(null)); }),
+			// ---- frames for the interaction GIF: every one is a real render of the real client, state set by the tour (no cursor, no mouse)
+			new Step("panel-all-scrolled", mc -> { var ps = panelScreen(mc, Panel.Tab.MODULES); ps.panel().smokeOpenAll(); ps.panel().smokeScroll(250); }),
+			new Step("type-1", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeSearch("f")),
+			new Step("type-2", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeSearch("ful")),
+			new Step("type-3", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeSearch("fullb")),
+			new Step("glass-0", mc -> { Config.get().glassIntensity = 0; panelScreen(mc, Panel.Tab.MODULES); }),
+			new Step("glass-35", mc -> { Config.get().glassIntensity = 35; panelScreen(mc, Panel.Tab.MODULES); }),
+			new Step("glass-100", mc -> { Config.get().glassIntensity = 100; panelScreen(mc, Panel.Tab.MODULES); }),
+			new Step("panel-comfortable", mc -> { Config.get().glassIntensity = 70; Config.get().comfortable = true; panelScreen(mc, Panel.Tab.MODULES); }),
+			new Step("drag-1", mc -> { Config.get().comfortable = false; Features.applyPreset("minimal"); smokeMove("fps", 8, 8); Nav.open(mc, new HudEditorScreen(null)); }),
+			new Step("drag-2", mc -> { smokeMove("fps", 230, 96); Nav.open(mc, new HudEditorScreen(null)); }),
+			new Step("drag-3", mc -> { smokeMove("fps", 430, 176); Nav.open(mc, new HudEditorScreen(null)); }));
+
+	/** Smoke tour only: put one HUD module at an absolute position, standing in for a mouse drag in the GIF frames. */
+	private static void smokeMove(String id, int x, int y) {
+		for (HudModule m : Modules.ALL) if (m.id().equals(id)) { Config.ModuleCfg c = Config.get().of(m); c.x = x; c.y = y; }
+	}
 	private static int smokeIdx;
 	private static boolean stepOpened;
 	private static int phaseTicks;

@@ -18,7 +18,8 @@ public final class Features {
 			() -> true, v -> {}, List.of(
 					Opt.slider("@glass", "Glass intensity", 0, 100, 70, 5, "%"),
 					Opt.toggle("@solid", "Solid panels", false),
-					Opt.toggle("@motion", "Reduce motion", false)), null, null);
+					Opt.toggle("@motion", "Reduce motion", false),
+					Opt.toggle("@comfy", "Comfortable rows", false)), null, null);
 
 	static {
 		for (HudModule m : Modules.ALL) ALL.add(fromHud(m));
@@ -79,6 +80,7 @@ public final class Features {
 			case "@glass" -> c.glassIntensity;
 			case "@solid" -> c.solidPanels ? 1 : 0;
 			case "@motion" -> c.reduceMotion ? 1 : 0;
+			case "@comfy" -> c.comfortable ? 1 : 0;
 			default -> Config.num(f.id + "." + o.key(), o.def());
 		};
 	}
@@ -92,6 +94,7 @@ public final class Features {
 			case "@glass" -> c.glassIntensity = Math.round(v);
 			case "@solid" -> c.solidPanels = v >= 0.5f;
 			case "@motion" -> c.reduceMotion = v >= 0.5f;
+			case "@comfy" -> c.comfortable = v >= 0.5f;
 			default -> Config.setNum(f.id + "." + o.key(), v);
 		}
 	}
@@ -99,7 +102,7 @@ public final class Features {
 	public static void optReset(Feature f) {
 		for (Opt o : f.opts) {
 			switch (o.key()) {
-				case "@scale", "@fov", "@glass", "@solid", "@motion" -> optSet(f, o, o.key().equals("@glass") ? 70 : o.def());
+				case "@scale", "@fov", "@glass", "@solid", "@motion", "@comfy" -> optSet(f, o, o.key().equals("@glass") ? 70 : o.def());
 				default -> Config.get().opt.remove(f.id + "." + o.key());
 			}
 		}

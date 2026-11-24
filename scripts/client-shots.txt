@@ -1,0 +1,1 @@
+title panel panel-all panel-search panel-popover panel-appearance panel-solid panel-hud panel-performance panel-cosmetics panel-keybinds panel-waypoints panel-support hud-editor hud-editor-full panel-all-scrolled type-1 type-2 type-3 glass-0 glass-35 glass-100 panel-comfortable drag-1 drag-2 drag-3

@@ -5,7 +5,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.ping.ServerboundPingRequestPacket;
 import net.minecraft.util.Util;
-import org.lwjgl.opengl.GL11;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,11 +23,33 @@ public final class Probes {
 
 	public static boolean loaded(String id) { return FabricLoader.getInstance().isModLoaded(id); }
 
-	/** GL_RENDERER, read once on the render thread. */
+	/**
+	 * True only when an OpenGL context is current on this thread. On 26.x Minecraft can run on its Vulkan backend, where a bare
+	 * {@code glGetString} does not throw: LWJGL aborts the whole JVM ("No context is current"). Every direct GL call goes through this check.
+	 */
+	public static boolean glCurrent() {
+		try {
+			org.lwjgl.opengl.GL.getCapabilities();   // throws IllegalStateException when LWJGL has no GL capabilities for this thread
+			return true;
+		} catch (Throwable t) { return false; }
+	}
+
+	/** The GPU name, from Minecraft's own device object (works on the OpenGL and Vulkan backends); GL_RENDERER only when a GL context is current. */
 	public static String gpu() {
 		if (gpu == null) {
-			try { String s = GL11.glGetString(GL11.GL_RENDERER); gpu = s == null ? "unknown GPU" : s; }
-			catch (Throwable t) { gpu = "unknown GPU"; }
+			String s = null;
+			try {
+				Object dev = Class.forName("com.mojang.blaze3d.systems.RenderSystem").getMethod("getDevice").invoke(null);
+				if (dev != null) {
+					for (String m : new String[]{"getRenderer", "getDeviceName"}) {
+						try { Object r = dev.getClass().getMethod(m).invoke(dev); if (r != null && !r.toString().isBlank()) { s = r.toString(); break; } } catch (ReflectiveOperationException ignored) { /* try the next accessor */ }
+					}
+				}
+			} catch (Throwable ignored) { /* API differs between Minecraft lines */ }
+			if (s == null && glCurrent()) {
+				try { s = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER); } catch (Throwable ignored) { /* fall through */ }
+			}
+			gpu = s == null ? "unknown GPU" : s;
 		}
 		return gpu;
 	}
@@ -63,7 +84,7 @@ public final class Probes {
 		if (advice != null && now - adviceAt < 1500) return advice;
 		Runtime rt = Runtime.getRuntime();
 		advice = FpsDoctor.diagnose(new FpsDoctor.Snapshot(loaded("sodium"), loaded("vulkanmod"), FabricLoader.getInstance().getAllMods().size(),
-				(rt.totalMemory() - rt.freeMemory()) >> 20, rt.maxMemory() >> 20, avgFps, p99Ms, mc.options.renderDistance().get(), mc.options.enableVsync().get(), loaded("iris")));
+				(rt.totalMemory() - rt.freeMemory()) >> 20, rt.maxMemory() >> 20, avgFps, p99Ms, mc.options.renderDistance().get(), mc.options.enableVsync().get(), loaded("iris"), FpsDoctor.isSoftwareRenderer(gpu())));
 		adviceAt = now;
 		return advice;
 	}
