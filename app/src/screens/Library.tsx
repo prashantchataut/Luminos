@@ -32,17 +32,17 @@ export default function Library({ boot }: { boot: Boot }) {
   return (
     <div className="max-w-[1180px]">
       <div className="flex items-center gap-2 mb-2.5">
-        <SearchBox inputRef={ref} value={q} onChange={setQ} placeholder="Search mods, shaders, packs. Luminos Picks come first." autoFocus />
+        <SearchBox inputRef={ref} value={q} onChange={setQ} placeholder="Search mods, shaders, packs. Our picks come first." autoFocus />
         <span className="badge">Minecraft {boot.instances[0]?.mc} · Fabric</span>
       </div>
       <div className="flex items-center gap-1.5 mb-3">{CATS.map((c) => <Chip key={c} on={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}<div className="flex-1" /><span className="t1 mute">CI = in the default preset our smoke test launches · Ref = recommended from upstream docs, not run by us</span></div>
-      <div className="eyebrow mb-1.5 px-1">{q ? `Results · ${shown.length}` : cat === "All" ? "Luminos Picks first, then popular Modrinth mods" : cat}</div>
+      <div className="eyebrow mb-1.5 px-1">{q ? `Results · ${shown.length}` : cat === "All" ? "Our picks first, then popular Modrinth mods" : cat}</div>
       <div className="grid grid-cols-2 gap-2.5 stagger">
         {shown.map((p) => {
           const m = meta[p.slug]; const w = warnings(p); const st = state[p.slug] || "idle"; const blocked = w.some((x) => x.tone === "bad");
           return (
-            <article key={p.slug} className="glass lift flex items-center gap-3 p-2.5" style={{ borderRadius: 12 }}>
-              <img src={m.icon} alt="" className="w-10 h-10 rounded-lg shrink-0" style={{ background: "rgba(2,4,13,.4)" }} />
+            <article key={p.slug} className="panel lift flex items-center gap-3 p-2.5" style={{ borderRadius: 12 }}>
+              <img src={m.icon} alt="" className="w-10 h-10 rounded-lg shrink-0" style={{ background: "color-mix(in srgb, var(--inset) 40%, transparent)" }} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5"><span className="t2 font-semibold truncate">{m.title.replace(/ \(.*\)/, "").replace("Concurrent Chunk Management Engine", "C2ME")}</span>{PICKS.includes(p) && <Badge tone={p.tested === "ci" ? "ok" : "mute"}>{p.tested === "ci" ? "CI" : "Ref"}</Badge>}{w.map((x) => <Badge key={x.t} tone={x.tone}><Icon n="warn" s={10} />{x.t}</Badge>)}</div>
                 <div className="t1 mute truncate">{p.reason}</div>
@@ -56,7 +56,7 @@ export default function Library({ boot }: { boot: Boot }) {
           );
         })}
       </div>
-      {!shown.length && <div className="glass p-6 text-center t2 mute">No match for “{q}” in this list. Clear the search or pick another category.</div>}
+      {!shown.length && <div className="panel p-6 text-center t2 mute">No match for “{q}” in this list. Clear the search or pick another category.</div>}
     </div>
   );
 }

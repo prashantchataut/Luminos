@@ -16,6 +16,7 @@ pub mod modrinth;
 pub mod mojang;
 pub mod mrpack;
 pub mod msauth;
+pub mod mojang;
 pub mod netaudit;
 pub mod news;
 pub mod paths;

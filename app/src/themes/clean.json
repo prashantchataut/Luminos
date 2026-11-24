@@ -1,0 +1,2 @@
+{ "luminosTheme": 1, "id": "clean", "name": "Clean", "base": "dark",
+  "tokens": { "bg": "#141516", "surface": "#1c1d1f", "surface2": "#26282b", "inset": "#101112", "line": "#35383c", "fg": "#f3f4f5", "mute": "#a9aeb4", "accent": "#3fb68b", "accentInk": "#06110d", "ok": "#5fd38d", "warn": "#e5b84b", "bad": "#f07178" } }

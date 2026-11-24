@@ -25,16 +25,16 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
       </div>
       <div className="grid gap-3 stagger" style={{ gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
         {shown.map((i) => (
-          <article key={i.id} className="glass lift overflow-hidden group">
+          <article key={i.id} className="panel lift overflow-hidden group">
             <div className="relative h-[104px]">
               <Cover version={i.mc} />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, rgba(2,4,13,.78))" }} />
+              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--inset) 78%, transparent))" }} />
               <div className="absolute left-2.5 bottom-2 flex items-center gap-1.5"><Badge tone="accent">{i.mc}</Badge><Badge>{i.loader}</Badge>{i.mods ? <Badge>{i.mods} mods</Badge> : null}</div>
               {playing === i.id && <div className="absolute right-2.5 top-2"><Badge tone="ok">Running</Badge></div>}
             </div>
             <div className="p-2.5">
               <div className="flex items-center gap-2">
-                {LOADER_ICON[i.loader] ? <img src={LOADER_ICON[i.loader]} alt="" className="w-6 h-6 rounded-md" /> : <span className="w-6 h-6 rounded-md grid place-items-center" style={{ background: "rgba(160,190,255,.12)" }}><Icon n="cube" s={14} /></span>}
+                {LOADER_ICON[i.loader] ? <img src={LOADER_ICON[i.loader]} alt="" className="w-6 h-6 rounded-md" /> : <span className="w-6 h-6 rounded-md grid place-items-center" style={{ background: "color-mix(in srgb, var(--color-fg) 12%, transparent)" }}><Icon n="cube" s={14} /></span>}
                 <div className="min-w-0 flex-1"><div className="t2 font-semibold truncate">{i.name}</div><div className="t1 mute truncate"><Icon n="clock" s={10} className="inline -mt-0.5 mr-1" />{fmtTime(i.playtime)} · {i.last} · Java {i.java}</div></div>
               </div>
               <div className="flex items-center gap-1 mt-2">
@@ -46,7 +46,7 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
             </div>
           </article>
         ))}
-        <button onClick={() => go("onboarding/4")} className="lift rounded-[14px] grid place-items-center t2 mute" style={{ minHeight: 190, border: "1px dashed rgba(190,210,255,.3)" }} aria-label="Create a new instance"><span className="text-center"><Icon n="plus" s={20} className="mx-auto mb-1" />New instance<span className="block t1">Luminos Performance profile</span></span></button>
+        <button onClick={() => go("onboarding/4")} className="lift rounded-[14px] grid place-items-center t2 mute" style={{ minHeight: 190, border: "1px dashed color-mix(in srgb, var(--color-fg) 30%, transparent)" }} aria-label="Create a new instance"><span className="text-center"><Icon n="plus" s={20} className="mx-auto mb-1" />New instance<span className="block t1">Luminos Performance profile</span></span></button>
       </div>
     </div>
   );

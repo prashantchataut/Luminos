@@ -6,18 +6,18 @@ import { set, useSettings } from "../store";
 /* ---- crosshair model: also the file format the client reads (luminos-client.json -> "crosshair") ---- */
 export type Cross = { name: string; shape: "cross" | "dot" | "circle" | "T" | "X"; thickness: number; gap: number; length: number; outline: number; color: string; opacity: number; dot?: boolean; ring?: boolean; spread: boolean };
 export const CROSS_PRESETS: Record<string, Cross> = {
-  "cross-gap": { name: "Gap Cross", shape: "cross", thickness: 2, gap: 3, length: 6, outline: 1, color: "#8fb4ff", opacity: 1, spread: true },
+  "cross-gap": { name: "Gap Cross", shape: "cross", thickness: 2, gap: 3, length: 6, outline: 1, color: "var(--color-accent)", opacity: 1, spread: true },
   "dot-ring": { name: "Dot + Ring", shape: "dot", thickness: 2, gap: 0, length: 0, outline: 1, color: "#ffffff", opacity: 1, ring: true, spread: false },
-  "tiny-dot": { name: "Tiny Dot", shape: "dot", thickness: 3, gap: 0, length: 0, outline: 1, color: "#7fe0b0", opacity: 1, spread: false },
-  "tactical-t": { name: "Tactical T", shape: "T", thickness: 2, gap: 3, length: 7, outline: 1, color: "#ffd37a", opacity: 1, spread: true },
-  "x-sharp": { name: "X Sharp", shape: "X", thickness: 2, gap: 2, length: 5, outline: 1, color: "#ff8d9a", opacity: 1, spread: false },
+  "tiny-dot": { name: "Tiny Dot", shape: "dot", thickness: 3, gap: 0, length: 0, outline: 1, color: "var(--color-ok)", opacity: 1, spread: false },
+  "tactical-t": { name: "Tactical T", shape: "T", thickness: 2, gap: 3, length: 7, outline: 1, color: "var(--color-warn)", opacity: 1, spread: true },
+  "x-sharp": { name: "X Sharp", shape: "X", thickness: 2, gap: 2, length: 5, outline: 1, color: "var(--color-bad)", opacity: 1, spread: false },
   "open-circle": { name: "Open Circle", shape: "circle", thickness: 1, gap: 0, length: 7, outline: 1, color: "#ffffff", opacity: .9, spread: true },
   "plus-dot": { name: "Plus Dot", shape: "cross", thickness: 2, gap: 4, length: 5, outline: 1, color: "#b6f06a", opacity: 1, dot: true, spread: true },
   "wide-hair": { name: "Wide Hairline", shape: "cross", thickness: 1, gap: 5, length: 7, outline: 0, color: "#ffffff", opacity: .85, spread: true },
 };
 const hexA = (h: string, a: number) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 export function drawCross(g: CanvasRenderingContext2D, c: Cross, cx: number, cy: number, px: number, spread = 0) {
-  const gap = c.gap + spread, col = hexA(c.color, c.opacity), out = hexA("#02040d", Math.min(1, c.opacity));
+  const gap = c.gap + spread, col = hexA(c.color, c.opacity), out = hexA("var(--inset)", Math.min(1, c.opacity));
   const rect = (x: number, y: number, w: number, h: number) => { if (c.outline) { g.fillStyle = out; g.fillRect((x - c.outline) * px, (y - c.outline) * px, (w + 2 * c.outline) * px, (h + 2 * c.outline) * px); } g.fillStyle = col; g.fillRect(x * px, y * px, w * px, h * px); };
   const t = c.thickness, h = t / 2;
   const arms = (dirs: string) => { if (dirs.includes("u")) rect(cx - h, cy - gap - c.length, t, c.length); if (dirs.includes("d")) rect(cx - h, cy + gap, t, c.length); if (dirs.includes("l")) rect(cx - gap - c.length, cy - h, c.length, t); if (dirs.includes("r")) rect(cx + gap, cy - h, c.length, t); };
@@ -73,14 +73,14 @@ export default function ClientPage() {
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           {(["pvp", "survival"] as const).map((id) => { const P = PRESETS[id]; const active = Object.entries(P.set).every(([k, v]) => (s as any)[k] === v); return (
-            <div key={id} className="glass p-3 flex flex-col gap-2">
-              <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-lg grid place-items-center" style={{ background: "rgba(143,180,255,.16)" }}><Icon n={P.icon} s={15} /></span><span className="t3 font-semibold flex-1">{P.name}</span>{active && <Badge tone="ok"><Icon n="check" s={10} />Active</Badge>}</div>
+            <div key={id} className="panel p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-lg grid place-items-center" style={{ background: "color-mix(in srgb, var(--color-accent) 16%, transparent)" }}><Icon n={P.icon} s={15} /></span><span className="t3 font-semibold flex-1">{P.name}</span>{active && <Badge tone="ok"><Icon n="check" s={10} />Active</Badge>}</div>
               <p className="t1 mute m-0" style={{ minHeight: 30 }}>{P.line}</p>
               <button className="btn btn-primary" onClick={() => { Object.entries(P.set).forEach(([k, v]) => set(k as any, v as any)); setCross({ ...CROSS_PRESETS[P.set.crosshair] }); }}>Apply preset</button>
             </div>); })}
         </div>
 
-        <div className="glass p-3">
+        <div className="panel p-3">
           <div className="flex items-center justify-between mb-2"><div className="eyebrow">Crosshair</div><div className="flex gap-1.5 items-center"><button className="btn !h-6" onClick={attack}><Icon n="target" s={11} />Preview attack</button><label className="btn !h-6 cursor-pointer"><Icon n="upload" s={11} />Import PNG<input className="sr-only" type="file" accept="image/png" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => setCustomPng(String(r.result)); r.readAsDataURL(f); }} /></label></div></div>
           <div className="grid grid-cols-8 gap-1.5 mb-3">{Object.entries(CROSS_PRESETS).map(([id, c]) => <button key={id} onClick={() => pick(id)} aria-label={`Crosshair preset ${c.name}`} aria-pressed={s.crosshair === id} title={c.name} className="lift rounded-lg p-0.5" style={{ border: `1px solid ${s.crosshair === id ? "var(--color-accent)" : "var(--color-line)"}` }}><Cross c={c} size={64} /></button>)}</div>
           <div className="grid gap-3" style={{ gridTemplateColumns: "140px 1fr" }}>
@@ -89,7 +89,7 @@ export default function ClientPage() {
               <div className="lrow justify-between"><span className="t2">Shape</span><div className="flex gap-1">{(["cross", "dot", "circle", "T", "X"] as const).map((sh) => <Chip key={sh} on={cross.shape === sh} onClick={() => edit({ shape: sh })}>{sh}</Chip>)}</div></div>
               {([["thickness", "Thickness", 1, 5], ["gap", "Gap", 0, 10], ["length", "Length", 1, 14], ["outline", "Outline", 0, 2]] as const).map(([k, l, a, b]) => <div key={k} className="lrow justify-between"><span className="t2">{l}</span><Slider label={l} value={cross[k]} min={a} max={b} onChange={(v) => edit({ [k]: v } as any)} /></div>)}
               <div className="lrow justify-between"><span className="t2">Opacity</span><Slider label="Opacity" value={Math.round(cross.opacity * 100)} min={20} max={100} fmt={(v) => v + "%"} onChange={(v) => edit({ opacity: v / 100 })} /></div>
-              <div className="lrow justify-between"><span className="t2">Colour</span><div className="flex items-center gap-1.5">{["#ffffff", "#8fb4ff", "#7fe0b0", "#ffd37a", "#ff8d9a", "#b6f06a"].map((c) => <button key={c} aria-label={`Colour ${c}`} onClick={() => edit({ color: c })} className="w-5 h-5 rounded-md" style={{ background: c, outline: cross.color === c ? "2px solid #fff" : "1px solid rgba(255,255,255,.25)", outlineOffset: 1 }} />)}</div></div>
+              <div className="lrow justify-between"><span className="t2">Colour</span><div className="flex items-center gap-1.5">{["#ffffff", "var(--color-accent)", "var(--color-ok)", "var(--color-warn)", "var(--color-bad)", "#b6f06a"].map((c) => <button key={c} aria-label={`Colour ${c}`} onClick={() => edit({ color: c })} className="w-5 h-5 rounded-md" style={{ background: c, outline: cross.color === c ? "2px solid #fff" : "1px solid color-mix(in srgb, var(--color-fg) 25%, transparent)", outlineOffset: 1 }} />)}</div></div>
               <div className="lrow justify-between"><span className="t2">Spread on attack</span><Switch label="Dynamic spread on attack" on={cross.spread} onChange={(v) => edit({ spread: v })} /></div>
             </div>
           </div>
@@ -97,14 +97,14 @@ export default function ClientPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="glass p-3">
+        <div className="panel p-3">
           <div className="eyebrow mb-2">Keystrokes layout</div>
           <div className="grid grid-cols-2 gap-2">
             {(["A", "B"] as const).map((k) => (
               <button key={k} onClick={() => set("keystrokes", k)} aria-pressed={s.keystrokes === k} className="lift text-left rounded-lg p-1" style={{ border: `1px solid ${s.keystrokes === k ? "var(--color-accent)" : "var(--color-line)"}` }}>
                 <div className="relative rounded-md overflow-hidden" style={{ aspectRatio: "16/9", background: "url(/covers/26.3.jpg) center/cover" }}>
-                  {k === "A" ? <div className="absolute left-2 top-2 flex flex-col gap-[5px] items-start"><div className="grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "rgba(2,4,13,.6)" : "transparent", color: "#fff" }}>{c}</span>)}</div><div className="flex gap-[3px]"><span className="w-[23px] h-3 rounded-[3px] bg-[rgba(2,4,13,.6)]" /><span className="w-[23px] h-3 rounded-[3px] bg-[rgba(2,4,13,.6)]" /></div><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">240 FPS</span></div>
-                    : <><div className="absolute left-1/2 -translate-x-1/2 bottom-[26px] grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "rgba(2,4,13,.6)" : "transparent" }}>{c}</span>)}</div><div className="absolute left-1/2 -translate-x-1/2 bottom-1.5 flex gap-px">{Array.from({ length: 9 }).map((_, i) => <span key={i} className="w-3 h-3 rounded-[2px] bg-[rgba(2,4,13,.55)] border border-white/20" />)}</div><div className="absolute right-3 bottom-1.5 flex flex-col gap-[3px] items-end"><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[rgba(2,4,13,.6)]">240 FPS</span></div></>}
+                  {k === "A" ? <div className="absolute left-2 top-2 flex flex-col gap-[5px] items-start"><div className="grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "color-mix(in srgb, var(--inset) 60%, transparent)" : "transparent", color: "#fff" }}>{c}</span>)}</div><div className="flex gap-[3px]"><span className="w-[23px] h-3 rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]" /><span className="w-[23px] h-3 rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]" /></div><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]">240 FPS</span></div>
+                    : <><div className="absolute left-1/2 -translate-x-1/2 bottom-[26px] grid grid-cols-3 gap-[3px]">{["", "W", "", "A", "S", "D"].map((c, i) => <span key={i} className="w-3.5 h-3.5 grid place-items-center rounded-[3px] text-[7px] font-bold" style={{ background: c ? "color-mix(in srgb, var(--inset) 60%, transparent)" : "transparent" }}>{c}</span>)}</div><div className="absolute left-1/2 -translate-x-1/2 bottom-1.5 flex gap-px">{Array.from({ length: 9 }).map((_, i) => <span key={i} className="w-3 h-3 rounded-[2px] bg-[color-mix(in srgb, var(--inset) 55%, transparent)] border border-white/20" />)}</div><div className="absolute right-3 bottom-1.5 flex flex-col gap-[3px] items-end"><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]">7 | 3 CPS</span><span className="px-1.5 text-[7px] font-bold rounded-[3px] bg-[color-mix(in srgb, var(--inset) 60%, transparent)]">240 FPS</span></div></>}
                 </div>
                 <div className="px-1 pt-1 flex items-center gap-1.5"><span className="t2 font-semibold whitespace-nowrap">Preset {k}</span>{k === "A" && <Badge>Default</Badge>}<span className="t1 mute truncate">{k === "A" ? "Top-left stack" : "Above hotbar"}</span></div>
               </button>
@@ -112,7 +112,7 @@ export default function ClientPage() {
           </div>
         </div>
 
-        <div className="glass p-2.5">
+        <div className="panel p-2.5">
           <div className="flex items-center justify-between mb-1"><div className="eyebrow">Quality of life · built in</div><div className="flex items-center gap-2"><span className="t1 mute">Compliance mode</span><Switch label="Compliance mode" on={comp} onChange={(v) => set("compliance", v)} /></div></div>
           {comp && <div className="t1 mb-1 px-1" style={{ color: "var(--color-warn)" }}>Compliance on: options servers may flag are switched off and locked.</div>}
           <div className="overflow-y-auto" style={{ maxHeight: 392 }}>
