@@ -31,6 +31,12 @@ public final class PanelScreen extends Screen {
 	public boolean mouseClicked(MouseButtonEvent e, boolean dbl) { return panel.click(e.x(), e.y(), e.button()); }
 
 	@Override
+	public boolean mouseDragged(MouseButtonEvent e, double dx, double dy) { return panel.drag(e.x(), e.y()) || super.mouseDragged(e, dx, dy); }
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent e) { panel.release(); return super.mouseReleased(e); }
+
+	@Override
 	public boolean mouseScrolled(double x, double y, double sx, double sy) { panel.scroll(sy); return true; }
 
 	@Override
@@ -50,6 +56,10 @@ public final class PanelScreen extends Screen {
 	@Override
 	public void onClose() {
 		Config.save();
+		Adapter.restoreBlur();
 		Nav.open(minecraft, parent);
 	}
+
+	@Override
+	public void removed() { Adapter.restoreBlur(); super.removed(); }
 }

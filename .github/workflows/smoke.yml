@@ -77,13 +77,13 @@ jobs:
           mkdir -p out
           # Start X ourselves with access control off. `xvfb-run` hides the display behind an Xauthority cookie, so the
           # separate `import` process below could never connect and the old capture failed silently (stderr went to /dev/null).
-          Xvfb :99 -ac -screen 0 1280x720x24 +extension GLX +render -noreset > out/xvfb.log 2>&1 &
+          Xvfb :99 -ac -screen 0 1920x1080x24 +extension GLX +render -noreset > out/xvfb.log 2>&1 &
           sleep 2
           export DISPLAY=:99
           : > out/run.log; : > out/capture.log
           # one capture per marker the client logs: cover = vanilla panorama (per-version cover art), title = Luminos title
           # screen, panel / panel-hud = the quick panel. Errors are kept in out/capture.log.
-          ( for shot in cover title panel panel-keys panel-hud panel-menu panel-waypoints panel-support panel-search; do
+          ( for shot in title panel panel-all panel-search panel-popover panel-appearance panel-solid panel-hud panel-performance panel-cosmetics panel-keybinds panel-waypoints panel-support hud-editor hud-editor-full; do
               if timeout 900 bash -c "until grep -q '\[luminos\] shot $shot\$' out/run.log; do sleep 0.5; done"; then
                 sleep 8   # llvmpipe renders a frame every few seconds; the client holds the scene still until we ack
                 import -display :99 -window root "out/$shot-${{ matrix.mc }}.png" 2>> out/capture.log && echo "captured $shot" >> out/capture.log || echo "capture $shot FAILED" >> out/capture.log

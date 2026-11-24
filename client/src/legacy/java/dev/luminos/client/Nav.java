@@ -23,4 +23,15 @@ final class Nav {
 	static void toast(Minecraft mc, String s) { if (mc.player != null) mc.player.displayClientMessage(Component.literal(s), true); }
 	static String version(Minecraft mc) { return mc.getLaunchedVersion(); }
 	static boolean windowActive(Minecraft mc) { return mc.isWindowActive(); }
+	static java.util.List<net.minecraft.world.item.ItemStack> containerItems(net.minecraft.world.item.component.ItemContainerContents c) {
+		java.util.List<net.minecraft.world.item.ItemStack> out = new java.util.ArrayList<>();
+		for (net.minecraft.world.item.ItemStack s : c.nonEmptyItems()) out.add(s);
+		return out;
+	}
+	static Object overlay(Minecraft mc) { return mc.getOverlay(); }
+	static java.util.List<net.minecraft.world.item.ItemStack> bundleItems(net.minecraft.world.item.component.BundleContents b) {
+		java.util.List<net.minecraft.world.item.ItemStack> out = new java.util.ArrayList<>();
+		for (net.minecraft.world.item.ItemStack s : b.items()) out.add(s);
+		return out;
+	}
 }

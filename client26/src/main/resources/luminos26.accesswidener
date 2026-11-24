@@ -1,0 +1,4 @@
+accessWidener v2 official
+# Render-loop input sampling: run a click the frame it arrives instead of at the next 20 TPS tick (no mixin needed).
+accessible method net/minecraft/client/Minecraft startAttack ()Z
+accessible method net/minecraft/client/Minecraft startUseItem ()V

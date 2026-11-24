@@ -9,21 +9,37 @@ public final class Hud {
 	public static void drawAll(Gfx g, Minecraft mc, boolean preview) {
 		for (HudModule m : Modules.ALL) {
 			Config.ModuleCfg c = Config.get().of(m);
-			if (c.enabled) drawOne(g, mc, m, c, preview);
+			if (!c.enabled) continue;
+			if (m.complianceFlagged() && Compliance.restricted(mc)) continue;   // a server may count it as an advantage: hidden, with the reason shown in the panel
+			drawOne(g, mc, m, c, preview);
 		}
 	}
 
 	public static void drawOne(Gfx g, Minecraft mc, HudModule m, Config.ModuleCfg c, boolean preview) {
 		int w = (int) (m.width(mc) * c.scale), h = (int) (m.height(mc) * c.scale);
-		int x = m.centered() ? (g.width() - w) / 2 : Math.max(0, Math.min(c.x, g.width() - w));
-		int y = m.centered() ? (g.height() - h) / 2 : Math.max(0, Math.min(c.y, g.height() - h));
+		int x = m.centered() ? (g.width() - w) / 2 : px(g.width(), w, c);
+		int y = m.centered() ? (g.height() - h) / 2 : py(g.height(), h, c);
 		g.push(x, y, c.scale);
 		m.render(g, mc, preview);
 		g.pop();
 	}
 
+	private static final int MARGIN = 4;
+
+	/** Configured x clamped to the screen, with a small margin: an anchor of 9999 means flush with the right edge. */
+	static int px(int screenW, int w, Config.ModuleCfg c) { return Math.max(0, Math.min(c.x, screenW - w - MARGIN)); }
+
+	static int py(int screenH, int h, Config.ModuleCfg c) { return Math.max(0, Math.min(c.y, screenH - h - MARGIN)); }
+
+	/** On-screen bounds of a module as {x, y, w, h}, scale applied. */
+	public static int[] bounds(Minecraft mc, HudModule m, Config.ModuleCfg c) {
+		int w = (int) (m.width(mc) * c.scale), h = (int) (m.height(mc) * c.scale);
+		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
+		return new int[]{m.centered() ? (sw - w) / 2 : px(sw, w, c), m.centered() ? (sh - h) / 2 : py(sh, h, c), w, h};
+	}
+
 	// ---- editor logic (no Minecraft screen types, so every version's Screen just delegates) ----
-	private static HudModule dragging;
+	private static HudModule dragging, dragged;
 	private static int grabX, grabY;
 	private static int guideX = -1, guideY = -1;
 	private static final int GRID = 4, MAGNET = 5;
@@ -32,8 +48,8 @@ public final class Hud {
 		for (int i = Modules.ALL.size() - 1; i >= 0; i--) {
 			HudModule m = Modules.ALL.get(i);
 			Config.ModuleCfg c = Config.get().of(m);
-			if (m.centered()) continue;
-			if (mx >= c.x && mx <= c.x + m.width(mc) * c.scale && my >= c.y && my <= c.y + m.height(mc) * c.scale) return m;
+			int[] b = bounds(mc, m, c);
+			if (mx >= b[0] && mx <= b[0] + b[2] && my >= b[1] && my <= b[1] + b[3]) return m;
 		}
 		return null;
 	}
@@ -47,8 +63,10 @@ public final class Hud {
 			Config.save();
 		} else {
 			dragging = m;
-			grabX = (int) mx - c.x;
-			grabY = (int) my - c.y;
+			int[] b = bounds(mc, m, c);
+			grabX = (int) mx - b[0];
+			grabY = (int) my - b[1];
+			dragged = m;
 		}
 		return true;
 	}
@@ -87,9 +105,12 @@ public final class Hud {
 	/** Alignment guides while dragging with snap on. */
 	public static void drawGuides(Gfx g) {
 		if (dragging == null) return;
-		if (guideX >= 0) g.fill(guideX, 0, guideX + 1, g.height(), 0xAA4F8CFF);
-		if (guideY >= 0) g.fill(0, guideY, g.width(), guideY + 1, 0xAA4F8CFF);
+		if (guideX >= 0) g.fill(guideX, 0, guideX + 1, g.height(), 0x66FFFFFF);
+		if (guideY >= 0) g.fill(0, guideY, g.width(), guideY + 1, 0x66FFFFFF);
 	}
+
+	/** The module being dragged right now, for the editor's coordinate chip. */
+	public static HudModule dragging() { return dragging; }
 
 	public static void release() {
 		if (dragging != null) Config.save();

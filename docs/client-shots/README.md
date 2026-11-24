@@ -1,3 +1,50 @@
+# Session 14: client UI overhaul (rounds)
+
+Captured from the **real running client** (Loom `runClient`, Minecraft 1.21.11, software OpenGL under Xvfb) by `scripts/capture-client.sh`:
+**1920x1080 at GUI scale 2 = the 960x540 layout at 2x density.** Three rounds of 15 screens each are in `rounds/<screen>-<n>.png`
+(45 files). The world behind the panel is whatever the dev client's title-screen panorama shows. **Not captured for 26.3**: CI (`smoke.yml`) was updated to
+the same tour and screen size, but its output is not in this PR yet. A short slideshow GIF of round 3 is `luminos-client-tour.gif`
+(stills, **not a screen recording**: it does not show a live right-click, a drag, or the blur animating).
+
+## Screens and one-line critiques
+Skill rule note per screen (liquid-glass = Core Principles 1-5 + Accessibility list; taste-skill s.5 = one system / equal edges; game-ui-ux = event-driven HUD, screen stack; ui-ux-pro-max = hierarchy, [text-contrast]; icon-system = one grid, one weight; reanimate/emil = spring and reduced motion).
+
+| Screen | R1 critique (what was wrong) | R2 | R3 | Skills applied |
+|---|---|---|---|---|
+| Quick panel, main list (`panel-*`) | Lavender accent on the switches; name and description lines touching in a 22 px row; caret hid the first placeholder letter | accent now cyan, rows 24 px, caret fixed: reads clean | panel made taller (236) so six rows show; real blur and 0.08-0.18 tint visible | liquid-glass 1,2,4,5; ui-ux-pro-max hierarchy; taste-skill s.5 |
+| Search active (`panel-search-*`) | field focused on open with accent ring, a bit loud | ring softened; result row correct | unchanged | ui-ux-pro-max [focus-visible] |
+| Module settings popover (`panel-popover-*`) | rows showed through the popover | made nearly opaque (`F2`): readable | unchanged | liquid-glass Accessibility (contrast) |
+| Panel appearance (`panel-appearance-*`) | - | glass-intensity slider, Solid and Reduce-motion switches render | unchanged | liquid-glass Accessibility (reduced transparency) |
+| Solid fallback (`panel-solid-*`) | - | - | **VERIFIED**: opaque graphite, no blur; same layout | liquid-glass Accessibility |
+| HUD layout tab (`panel-hud-*`) | preset caption overflowed the card | not fixed in R2 | caption fitted in code after R3 (see "Known defects") | taste-skill s.5 |
+| HUD editor, Minimal and Full (`hud-editor-*`) | perf overlay and inventory HUD drew on top of each other; target HUD text clipped | positions and width fixed | toolbar, dot grid, glass plates, icon potions and neutral keystrokes all render. Off modules show as quiet outlines; **the bottom-left outlines are large because their sample size is large** | game-ui-ux (HUD from state), Lunar hierarchy |
+| Title screen (`title-*`) | first run crashed in the real client ("Can only blur once per frame"): fixed in `Adapter.blur` | glass column, neutral type, no yellow splash, no blue bars | unchanged | liquid-glass 1,3; taste-skill s.5 |
+| Performance tab (`panel-performance-*`) | click-test caption ran off the card | still overflowed | **root cause found after R3**: I passed `Glass.fit` a width divided by the label scale (9 call sites). Fixed in code, **not re-captured** | ui-ux-pro-max [text-contrast]; game-ui-ux |
+| Cosmetics, Keybinds, Waypoints, Support (`panel-*`) | captured every round; **not individually inspected beyond cosmetics**, where the footnote overflowed (same `fit` bug, fixed in code) | | | taste-skill s.5 |
+
+## Measured contrast (text ink over the sampled row-card background in round 3)
+| Surface | Card bg | Primary ink | Secondary ink | Label ink (old `#8A93A3`) |
+|---|---|---|---|---|
+| Glass 70 % | rgb(49,52,53) | 11.4:1 | 6.9:1 | **4.1:1 (FAIL AA 4.5)** |
+| Solid panels | rgb(37,40,49) | 13.4:1 | 8.0:1 | 4.8:1 |
+After this measurement the label ink was lightened to `#9BA4B4`; the new value is **expected** to clear 4.5:1 on glass by arithmetic and has **not** been re-measured from a capture. The sample is the average of 40 pixels beside the toggles, on a dark dev world; a bright world or a high-intensity setting will change it. The scrim is darker when glass is clearer for this reason.
+
+## Anti-slop checklist (taste-skill s.5) and liquid-glass accessibility, by eye on rounds 2-3
+| Check | Result |
+|---|---|
+| One accent, everything else neutral | pass (cyan on switches, focus ring, active tab bar; keystrokes and plates are neutral) |
+| No violet/lavender | pass after R1 (periwinkle removed) |
+| Icons not letters-in-circles | pass: 8x8 voxel set, every row and tab |
+| Equal edges / one radius scale | pass (radius 3, 5, 9 only) |
+| Text overflow | **fail** in R1-R3 on captions; fixed in code, not re-captured |
+| prefers-reduced-transparency | implemented for Windows and macOS (`Glass.probeOs`); **never tested on those OSes**; Linux has no switch. In-app Solid toggle verified |
+| Reduce motion | implemented (`Anim` snaps); **no capture can show it** |
+| Contrast on translucent surfaces | measured above; labels failed before the fix |
+| Keyboard / screen reader | **open**: popover and sliders are mouse-only; no narrator wiring |
+
+## Known defects
+Caption overflow fixed after the last capture (re-run `scripts/capture-client.sh 4` to confirm). `panel-all-*` is identical to `panel-*` visually: the section list is not scrolled, so collapsed Visuals/Utility/Performance groups are not shown in any capture. HUD editor shows disabled modules with sample sizes.
+
 # Client screenshots (session 13)
 
 Every PNG here was captured **from the real running client** (Fabric Loader + Minecraft under Xvfb with software OpenGL,

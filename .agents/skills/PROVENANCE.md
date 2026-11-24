@@ -26,3 +26,12 @@ Anthropic frontend-design / webapp-testing / theme-factory and vercel web-design
 
 Session 13: UI Hall **does** exist (github.com/NikitHamal/UiHall); the session 12 note above saying it was not found was wrong. Installed now.
 Not installed this session despite the brief: any additional game-UI / animation / accessibility skills beyond those listed (emil-kowalski-skills, ibelick-ui-skills incl. fixing-accessibility, reanimate). skills.sh was not browsed.
+
+Session 14 (client UI overhaul):
+| liquid-glass | github.com/fengshao1227/ccg-workflow @main, templates/skills/domains/frontend-design/liquid-glass/SKILL.md | MIT (per SKILL.md front matter) |
+| game-ui-ux | github.com/gamedev-skills/awesome-gamedev-agent-skills @c6ca6c4, skills/disciplines/game-ui-ux | see repo |
+| game-ui-design | github.com/omer-metin/skills-for-antigravity @e8dcf4e, skills/game-ui-design | Apache-2.0 (per catalog) |
+| icon-system | github.com/Owl-Listener/designer-skills @9a6930c, design-systems/skills/icon-system | see repo |
+Not installed: `icon-designer` (eddiebe147/claude-settings): the repository could not be cloned anonymously, so it was skipped rather than faked.
+Already present and used again: taste-skill, ui-ux-pro-max, uihall, reanimate, rea (+ rea-morluto), emil-kowalski-skills (animate / review-animations: the motion skills).
+skills.sh was browsed through search only (its catalogue is client-rendered); open-design.ai/skills was read in full (407 entries).

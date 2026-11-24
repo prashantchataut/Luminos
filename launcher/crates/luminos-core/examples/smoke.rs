@@ -73,7 +73,7 @@ fn main() {
     // A fresh profile opens the accessibility onboarding screen *before* the title screen, and nobody clicks it in CI.
     // Skip it (and vsync, which stalls presents on a virtual display) the way a returning player's options.txt would.
     let opts = inst.game_dir().join("options.txt");
-    let _ = std::fs::write(&opts, "onboardAccessibility:false\nenableVsync:false\nmaxFps:30\nskipMultiplayerWarning:true\ntutorialStep:none\njoinedFirstServer:true\nnarrator:0\n");
+    let _ = std::fs::write(&opts, "onboardAccessibility:false\nenableVsync:false\nmaxFps:30\nguiScale:2\noverrideWidth:1920\noverrideHeight:1080\nskipMultiplayerWarning:true\ntutorialStep:none\njoinedFirstServer:true\nnarrator:0\n");
     std::env::set_var("LUMINOS_SMOKE", "1");
     let h = launch::spawn(&inst, &settings, &Account::offline("LuminosCI"), &prep).expect("spawn");
     let started = Instant::now();

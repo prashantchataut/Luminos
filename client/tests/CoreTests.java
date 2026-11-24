@@ -40,6 +40,7 @@ public final class CoreTests {
 		waypoints();
 		palettes();
 		frames();
+		luminosUx();
 		System.out.println(passed + " passed, " + failed + " failed");
 		if (failed > 0) System.exit(1);
 	}
@@ -207,5 +208,58 @@ public final class CoreTests {
 		String row = BenchReport.row("Test box", before, after, false, "llvmpipe, not real hardware");
 		check("unverified row says so", row.contains("UNVERIFIED (llvmpipe, not real hardware)") && row.contains("+50.0%"));
 		check("verified row says so", BenchReport.row("x", before, after, true, null).endsWith("| VERIFIED |"));
+	}
+	static void luminosUx() {
+		// FPS doctor: one concrete change, first matching rule wins
+		var base = new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 200, 8, 12, false, false);
+		check("doctor: healthy client", FpsDoctor.diagnose(base).id().equals("ok"));
+		check("doctor: low RAM first", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 900, 1536, 200, 8, 12, false, false)).id().equals("ram"));
+		check("doctor: full heap", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 3800, 4096, 200, 8, 12, false, false)).id().equals("heap"));
+		check("doctor: vanilla renderer", FpsDoctor.diagnose(new FpsDoctor.Snapshot(false, false, 40, 1500, 4096, 90, 14, 12, false, false)).id().equals("renderer"));
+		check("doctor: stutter vs low fps", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 200, 40, 12, false, false)).id().equals("stutter"));
+		check("doctor: distance", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 70, 18, 24, false, false)).id().equals("distance"));
+		check("doctor: vsync pinned", FpsDoctor.diagnose(new FpsDoctor.Snapshot(true, false, 40, 1500, 4096, 60, 17, 12, true, false)).id().equals("vsync"));
+		check("doctor: always one sentence", FpsDoctor.diagnose(base).change().endsWith("."));
+		// renderer advisor
+		check("nvidium: RTX is Turing+", RendererAdvisor.nvidiaTuringOrNewer("NVIDIA GeForce RTX 3060/PCIe/SSE2"));
+		check("nvidium: GTX 16 is Turing", RendererAdvisor.nvidiaTuringOrNewer("NVIDIA GeForce GTX 1660 Ti"));
+		check("nvidium: GTX 10 is not", !RendererAdvisor.nvidiaTuringOrNewer("NVIDIA GeForce GTX 1060"));
+		check("nvidium: AMD is not", !RendererAdvisor.nvidiaTuringOrNewer("AMD Radeon RX 7800 XT"));
+		var rec = RendererAdvisor.advise("NVIDIA GeForce RTX 4070", true, true, false, false, false);
+		check("advisor: three rows", rec.size() == 3 && rec.get(0).state() == RendererAdvisor.State.ACTIVE);
+		check("advisor: vulkanmod available without shaders", rec.get(1).state() == RendererAdvisor.State.AVAILABLE && rec.get(1).oneLine().contains("1538"));
+		check("advisor: nvidium available on RTX + Sodium", rec.get(2).state() == RendererAdvisor.State.AVAILABLE);
+		check("advisor: shaders block vulkanmod and nvidium", RendererAdvisor.advise("NVIDIA RTX 4070", true, true, false, false, true).stream().skip(1).allMatch(r -> r.state() == RendererAdvisor.State.BLOCKED));
+		check("advisor: nvidium needs sodium", RendererAdvisor.advise("NVIDIA RTX 4070", true, false, false, false, false).get(2).state() == RendererAdvisor.State.BLOCKED);
+		check("advisor: no vulkan runtime blocks vulkanmod", RendererAdvisor.advise("Intel UHD", false, true, false, false, false).get(1).state() == RendererAdvisor.State.BLOCKED);
+		// frame pacer
+		var fp = new FramePacer(3);
+		for (int i = 0; i < 60; i++) fp.record(8.0, 7.8);
+		check("pacer: CPU-bound never waits", fp.waitMs() == 0);
+		fp = new FramePacer(3);
+		for (int i = 0; i < 60; i++) fp.record(10.0, 4.0);
+		check("pacer: GPU-bound waits, capped", fp.waitMs() > 0 && fp.waitMs() <= 3.0);
+		fp = new FramePacer(3);
+		for (int i = 0; i < 60; i++) fp.record(5.0, 3.5);
+		check("pacer: small slack proportional", fp.waitMs() > 0 && fp.waitMs() < 1.5);
+		fp = new FramePacer(3);
+		fp.record(900, 10);
+		check("pacer: ignores hitches", fp.waitMs() == 0);
+		// click stats
+		var cs = new ClickStats();
+		long t0 = 5_000_000_000L;
+		cs.press(t0); cs.press(t0 + 10_000_000L); cs.press(t0 + 20_000_000L);   // three presses inside one 50 ms tick
+		cs.onFrame(t0 + 22_000_000L);
+		cs.onTick(t0 + 40_000_000L);
+		long now = t0 + 100_000_000L;
+		check("clicks: raw sees all three", cs.rawPerSecond(now) == 3);
+		check("clicks: vanilla tick merges them into one", cs.tickPerSecond(now) == 1);
+		check("clicks: frame wait is shorter than tick wait", cs.avgFrameWaitMs() < cs.avgTickWaitMs() && Math.abs(cs.avgTickWaitMs() - 30.0) < 1e-6);
+		check("clicks: old presses expire", cs.rawPerSecond(now + 2_000_000_000L) == 0);
+		// presets
+		check("preset: minimal is exactly five modules", HudPresets.enabled("minimal").equals(java.util.Set.of("fps", "cps", "ping", "armor_hud", "potions")));
+		check("preset: unknown name falls back to minimal", HudPresets.enabled("zzz").size() == 5 && HudPresets.enabled(null).size() == 5);
+		check("preset: competitive is a superset of minimal", HudPresets.enabled("competitive").containsAll(HudPresets.enabled("minimal")));
+		check("preset: full is a superset of competitive minus nothing important", HudPresets.enabled("full").containsAll(HudPresets.enabled("minimal")));
 	}
 }

@@ -1,3 +1,23 @@
+# START HERE (session 14: client UI overhaul + input path, PR #13)
+
+Read this block first. It supersedes the status lines below for the *client UI only*.
+
+| Thing | Status |
+|---|---|
+| Liquid-glass quick panel (blur + 0.08-0.18 tint + hairline + highlight, spring motion), solid fallback, glass-intensity slider, OS reduced-transparency probe | **VERIFIED in the real client** (45 captures); OS probe UNVERIFIED on Windows/macOS |
+| Search-first, grouped collapsible sections with counts, 24 px icon rows, right-click popover with sliders and switches, favourites | **VERIFIED** (render); right-click by a real mouse, slider drag and favourites reorder not exercised |
+| HUD: icon potions, neutral glass keystrokes, health/hunger/absorption, armor with durability, target HUD, ping (server + measured), debug lite, inventory HUD, Minimal/Competitive/Full presets | **VERIFIED** (editor render with sample data); in-world values COMPILED only |
+| Fullbright (gamma, capped at vanilla 1.0), shulker/bundle/ender tooltip, compliance reasons | COMPILED on 1.21.11 and 26.3; not seen in a world |
+| Render-loop input sampling, tap latching, frame-queue guard, Click test | COMPILED + core logic tested (136 assertions); **behaviour in a world UNVERIFIED** |
+| FPS doctor, renderer picker | **VERIFIED** (logic tests + render) |
+| Freecam, freelook, chat tabs, replay browser, outfits/animated capes, F3 *replacement* (a compact Debug lite exists), launcher-side startup/mixin caching, conflicting-mod dropping | **NOT BUILT** (see docs/PERF.md) |
+| Startup < 60% of Sodium-only; FPS vs Sodium/VulkanMod/Nvidium | **UNVERIFIED, no data** |
+| 26.3 screenshots | NOT in this PR (CI tour updated, output not collected) |
+| GIF | slideshow of stills only, not a recording |
+
+Next: run `scripts/capture-client.sh 4` and confirm the caption fix; collect 26.3 from `smoke.yml`; measure startup and FPS on three real machines; build freecam only with an input-freeze mixin.
+**Security:** a GitHub PAT was pasted into chat again. It was used only for a one-off `http.extraHeader` push and PR edit and is not stored anywhere. **Revoke it** and use a fine-grained token scoped to this repository.
+
 # START HERE (session 13 handover: client foundation, PR #13)
 
 **Read this before trusting any other doc.** The session-13 brief asked for the whole in-game client (about 60 features), a v0.8.0 release,

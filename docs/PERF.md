@@ -62,3 +62,24 @@ was measured, and no figure was estimated or carried over from another client's 
 Why CI cannot fill this in: GitHub-hosted runners have no GPU. llvmpipe numbers say nothing about Sodium or the other mods,
 whose gains come from GPU draw-call and memory behaviour. The honest route is a self-hosted runner or a volunteer with
 three machines running the benchmark once it exists (manual script: `docs/client-shots/README.md`, "Manual tests").
+
+
+## Session 14: what was built, and what is NOT measured
+
+**No performance number in this section was measured on real hardware.** CI and this sandbox only have software GL (llvmpipe) and 2 CPU cores, which says nothing about Sodium, VulkanMod or Nvidium. Every number row below is therefore UNVERIFIED, and none is claimed.
+
+| Claim in the brief | Status | What exists |
+|---|---|---|
+| Client reaches the title screen in under 60% of a Sodium-only Fabric instance | **UNVERIFIED** | `StartupProbe` logs `jvm->init`, `init->title`, `total` in one line (`[luminos] startup ...`) and the Performance tab shows it with Developer tools on. No baseline instance was timed, so no ratio exists. The Luminos mod itself does one config read and registers events in `onInitializeClient`; the 60% target depends on the launcher's mixin and metadata caching, which was **not built** |
+| Parallel mod discovery, mixin cache, skipped resource reloads | **NOT BUILT** | These live in the launcher/engine, which this session was told not to touch |
+| FPS: Sodium vs Luminos profile vs VulkanMod/Nvidium on integrated / mid-range / high-end | **UNVERIFIED, no data** | Renderer picker states the *community* figure (about 1.8x Sodium at 16 chunks, 1538 vs 861 FPS on 1.21.11); that is quoted, not measured here |
+| Render-loop input sampling | **BUILT, behaviour in a world UNVERIFIED** | `InputSampler`: drains attack/use press counts every frame and runs `Minecraft.startAttack/startUseItem` (access widener, no mixin). Compiles on 1.21.11 and 26.3 and launches; **never exercised with a real mouse in a world** |
+| Input latency before/after | **UNVERIFIED** | `core/ClickStats` measures, from real timestamps, how long a press waits for the next tick vs the next frame. The Click test card shows it live. By construction vanilla waits 0-50 ms (25 ms mean) and sampling waits at most one frame; no real-device capture is recorded |
+| Frame-queue guard (Reflex-style) | **BUILT, off by default, UNVERIFIED** | A GL fence is dropped after each frame; the next frame waits for it for at most `frame_guard.max` ms only if the GPU has not finished. Costs nothing when CPU-bound. OpenGL only; never measured |
+| InputBooster-class tap latching | **BUILT, UNVERIFIED** | A sprint or jump tap shorter than a tick is held for exactly one tick |
+| Exordium-style HUD at a lower rate | **PARTIAL** | `HudModule.cached` recomputes HUD *data* at a fixed rate (default 30 Hz). It does not cache pixels (that needs a render-target mixin) |
+| Renderer picker | **BUILT, VERIFIED (logic + render)** | `core/RendererAdvisor`, 14 assertions; Performance tab. Never installs anything |
+| Drop mods that conflict with the chosen renderer | **NOT BUILT** | Needs the launcher's dependency solver |
+| "Why is my FPS low?" | **BUILT, VERIFIED** | `core/FpsDoctor` (8 assertions). In the real client it read the 1000 MB heap used for the capture and said to raise RAM (`docs/client-shots/rounds/panel-performance-*.png`) |
+
+Reproduce a startup number: launch twice (Luminos jar alone, then the same jar plus Sodium) and compare the `[luminos] startup ... total` lines in `logs/latest.log`.
