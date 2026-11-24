@@ -84,7 +84,7 @@ public final class Panel {
 				for (HudModule m : ModuleSearch.rank("", ordered, HudModule::id, HudModule::title, x -> "", new HashSet<>(cfg.favourites))) {
 					Config.ModuleCfg c = cfg.of(m);
 					String fav = cfg.favourites.contains(m.id()) ? "FAV  -  " : "";
-					r.add(new Row(m.title(), fav + "HUD module  -  " + (c.enabled ? "visible" : "hidden") + "  -  right-click", c.enabled ? "ON" : "OFF", c.enabled, null,
+					r.add(new Row(m.title(), fav + "HUD module  -  " + (c.enabled ? "visible" : "hidden"), c.enabled ? "ON" : "OFF", c.enabled, null,
 						() -> { c.enabled = !c.enabled; Config.save(); }, m.id(), 0));
 				}
 				r.add(new Row("Toggle sprint", "Tap W once, keep sprinting", cfg.toggleSprint ? "ON" : "OFF", cfg.toggleSprint, null, () -> { cfg.toggleSprint = !cfg.toggleSprint; Config.save(); }));
@@ -394,9 +394,9 @@ public final class Panel {
 			rowHits.add(new RowHit(x, yy, cardW, cardH, row));
 			box(g, x, yy, cardW, cardH, hot ? CARD_HOT : CARD, row.active && row.reason == null ? 0xFF35549E : 0xFF1F2E5F);
 			int bw = g.textWidth(row.badge) + 10;
-			g.text(fit(g, row.title, cardW - bw - 22), x + 8, yy + 6, a(enabled || row.act == null && row.reason == null ? TEXT : DIM));
+			g.text(fit(g, row.title, cardW - bw - 22), x + 8, yy + 4, a(enabled || row.act == null && row.reason == null ? TEXT : DIM));
 			String sub = row.reason != null ? row.reason : row.sub;
-			g.text(fit(g, sub, cardW - 14), x + 8, yy + (cardH - 14), a(row.reason != null ? warn() : DIM));
+			g.text(fit(g, sub, cardW - 14), x + 8, yy + (cardH - 12), a(row.reason != null ? warn() : DIM));
 			int bc = row.reason != null ? 0xFF3A3A50 : row.active ? 0xFF2C4F9C : 0xFF1B2547;
 			g.fill(x + cardW - bw - 6, yy + 5, x + cardW - 6, yy + 17, a(bc));
 			g.text(row.badge, x + cardW - bw - 1, yy + 7, a(row.reason != null ? DIM : row.badge.equals("ON") || row.badge.equals("ACTIVE") || row.badge.equals("LOADED") ? ok() : TEXT));
@@ -412,7 +412,7 @@ public final class Panel {
 			hits.add(new Hit(sx + cw - 20, py - 3, 20, 14, () -> page = Math.min(pages - 1, page + 1)));
 		}
 		if (System.currentTimeMillis() - toastAt < 2200) g.text(fit(g, toast, cw - (pages > 1 ? 64 : 4)), sx + 4, py, a(ok()));
-		else g.text(query.length() > 0 ? rows.size() + " results across all tabs" : "Esc closes", sx + 4, py, a(DIM));
+		else g.text(query.length() > 0 ? rows.size() + " results across all tabs" : tab == Tab.MODULES ? "Right-click a module for options  -  Esc closes" : "Esc closes", sx + 4, py, a(DIM));
 		if (ctxId != null) drawContext(g);
 		g.pop();
 	}

@@ -6,7 +6,7 @@ import java.util.List;
 
 /** A saved position with a label, colour and dimension. Persisted as one string per waypoint inside the client config. */
 public record Waypoint(String name, int x, int y, int z, String dimension, int rgb) {
-	public static final int[] PALETTE = {0x4F8CFF, 0x5BE3A0, 0xFFC857, 0xFF7A90, 0xC792FF, 0x56D6E6};
+	public static final int[] PALETTE = {0x4F8CFF, 0x5BE3A0, 0xFFC857, 0xFF7A90, 0xFF8F5B, 0x56D6E6};
 
 	public Waypoint {
 		name = clean(name);

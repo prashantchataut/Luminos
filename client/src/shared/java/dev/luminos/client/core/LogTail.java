@@ -16,6 +16,9 @@ public final class LogTail {
 	public static Level level(String line) {
 		if (line.contains("/ERROR]") || line.contains("[ERROR]") || line.contains("] ERROR")) return Level.ERROR;
 		if (line.contains("/WARN]") || line.contains("[WARN]") || line.contains("] WARN")) return Level.WARN;
+		// An explicit INFO/DEBUG/TRACE tag wins: "[Download-1/INFO]: Could not authenticate ... Exception: ..." is not an error line.
+		if (line.contains("/INFO]") || line.contains("[INFO]") || line.contains("/DEBUG]") || line.contains("/TRACE]")) return Level.INFO;
+		// Untagged lines are stack-trace continuations.
 		if (line.startsWith("Caused by:") || line.contains("Exception:")) return Level.ERROR;
 		return Level.INFO;
 	}

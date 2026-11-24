@@ -139,6 +139,8 @@ public final class CoreTests {
 		check("log keeps Caused by", warn.get(2).startsWith("Caused by:"));
 		check("log respects max lines", LogTail.filter(lines, 1, LogTail.Level.WARN).size() == 1);
 		check("log info level keeps all non-empty", LogTail.filter(lines, 50, LogTail.Level.INFO).size() == 5);
+		check("INFO line that mentions an exception stays INFO (seen in a real CI latest.log)", LogTail.level("[00:18:00] [Download-1/INFO]: Could not authenticate: java.net.UnknownHostException: x") == LogTail.Level.INFO);
+		check("untagged exception line is ERROR", LogTail.level("java.lang.IllegalStateException: Failed to open") == LogTail.Level.ERROR);
 		Path f = Files.createTempFile("luminos-log", ".log");
 		StringBuilder big = new StringBuilder();
 		for (int i = 0; i < 20000; i++) big.append("[t] [main/INFO]: filler line number ").append(i).append('\n');
