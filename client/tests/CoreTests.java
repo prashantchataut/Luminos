@@ -13,8 +13,9 @@ import java.util.function.Function;
 import java.util.zip.Deflater;
 
 /**
+ * Lives in client/tests (not src/test) so Gradle does not try to run it without a test framework.
  * Dependency-free test runner for the pure logic in {@code dev.luminos.client.core}.
- * Run: {@code javac -d out $(find src/shared/java/dev/luminos/client/core src/test -name '*.java') && java -cp out dev.luminos.client.core.CoreTests}
+ * Run: {@code javac -d out $(find src/shared/java/dev/luminos/client/core tests -name '*.java') && java -cp out dev.luminos.client.core.CoreTests}
  * Crash-report samples below are hand-written in the shape of the real Fabric/JVM messages; they are not captured from a live crash.
  */
 public final class CoreTests {
