@@ -91,7 +91,7 @@ export function Row({ title, desc, children }: { title: string; desc?: string; c
 }
 export function Badge({ tone = "mute", children }: { tone?: "ok" | "warn" | "bad" | "mute" | "accent"; children: ReactNode }) {
   const c = { ok: "var(--color-ok)", warn: "var(--color-warn)", bad: "var(--color-bad)", mute: "var(--color-mute)", accent: "var(--color-accent)" }[tone];
-  return <span className="inline-flex items-center gap-1.5 h-6 px-2.5 whitespace-nowrap shrink-0 rounded-full text-[11.5px] font-medium" style={{ color: c, background: `color-mix(in srgb, ${c} 16%, #060b22 84%)`, border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, backdropFilter: "blur(6px)" }}>{children}</span>;
+  return <span className="inline-flex items-center gap-1.5 h-6 px-2.5 whitespace-nowrap shrink-0 rounded-full text-[11.5px] font-medium" style={{ color: c, background: `color-mix(in srgb, ${c} 16%, var(--surface) 84%)`, border: `1px solid color-mix(in srgb, ${c} 38%, transparent)` }}>{children}</span>;
 }
 export function Tile({ name, hue = 220, size = 44 }: { name: string; hue?: number; size?: number }) {
   const ini = name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
@@ -100,8 +100,8 @@ export function Tile({ name, hue = 220, size = 44 }: { name: string; hue?: numbe
 export function Modal({ onClose, children, w = 560 }: { onClose: () => void; children: ReactNode; w?: number }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center" style={{ animation: "fade var(--dur-base) both" }} onClick={onClose}>
-      <div className="absolute inset-0  backdrop-blur-sm" />
-      <div className="relative panel p-6 rise" style={{ width: w, background: "color-mix(in srgb, var(--surface) 96%, transparent)" }} onClick={(e) => e.stopPropagation()}>{children}</div>
+      <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--bg) 80%, transparent)" }} />
+      <div className="relative panel p-6 rise" style={{ width: w }} onClick={(e) => e.stopPropagation()}>{children}</div>
     </div>
   );
 }

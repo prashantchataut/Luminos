@@ -17,7 +17,7 @@ export const SEED = {
   ] as Inst[],
   audit: {
     ok: true, checked: 31,
-    replaced: ["Sodium 0.9.4-beta.1 → 0.9.3 (stable)", "Luminos Client 0.2.0 → 0.3.0 (built for Minecraft 26.3)"],
+    replaced: ["Sodium 0.9.4-beta.1 → 0.9.3 (stable)", "Luminos Client 0.2.0 → 0.3.0 (for Minecraft 26.3)"],
     dropped: [{ name: "Iris Shaders", reason: "Only beta builds exist for Minecraft 26.3. Turn on “Allow beta mods” to use them." }],
     notes: ["Using Sodium 0.9.3 so Sodium Extra and Reese's Sodium Options can load."],
   } as AuditReport,
