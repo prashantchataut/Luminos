@@ -103,7 +103,7 @@ public final class Panel {
 	private Row featureRow(Feature f, Minecraft mc) {
 		String lock = f.lock == null ? null : f.lock.apply(mc);
 		boolean fav = Config.get().favourites.contains(f.id);
-		return new Row(f.name, lock != null ? lock : f.desc, lock != null ? "LOCKED" : yn(f.on()), f.on() && lock == null, lock, lock != null ? null : f::toggle, f.id, 0, f.icon, null, rowH());
+		return new Row(f.name, lock != null ? lock : f.desc, lock != null ? "LOCKED" : yn(f.on()), f.on() && lock == null, lock, lock != null ? null : f::toggle, f.id, 0, f.icon, null, Row.rowH());
 	}
 
 	private List<Row> rows(Tab t, Minecraft mc) {
