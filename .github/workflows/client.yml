@@ -28,6 +28,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
+      - name: Core logic tests (pure Java, no Minecraft)
+        working-directory: client
+        run: |
+          mkdir -p "$RUNNER_TEMP/core"
+          javac --release 21 -d "$RUNNER_TEMP/core" $(find src/shared/java/dev/luminos/client/core src/test -name '*.java')
+          java -cp "$RUNNER_TEMP/core" dev.luminos.client.core.CoreTests
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build --no-daemon
       - name: Verify the jar's declared Minecraft range accepts this version

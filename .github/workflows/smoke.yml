@@ -83,7 +83,7 @@ jobs:
           : > out/run.log; : > out/capture.log
           # one capture per marker the client logs: cover = vanilla panorama (per-version cover art), title = Luminos title
           # screen, panel / panel-hud = the quick panel. Errors are kept in out/capture.log.
-          ( for shot in cover title panel panel-keys; do
+          ( for shot in cover title panel panel-keys panel-hud panel-menu panel-waypoints panel-support panel-search; do
               if timeout 900 bash -c "until grep -q '\[luminos\] shot $shot\$' out/run.log; do sleep 0.5; done"; then
                 sleep 8   # llvmpipe renders a frame every few seconds; the client holds the scene still until we ack
                 import -display :99 -window root "out/$shot-${{ matrix.mc }}.png" 2>> out/capture.log && echo "captured $shot" >> out/capture.log || echo "capture $shot FAILED" >> out/capture.log

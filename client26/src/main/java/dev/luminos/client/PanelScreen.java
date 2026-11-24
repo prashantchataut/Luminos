@@ -24,6 +24,9 @@ public final class PanelScreen extends Screen {
 		panel.render(new Adapter(g), minecraft, mx, my);
 	}
 
+	/** For the CI smoke tour, which drives the panel without a mouse. */
+	public Panel panel() { return panel; }
+
 	@Override
 	public boolean mouseClicked(MouseButtonEvent e, boolean dbl) { return panel.click(e.x(), e.y(), e.button()); }
 

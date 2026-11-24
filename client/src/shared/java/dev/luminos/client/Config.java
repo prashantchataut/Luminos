@@ -44,6 +44,14 @@ public final class Config {
 	public String cosmeticCape = "";
 	public int crosshairColor = 0xFF4F8CFF;
 	public long playtimeMs = 0;
+	/** Module ids pinned to the top of the quick panel. */
+	public java.util.List<String> favourites = new java.util.ArrayList<>();
+	/** Saved panel order of module ids; unlisted modules follow in default order. */
+	public java.util.List<String> moduleOrder = new java.util.ArrayList<>();
+	/** Waypoints as {@code name|x|y|z|dimension|rrggbb}; see core.Waypoint. */
+	public java.util.List<String> waypoints = new java.util.ArrayList<>();
+	/** DEFAULT, DEUTERANOPIA, PROTANOPIA, TRITANOPIA or HIGH_CONTRAST; recolours status text in the quick panel. */
+	public String colorblind = "DEFAULT";
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static Config instance = new Config();

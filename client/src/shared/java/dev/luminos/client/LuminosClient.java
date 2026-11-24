@@ -81,6 +81,27 @@ public final class LuminosClient implements ClientModInitializer {
 		afterShot = next;
 	}
 
+	/** Smoke tour only: the title screen has no world, so give the Waypoints tab three sample entries to render. Labelled as sample data in docs/client-shots. */
+	private static void smokeSeedWaypoints() {
+		var wp = Config.get().waypoints;
+		if (!wp.isEmpty()) return;
+		wp.add(new dev.luminos.client.core.Waypoint("Home", 128, 64, -40, "minecraft:overworld", 0x4F8CFF).encode());
+		wp.add(new dev.luminos.client.core.Waypoint("Diamond cave", 410, 11, 250, "minecraft:overworld", 0x5BE3A0).encode());
+		wp.add(new dev.luminos.client.core.Waypoint("Fortress", 32, 70, 18, "minecraft:the_nether", 0xFFC857).encode());
+	}
+
+	/** Smoke tour only: write a synthetic crash report (the standard OutOfMemoryError shape) so the Support tab has something to analyse. */
+	private static void smokeSeedCrash(Minecraft mc) {
+		try {
+			java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("crash-reports");
+			java.nio.file.Files.createDirectories(dir);
+			java.nio.file.Files.writeString(dir.resolve("crash-smoke-synthetic.txt"),
+				"---- Minecraft Crash Report ----\n// synthetic report written by the Luminos CI smoke tour\n\nDescription: Exception in server tick loop\n\njava.lang.OutOfMemoryError: Java heap space\n\tat java.base/java.util.Arrays.copyOf(Arrays.java:3482)\n");
+		} catch (java.io.IOException e) {
+			LOGGER.warn("smoke: could not write the synthetic crash report", e);
+		}
+	}
+
 	private static void smokeStep(Minecraft mc) {
 		if (pendingShot != null) {
 			String dir = System.getenv("LUMINOS_SMOKE_ACK_DIR");
@@ -94,7 +115,12 @@ public final class LuminosClient implements ClientModInitializer {
 			case 5 -> { if (phaseTicks >= 30) shot("cover", () -> { coverDone = true; Nav.open(mc, new LuminosTitleScreen()); phase = 1; }); }
 			case 1 -> { if (phaseTicks >= 60) shot("title", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, false, Nav.screen(mc))); LOGGER.info("[luminos] quick panel opened via smoke"); phase = 2; }); }
 			case 2 -> { if (phaseTicks >= 40) shot("panel", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.KEYBINDS, false, null)); phase = 3; }); }
-			case 3 -> { if (phaseTicks >= 40) shot("panel-keys", () -> phase = 4); }
+			case 3 -> { if (phaseTicks >= 40) shot("panel-keys", () -> { Nav.open(mc, new PanelScreen(Panel.Tab.HUD, false, null)); phase = 10; }); }
+			case 10 -> { if (phaseTicks >= 40) shot("panel-hud", () -> { PanelScreen ps = new PanelScreen(Panel.Tab.MODULES, false, null); Nav.open(mc, ps); ps.panel().smokeContext("keystrokes"); phase = 11; }); }
+			case 11 -> { if (phaseTicks >= 40) shot("panel-menu", () -> { smokeSeedWaypoints(); Nav.open(mc, new PanelScreen(Panel.Tab.WAYPOINTS, false, null)); phase = 12; }); }
+			case 12 -> { if (phaseTicks >= 40) shot("panel-waypoints", () -> { smokeSeedCrash(mc); Nav.open(mc, new PanelScreen(Panel.Tab.SUPPORT, false, null)); phase = 13; }); }
+			case 13 -> { if (phaseTicks >= 40) shot("panel-support", () -> { PanelScreen ps = new PanelScreen(Panel.Tab.MODULES, true, null); Nav.open(mc, ps); ps.panel().smokeSearch("key"); phase = 14; }); }
+			case 14 -> { if (phaseTicks >= 40) shot("panel-search", () -> phase = 4); }
 			default -> { LOGGER.info("[luminos] smoke-ok"); mc.stop(); }
 		}
 	}

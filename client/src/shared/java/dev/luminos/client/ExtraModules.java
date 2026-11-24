@@ -13,7 +13,8 @@ public final class ExtraModules {
 	private ExtraModules() {}
 
 	static List<HudModule> create() {
-		return List.of(new Ping(), new Clock(), new Memory(), new Direction(), new ServerIp(), new Playtime(), new ItemCounter(), new Crosshair());
+		return List.of(new Ping(), new Clock(), new Memory(), new Direction(), new ServerIp(), new Playtime(), new ItemCounter(), new Crosshair(),
+			new ToolModules.WaypointsHud(), new ToolModules.PerfOverlay());
 	}
 
 	private abstract static class Line extends HudModule {
