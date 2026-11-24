@@ -1,6 +1,7 @@
 name: Luminos Client (Fabric mod)
 on:
   push:
+    branches: ["feat/**"]
     paths: ["client/**", "client26/**", ".github/workflows/client.yml"]
     tags: ["client-v*"]
   pull_request:
