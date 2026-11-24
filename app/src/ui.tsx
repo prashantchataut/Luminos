@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, ReactNode } from "react";
 
 /* ---------- icons: one hand-drawn 24px set, 1.6 stroke, round caps ---------- */
-const P: Record<string, string> = {
+export const P: Record<string, string> = {
   home: "M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
   layers: "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
   puzzle: "M10 4a2 2 0 1 1 4 0v2h4v4h-2a2 2 0 1 0 0 4h2v4h-4v-2a2 2 0 1 0-4 0v2H6v-4h2a2 2 0 1 0 0-4H6V6h4z",

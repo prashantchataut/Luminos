@@ -35,3 +35,10 @@ Session 14 (client UI overhaul):
 Not installed: `icon-designer` (eddiebe147/claude-settings): the repository could not be cloned anonymously, so it was skipped rather than faked.
 Already present and used again: taste-skill, ui-ux-pro-max, uihall, reanimate, rea (+ rea-morluto), emil-kowalski-skills (animate / review-animations: the motion skills).
 skills.sh was browsed through search only (its catalogue is client-rendered); open-design.ai/skills was read in full (407 entries).
+
+Session 15 (v0.9 finish):
+| minecraft-ui-design | github.com/iwosw/mb-check-class @HEAD `.agents/skills/minecraft-ui-design/SKILL.md` (listed on skills.lc) | see repo (no licence file checked; used as a rule reference only) |
+| react-vite-dashboard | github.com/google-labs-code/stitch-skills @main `plugins/stitch-build/skills/react-vite-dashboard/SKILL.md` (open-design.ai catalog) | Apache-2.0 per repo |
+| better-icons | github.com/better-auth/better-icons @033316e `skills/SKILL.md` (open-design.ai catalog; iconography) | see repo |
+Already present from earlier sessions and used again: taste-skill, ui-ux-pro-max, uihall, reanimate, rea + rea-morluto, liquid-glass, game-ui-ux, game-ui-design, icon-system.
+skills.sh is client-rendered; browsed by search only. Nothing from it was installed beyond the entries above.

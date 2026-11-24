@@ -1,0 +1,61 @@
+{
+ "source": "launchercontent.mojang.com/v2/javaPatchNotes.json",
+ "entries": [
+  {
+   "version": "26.4-snapshot-10",
+   "title": "Minecraft 26.4 Snapshot 10",
+   "date": "2026-11-17",
+   "type": "snapshot",
+   "text": "We have now released 26.4 Snapshot 10, fixing a crash in the Multiplayer screen."
+  },
+  {
+   "version": "26.4-snapshot-9",
+   "title": "Minecraft 26.4 Snapshot 9",
+   "date": "2026-11-17",
+   "type": "snapshot",
+   "text": "26.4 Snapshot 9 is here, bringing data-driven dispensers, Vulkan as the default graphics backend, and a new setting to fine-tune your fog. We've also made improvements to keyboard navigation and narration, alongside a few other tweaks and fixes!\r\n\r\nHappy mining!"
+  },
+  {
+   "version": "26.4-snapshot-8",
+   "title": "Minecraft 26.4 Snapshot 8",
+   "date": "2026-11-10",
+   "type": "snapshot",
+   "text": "Well, it seems like our Ender Dragon has forgotten a thing or two about flying! In 26.4 Snapshot 8, we've fixed several issues with the dragon's flight behavior to help get it back on track. We've also added language support for two new languages, alongside a handful of smaller tweaks.\r\n\r\nHappy Dragon Fighting!"
+  },
+  {
+   "version": "26.4-snapshot-7",
+   "title": "Minecraft 26.4 Snapshot 7",
+   "date": "2026-11-03",
+   "type": "snapshot",
+   "text": "Minecraft 26.4 Snapshot 7 is here with a brand new music disc and a flurry of new blocks! So grab your tools, turn up the music, and let's get to mining and crafting!"
+  },
+  {
+   "version": "26.4-snapshot-6",
+   "title": "Minecraft 26.4 Snapshot 6",
+   "date": "2026-10-27",
+   "type": "snapshot",
+   "text": "Kai is ice fishing, sitting on a light blue cushion in front of an igloo made of snow bricks."
+  },
+  {
+   "version": "26.4-snapshot-5",
+   "title": "Minecraft 26.4 Snapshot 5",
+   "date": "2026-10-20",
+   "type": "snapshot",
+   "text": "Zuri is throwing Ice Balls at a Frostibe from a Packed Ice Brick house"
+  },
+  {
+   "version": "26.4-snapshot-4",
+   "title": "Minecraft 26.4 Snapshot 4",
+   "date": "2026-10-13",
+   "type": "snapshot",
+   "text": "With 26.4 Snapshot 4, we're breaking out a cool new block, introducing Brittle Ice! And Jukeboxes can now keep the music going with playlists by putting your music discs in a chest above them, making dance parties much easier. Just be careful not to dance "
+  },
+  {
+   "version": "26.4-snapshot-3",
+   "title": "Minecraft 26.4 Snapshot 3",
+   "date": "2026-10-06",
+   "type": "snapshot",
+   "text": "Brr! Does it feel colder all of a sudden? Minecraft LIVE revealed the first look at our next game drop \u2013 and it's frosty. Explore ice caves filled with glittering icicles and ice crystals, plus meet a not-so-chill new hostile mob! This frozen zombie varian"
+  }
+ ]
+}

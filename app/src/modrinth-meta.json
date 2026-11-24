@@ -79,7 +79,7 @@
  "iris": {
   "title": "Iris Shaders",
   "icon": "/mods/iris.webp",
-  "downloads": 197212970,
+  "downloads": 197415744,
   "color": 263172,
   "desc": "A modern shader pack loader for Minecraft intended to be compatible with existing OptiFine shader packs"
  },
@@ -152,5 +152,40 @@
   "downloads": 25766195,
   "color": 3815994,
   "desc": "Adds the best controller support to Minecraft Java edition!"
+ },
+ "vulkanmod": {
+  "title": "VulkanMod",
+  "icon": "/mods/vulkanmod.webp",
+  "downloads": 5425746,
+  "color": 263172,
+  "desc": "Vulkan renderer mod for Minecraft."
+ },
+ "nvidium": {
+  "title": "Nvidium",
+  "icon": "/mods/nvidium.webp",
+  "downloads": 7621654,
+  "color": 263172,
+  "desc": "Fast nvidia only rendering engine for sodium"
+ },
+ "c2me-fabric": {
+  "title": "Concurrent Chunk Management Engine (Fabric)",
+  "icon": "/mods/c2me-fabric.webp",
+  "downloads": 42456883,
+  "color": 263172,
+  "desc": "A Fabric mod designed to improve the chunk performance of Minecraft."
+ },
+ "modernfix": {
+  "title": "ModernFix",
+  "icon": "/mods/modernfix.webp",
+  "downloads": 85297934,
+  "color": 263172,
+  "desc": "All-in-one mod that improves performance, reduces memory usage, and fixes many bugs. Compatible with all your favorite performance mods!"
+ },
+ "exordium": {
+  "title": "Exordium",
+  "icon": "/mods/exordium.webp",
+  "downloads": 6361195,
+  "color": 263172,
+  "desc": "Render the GUI and screens at a lower framerate to speed up what's really important: the worldrendering."
  }
 }

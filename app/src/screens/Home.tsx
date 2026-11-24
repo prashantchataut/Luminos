@@ -1,137 +1,141 @@
-import { useEffect, useState } from "react";
-import { Badge, Cover, Icon, Modal } from "../ui";
-import { SEED, onLaunch, call, AuditReport, Inst, isTauri } from "../api";
+import { useEffect, useRef, useState } from "react";
+import type { Boot } from "../App";
+import { Badge, Cover, Icon, SkinThumb, fmtTime } from "../kit";
+import { QUICK, news, PRESETS } from "../data/launcher";
+import { set, useSettings } from "../store";
+import { call, isTauri, onLaunch, SEED } from "../api";
+import { Switch } from "../kit";
 
-const fmtH = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.floor(s / 60)}m`);
+type Phase = "idle" | "prepare" | "start" | "run";
+const LABEL: Record<Phase, string> = { idle: "Launch", prepare: "Preparing", start: "Starting", run: "Running" };
+const STEP: Record<Phase, string> = { idle: "Ready", prepare: "Checking 31 mods against 26.3", start: "Opening the game window", run: "In game" };
 
-type Phase = "idle" | "preparing" | "launching" | "running" | "failed";
-export function LaunchButton({ inst, onAudit, demo }: { inst: Inst; onAudit: (r: AuditReport) => void; demo?: string }) {
+export function LaunchButton({ inst, big = true }: { inst: string; big?: boolean }) {
+  const demo = new URLSearchParams(location.search).get("demo");
   const [phase, setPhase] = useState<Phase>((demo as Phase) || "idle");
-  const [stage, setStage] = useState("Resolving Minecraft…");
-  const [frac, setFrac] = useState(demo === "preparing" ? 0.62 : 0);
-  const [err, setErr] = useState("");
-  useEffect(() => {
-    let off = () => {};
-    onLaunch((e) => {
-      if (e.id !== inst.id) return;
-      if (e.phase === "preparing") { setPhase("preparing"); setStage(e.stage); setFrac(e.fraction); }
-      else if (e.phase === "launching") { setPhase("launching"); if (e.mods) onAudit(e.mods); }
-      else if (e.phase === "running") setPhase("running");
-      else if (e.phase === "failed") { setPhase("failed"); setErr(e.error); }
-      else if (e.phase === "exited") setPhase("idle");
-    }).then((u) => (off = u));
-    return () => off();
-  }, [inst.id]);
-  const go = async () => {
-    if (phase !== "idle" && phase !== "failed") return;
-    setErr(""); setPhase("preparing");
-    if (isTauri) { try { await call("launch_instance", { id: inst.id }); } catch (e: any) { setPhase("failed"); setErr(String(e)); } return; }
-    const steps: [string, number][] = [["Resolving Minecraft " + inst.mc + "…", 0.12], ["Downloading game files (212)…", 0.5], ["Checking 31 mods against " + inst.mc + "…", 0.82]];
-    for (const [s, f] of steps) { setStage(s); setFrac(f); await new Promise((r) => setTimeout(r, 900)); }
-    setPhase("launching"); onAudit(SEED.audit);
-    await new Promise((r) => setTimeout(r, 1200)); setPhase("running");
-    await new Promise((r) => setTimeout(r, 4000)); setPhase("idle");
+  const [p, setP] = useState(demo === "prepare" ? 0.46 : 0);
+  const [sec, setSec] = useState(demo === "run" ? 42 : 0);
+  const timer = useRef<number>(0);
+  useEffect(() => { let un = () => {}; onLaunch((e) => { if (e?.state) setPhase(e.state); if (typeof e?.progress === "number") setP(e.progress); }).then((f) => (un = f)); return () => un(); }, []);
+  useEffect(() => { if (phase !== "run") return; const t = setInterval(() => setSec((s) => s + 1), 1000); return () => clearInterval(t); }, [phase]);
+  const start = async () => {
+    if (phase === "run") { setPhase("idle"); setP(0); setSec(0); return; }
+    if (phase !== "idle") return;
+    setPhase("prepare"); setP(0);
+    if (isTauri) { call("launch_instance", { id: inst }).catch(() => setPhase("idle")); return; }
+    let v = 0; timer.current = window.setInterval(() => { v += 0.05; setP(Math.min(1, v)); if (v >= 0.6) setPhase("start"); if (v >= 1) { clearInterval(timer.current); setPhase("run"); } }, 120);
   };
-  const label = { idle: "Play", preparing: "Getting ready", launching: "Starting Minecraft", running: "Playing", failed: "Try again" }[phase];
-  const width = { idle: 188, preparing: 320, launching: 320, running: 232, failed: 188 }[phase];
-  const busy = phase === "preparing" || phase === "launching";
+  useEffect(() => () => clearInterval(timer.current), []);
+  const run = phase === "run";
   return (
-    <div>
-      <button onClick={go} className="relative h-14 rounded-full overflow-hidden font-semibold text-[16px] text-left" aria-live="polite"
-        style={{ width, background: phase === "running" ? "rgba(127,224,176,.16)" : phase === "failed" ? "rgba(255,141,154,.16)" : "#f4f7ff", color: phase === "running" ? "var(--color-ok)" : phase === "failed" ? "var(--color-bad)" : "#06112e", border: phase === "running" ? "1px solid rgba(127,224,176,.5)" : phase === "failed" ? "1px solid rgba(255,141,154,.5)" : "1px solid transparent", boxShadow: phase === "idle" ? "0 14px 50px -10px rgba(130,175,255,.75)" : "none", transition: "width var(--dur-slow) var(--ease-out-expo), background var(--dur-base), color var(--dur-base), box-shadow var(--dur-base)" }}>
-        <span className="absolute inset-y-0 left-0" style={{ width: `${busy ? Math.max(6, frac * 100) : 0}%`, background: "linear-gradient(90deg, rgba(143,180,255,.55), rgba(143,180,255,.9))", transition: "width 400ms var(--ease-soft)" }} />
-        <span className="relative h-full flex items-center justify-center gap-2.5 px-6">
-          {phase === "idle" && <Icon n="play" s={18} />}
-          {busy && <span className="h-4 w-4 rounded-full border-2 border-[#06112e]/30 border-t-[#06112e]" style={{ animation: "spin .8s linear infinite" }} />}
-          {phase === "running" && <span className="h-2.5 w-2.5 rounded-full bg-ok" style={{ animation: "pulse-ring 1.6s infinite" }} />}
-          {phase === "failed" && <Icon n="rot" s={18} />}
-          <span key={label} style={{ animation: "fade var(--dur-base) both" }}>{label}</span>
-        </span>
-      </button>
-      <div className="h-5 mt-2 text-[12.5px] text-mute pl-1" style={{ minHeight: 20 }}>
-        {busy ? <span className="rise">{stage}</span> : phase === "failed" ? <span className="text-bad rise">{err.slice(0, 90)}</span> : phase === "running" ? <span className="rise">Minecraft {inst.mc} is running</span> : <span>Last played {inst.last.toLowerCase()}</span>}
-      </div>
-    </div>
+    <button onClick={start} aria-live="polite" className="relative overflow-hidden lift" style={{ height: big ? 44 : 32, minWidth: big ? 220 : 120, borderRadius: 12, padding: "0 18px", background: run ? "rgba(127,224,176,.16)" : "var(--color-accent)", color: run ? "var(--color-ok)" : "#04102e", border: run ? "1px solid rgba(127,224,176,.5)" : "1px solid transparent", transition: "background 300ms, color 300ms, min-width 420ms var(--ease-spring)" }}>
+      {(phase === "prepare" || phase === "start") && <span className="absolute inset-y-0 left-0" style={{ width: `${p * 100}%`, background: "rgba(255,255,255,.35)", transition: "width 160ms linear" }} />}
+      <span className="relative flex items-center justify-center gap-2 font-semibold t3">
+        {phase === "idle" && <Icon n="play" s={16} />}
+        {(phase === "prepare" || phase === "start") && <span className="h-3.5 w-3.5 rounded-full border-2 border-[#04102e]/30 border-t-[#04102e]" style={{ animation: "spin .8s linear infinite" }} />}
+        {run && <Icon n="stop" s={14} />}
+        {LABEL[phase]}{run && <span className="num t2 font-medium">{String(Math.floor(sec / 60)).padStart(2, "0")}:{String(sec % 60).padStart(2, "0")}</span>}
+      </span>
+      <span className="sr-only">{STEP[phase]}</span>
+    </button>
   );
 }
 
-export function AuditModal({ r, onClose }: { r: AuditReport; onClose: () => void }) {
+export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void }) {
+  const s = useSettings();
+  const last = boot.instances[0];
+  const recent = boot.instances.slice(0, 4);
+  const [pre, setPre] = useState<string | null>(null);
+  const applyPreset = (id: "pvp" | "survival") => { Object.entries(PRESETS[id].set).forEach(([k, v]) => set(k as any, v as any)); setPre(id); };
   return (
-    <Modal onClose={onClose} w={600}>
-      <div className="flex items-start justify-between"><div><div className="eyebrow">Mod check</div><h3 className="display text-[34px] mt-1">Every mod fits <span className="accent-word">this version</span></h3></div><button className="btn btn-ghost btn-sm" onClick={onClose}><Icon n="x" s={14} /></button></div>
-      <p className="text-mute mt-2 text-[13.5px] leading-relaxed">Before each launch Luminos reads every jar's <code className="text-fg">fabric.mod.json</code>, checks it against this Minecraft, Fabric and Java, and keeps a set Fabric will accept. Stable builds only unless you opt in.</p>
-      <div className="mt-5 grid gap-2.5">
-        <div className="flex items-center gap-3 p-3 rounded-xl hair"><Badge tone="ok"><Icon n="check" s={12} />{r.checked} checked</Badge><span className="text-[13px] text-mute">Fabric will load all of them.</span></div>
-        {r.replaced.map((x) => <div key={x} className="flex gap-3 p-3 rounded-xl hair items-start"><Badge tone="accent"><Icon n="rot" s={12} />Swapped</Badge><span className="text-[13px]">{x}</span></div>)}
-        {r.dropped.map((x) => <div key={x.name} className="flex gap-3 p-3 rounded-xl hair items-start"><Badge tone="warn"><Icon n="alert" s={12} />Dropped</Badge><span className="text-[13px]"><b className="font-semibold">{x.name}</b> <span className="text-mute">{x.reason}</span></span></div>)}
-        {r.notes.map((x) => <div key={x} className="text-[12.5px] text-mute px-1">{x}</div>)}
-      </div>
-    </Modal>
-  );
-}
-
-export default function Home({ insts, sel, setSel, nav, demo }: { insts: Inst[]; sel: string; setSel: (id: string) => void; nav: (r: string) => void; demo?: string }) {
-  const cur = insts.find((i) => i.id === sel) || insts[0];
-  const [audit, setAudit] = useState<AuditReport | null>(demo === "audit" ? SEED.audit : null);
-  const [last, setLast] = useState<AuditReport | null>(SEED.audit);
-  const days = SEED.playtime.daily; const maxD = Math.max(...days.map((d) => d[1]));
-  return (
-    <div className="page-in h-full overflow-y-auto">
-      <section className="relative h-[344px] overflow-hidden">
-        <div className="absolute inset-0 zoom" key={cur.mc} style={{ animation: "fade var(--dur-slow) both" }}><Cover version={cur.mc} /></div>
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(5,10,31,.25) 0%, rgba(5,10,31,.1) 35%, rgba(5,10,31,.92) 92%, #050a1f 100%), linear-gradient(90deg, rgba(5,10,31,.72) 0%, transparent 62%)" }} />
-        <div className="relative h-full flex flex-col justify-end px-12 pb-10 max-w-[1280px]">
-          <div className="flex items-center gap-2 mb-4 rise"><Badge tone="accent"><Icon n="bolt" s={12} />Luminos Client</Badge><Badge>{cur.loader}</Badge><Badge>Java {cur.java}</Badge>{cur.mods ? <button onClick={() => setAudit(last)} className="contents"><Badge tone="ok"><Icon n="shield" s={12} />{cur.mods} mods checked</Badge></button> : null}</div>
-          <h1 className="display text-[84px] rise" style={{ animationDelay: "60ms" }}>Minecraft <span className="accent-word">{cur.mc}</span></h1>
-          <div className="mt-6 flex items-end gap-4 rise" style={{ animationDelay: "120ms" }}>
-            <LaunchButton inst={cur} onAudit={(r) => { setLast(r); setAudit(r); }} demo={demo} />
-            <button className="btn btn-ghost mb-7" onClick={() => nav("client")}><Icon n="sliders" s={16} />Client</button>
-            <button className="btn btn-ghost mb-7" onClick={() => nav("instances")}><Icon n="layers" s={16} />All instances</button>
-          </div>
-        </div>
-      </section>
-
-      <div className="px-12 pb-12 pt-3 max-w-[1280px]">
-        <div className="flex items-center justify-between mb-3"><span className="eyebrow">Your versions</span><span className="text-[12.5px] text-mute">{insts.length} instances</span></div>
-        <div className="grid grid-cols-5 gap-4 stagger">
-          {insts.map((i) => (
-            <button key={i.id} onClick={() => setSel(i.id)} className="lift zoom relative h-[132px] rounded-[16px] overflow-hidden text-left" style={{ outline: i.id === cur.id ? "2px solid var(--color-accent)" : "1px solid var(--color-line)", outlineOffset: i.id === cur.id ? 2 : -1 }} aria-pressed={i.id === cur.id}>
-              <div className="absolute inset-0" style={{ opacity: i.id === cur.id ? 1 : 0.62, transition: "opacity var(--dur-base)" }}><Cover version={i.mc} /></div>
-              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 35%, rgba(5,10,31,.88))" }} />
-              <div className="absolute left-3.5 bottom-3 right-3"><div className="font-semibold text-[15px] truncate">{i.name}</div><div className="text-[12px] text-fg/70 num">{i.mc} · {i.loader}</div></div>
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-[1.35fr_1fr] gap-5 mt-9">
+    <div className="flex flex-col gap-3 max-w-[1180px]">
+      {/* hero */}
+      <div className="glass overflow-hidden relative" style={{ height: 212 }}>
+        <div className="absolute inset-0"><Cover version={last.mc} /></div>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(2,4,13,.9) 0%, rgba(2,4,13,.62) 48%, rgba(2,4,13,.1) 100%)" }} />
+        <div className="relative h-full p-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3"><span className="eyebrow">Recent worlds</span><span className="text-[12.5px] text-mute">Jump back in</span></div>
-            <div className="grid gap-3 stagger">
-              {SEED.worlds.map((w) => (
-                <div key={w.name} className="lift panel p-3 pr-5 flex items-center gap-4 cursor-pointer">
-                  <div className="h-[64px] w-[104px] rounded-[10px] overflow-hidden shrink-0"><Cover version={w.inst === "26.3" ? (w.seed > 5 ? "26.2" : "26.3") : "1.21.11"} /></div>
-                  <div className="min-w-0 flex-1"><div className="font-semibold text-[15px] truncate">{w.name}</div><div className="text-[12.5px] text-mute mt-0.5">{w.mode} · Minecraft {w.inst}</div></div>
-                  <div className="text-[12.5px] text-mute num">{w.played}</div>
-                  <span className="btn btn-ghost btn-sm"><Icon n="play" s={12} />Play</span>
-                </div>
-              ))}
-            </div>
+            <div className="eyebrow mb-1.5">Continue playing</div>
+            <div className="flex items-center gap-2"><h1 className="t4 font-semibold m-0">{last.name} {last.mc}</h1><Badge tone="accent">{last.loader}</Badge><Badge>Java {last.java}</Badge></div>
+            <div className="t2 mute mt-1">Luminos Performance · {s.renderer === "sodium" ? "Sodium" : s.renderer === "vulkanmod" ? "VulkanMod" : "Sodium + Nvidium"} · {last.mods} mods · {s.memoryMb / 1024} GB · played {fmtTime(last.playtime)}</div>
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-3"><span className="eyebrow">Playtime</span><span className="text-[12.5px] text-mute">Last 14 days</span></div>
-            <div className="panel p-5">
-              <div className="flex items-end justify-between">
-                <div><div className="display text-[54px] num">{fmtH(SEED.playtime.week)}</div><div className="text-[12.5px] text-mute -mt-1">this week · {fmtH(SEED.playtime.total)} all time</div></div>
-                <Badge tone="warn"><Icon n="spark" s={12} />{SEED.playtime.streak}-day streak</Badge>
-              </div>
-              <div className="flex items-end gap-1.5 h-[88px] mt-5">
-                {days.map((d, k) => <div key={k} className="flex-1 rounded-[5px]" title={fmtH(d[1])} style={{ height: Math.max(4, (d[1] / maxD) * 100) + "%", background: d[1] ? "linear-gradient(180deg,#8fb4ff,#3b6cf0)" : "rgba(160,190,255,.1)", opacity: 0.55 + (k / 13) * 0.45, animation: `rise var(--dur-slow) var(--ease-out-expo) ${k * 30}ms both` }} />)}
-              </div>
+          <div className="flex items-end justify-between">
+            <div className="flex items-center gap-3"><LaunchButton inst={last.id} />
+              <button className="btn" onClick={() => go("instances")}><Icon n="layers" s={14} />All instances</button>
+              <button className="btn" onClick={() => go("settings")}><Icon n="gauge" s={14} />Performance</button></div>
+            <div className="flex items-center gap-1.5 mr-1">
+              <span className="t1 mute mr-1">One-click preset</span>
+              {(["pvp", "survival"] as const).map((id) => <button key={id} className="chip" data-on={pre === id || (!pre && ((id === "pvp" && s.keystrokes === "A") || (id === "survival" && s.keystrokes === "B")))} onClick={() => applyPreset(id)} title={PRESETS[id].line}><Icon n={PRESETS[id].icon} s={12} />{PRESETS[id].name}</button>)}
             </div>
           </div>
         </div>
+        <div className="absolute right-8 top-3 flex flex-col items-center"><SkinThumb src="/library/skins/vanguard.png" scale={4} className="drop-shadow-[0_10px_16px_rgba(0,0,0,.5)]" /></div>
       </div>
-      {audit && <AuditModal r={audit} onClose={() => setAudit(null)} />}
+
+      {/* quick play */}
+      <div className="grid grid-cols-3 gap-3 stagger">
+        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("servers")}>
+          <img src={QUICK.server.icon} alt="" className="w-10 h-10 rounded-lg skin-px" />
+          <span className="min-w-0 flex-1"><span className="eyebrow block">Last server</span><span className="t2 font-medium block truncate">{QUICK.server.name}</span><span className="t1 mute block truncate num">{QUICK.server.online.toLocaleString()} online · {QUICK.server.ago}</span></span>
+          <span className="ibtn"><Icon n="play" s={14} /></span>
+        </button>
+        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("instances")}>
+          <span className="w-10 h-10 rounded-lg overflow-hidden shrink-0"><Cover version="26.3" /></span>
+          <span className="min-w-0 flex-1"><span className="eyebrow block">Last world</span><span className="t2 font-medium block truncate">{QUICK.world.name}</span><span className="t1 mute block truncate">{QUICK.world.mode} · {QUICK.world.ago}</span></span>
+          <span className="ibtn"><Icon n="play" s={14} /></span>
+        </button>
+        <button className="glass lift flex items-center gap-3 p-2.5 text-left" onClick={() => go("library")}>
+          <span className="w-10 h-10 rounded-lg grid place-items-center shrink-0" style={{ background: "rgba(143,180,255,.16)" }}><Icon n="bolt" s={18} className="text-[var(--color-accent)]" /></span>
+          <span className="min-w-0 flex-1"><span className="eyebrow block">Last modpack</span><span className="t2 font-medium block truncate">{QUICK.pack.name}</span><span className="t1 mute block truncate">{QUICK.pack.detail}</span></span>
+          <span className="ibtn"><Icon n="chev" s={14} /></span>
+        </button>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)" }}>
+        <div>
+          <div className="eyebrow mb-1.5 px-1">Recent instances</div>
+          <div className="grid grid-cols-2 gap-3 stagger">
+            {recent.map((i) => (
+              <button key={i.id} className="glass lift flex items-stretch overflow-hidden text-left" onClick={() => go("instances")} style={{ height: 76 }}>
+                <span className="w-[112px] shrink-0 relative"><Cover version={i.mc} /></span>
+                <span className="min-w-0 flex-1 p-2.5 flex flex-col justify-between">
+                  <span className="flex items-center gap-1.5"><span className="t2 font-semibold truncate">{i.name}</span></span>
+                  <span className="flex items-center gap-1.5"><Badge>{i.mc}</Badge><Badge tone={i.loader === "Vanilla" ? "mute" : "accent"}>{i.loader}</Badge></span>
+                  <span className="t1 mute flex items-center gap-1"><Icon n="clock" s={11} />{fmtTime(i.playtime)} · {i.last}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5 px-1 flex justify-between"><span>News · Mojang patch notes</span></div>
+          <div className="glass p-1.5">
+            {news.slice(0, 5).map((n) => (
+              <div key={n.version} className="lrow" title={n.text}>
+                <Badge tone={n.type === "release" ? "ok" : "warn"}>{n.type === "release" ? "Release" : "Snapshot"}</Badge>
+                <span className="t2 truncate flex-1">{n.title.replace("Minecraft ", "")}</span><span className="t1 mute num">{n.date.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)" }}>
+        <div>
+          <div className="eyebrow mb-1.5 px-1 flex justify-between"><span>Playtime · last 14 days</span><span className="num normal-case tracking-normal">{fmtTime(SEED.playtime.week)} this week · {SEED.playtime.streak}-day streak</span></div>
+          <div className="glass p-3 flex items-end gap-1.5" style={{ height: 96 }}>
+            {SEED.playtime.daily.map(([d, v], i) => <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full" title={`${d}: ${fmtTime(v || 60)}`}><div className="w-full rounded-[3px]" style={{ height: `${Math.max(4, (v / 9800) * 100)}%`, background: i === 13 ? "var(--color-accent)" : "rgba(143,180,255,.38)", minHeight: 3 }} /><span className="t1 mute">{d[0]}</span></div>)}
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5 px-1">Luminos Performance</div>
+          <div className="glass p-1.5">
+            <div className="lrow"><Icon n="cpu" s={14} /><span className="t2 flex-1">Renderer</span><Badge tone="accent">{s.renderer === "sodium" ? "Sodium" : s.renderer === "vulkanmod" ? "VulkanMod" : "Nvidium"}</Badge></div>
+            <div className="lrow"><Icon n="layers" s={14} /><span className="t2 flex-1">HUD at {s.hudFps} fps</span><Switch label="Throttle HUD" on={s.hudThrottle} onChange={(v) => set("hudThrottle", v)} /></div>
+            <div className="lrow"><Icon n="mouse" s={14} /><span className="t2 flex-1">Per-frame input</span><Switch label="Sample input every frame" on={s.inputSampling} onChange={(v) => set("inputSampling", v)} /></div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
