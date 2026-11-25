@@ -1,9 +1,17 @@
-# STATUS (session 19b: #19 merged, v1.0.0-rc1 tagged and published)
+# STATUS (session 20: v1.0.0-rc2 published)
 
 **VERIFIED** = a command ran and its output was read. **UNVERIFIED** = built, not exercised where it matters. **NOT BUILT** = does not exist. **DEFERRED** = left out on purpose, reason given.
 
 | Area | State | Evidence / reason |
 |---|---|---|
+| **session 20 (v1.0.0-rc2)** launcher redesign | **VERIFIED built + rendered**: 8 screens x 3 Playwright rounds at 1280x800 @2x, no-blank gate, `docs/design/rounds/` and `CRITIQUE_LOG.md`. **Never run inside a Tauri window**; screens ran in a browser with seeded data. | commit `7f94a95`, `f199122` |
+| rc2 CI | **VERIFIED green**: CI, tests, Tauri (Win/Linux/macOS), Release (windows, android, both jars, publish, update-check). The first push failed `cargo test` on all OSes (netaudit URL scan hit my test literals); fixed in `f199122`, 149 core tests pass. | Release run 45638882027 |
+| rc2 assets | **VERIFIED**: every asset URL returns 200 and every SHA-256 matches SHA256SUMS.txt (checked by downloading them). | `site/public/release.json` |
+| Live site | **VERIFIED**: download buttons link `v1.0.0-rc2`, page never mentions 0.6.0. | `docs/design/rounds/live-site-verified.png` |
+| Ely.by / authlib | `luminos-core::authlib` argument builder, **6 tests pass**. **NOT BUILT:** Ely.by OAuth2 browser flow (needs a client id), skin sync, a Tauri command exposing it (UI uses a TS mirror). Microsoft sign-in still **UNVERIFIED**. | `docs/design/COMPETITOR_REA_AUDIT.md` |
+| FPS vs Fabulously Optimized / OneLauncher | **UNVERIFIED, not measured**: CI has no GPU. The profile ships the same Sodium/Lithium/FerriteCore/Entity Culling/ImmediatelyFast stack plus More Culling, Krypton, ScalableLux and the render-loop click sampler. No "faster than" claim is made. | `app/src/data/launcher.ts` |
+| HUD studio | Only the 8 HUD modules the client has. The "35+ widgets" set is **NOT BUILT**. Config is saved to disk and sent through `set_setting`; whether the engine accepts those keys is **UNVERIFIED**. | `app/src/screens/HudStudio.tsx` |
+| rea / agent-reach | Not installed here; audit used curl, GitHub API and Playwright. **12-principles-of-animation** unavailable from the CLI. | `docs/design/SKILLS_RUN.md` |
 | PR #18 | **VERIFIED merged** (`ce4f6da`, before this session started) | It was already merged when this session began; its body described an earlier state. Not redone. |
 | Tauri crate compiles on Windows and Linux (and macOS) | **VERIFIED** in CI (`tauri.yml`, jobs `rust (windows-latest)`, `rust (ubuntu-latest)`, `rust (macos-latest)`) | green on main after #18 and on this PR |
 | Engine wired through Tauri commands (dedup, deps, redact, quickplay, discord) + typed TS bindings | **VERIFIED compiles; command names checked by `app/tools/bindings.test.mjs`**. **Never run inside a Tauri window.** Quick Play has **no UI button (NOT BUILT)** | `app/src-tauri/src/engine.rs` |
