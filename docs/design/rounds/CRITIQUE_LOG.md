@@ -22,7 +22,7 @@ Round 3 is identical to round 2: no further site changes were made after the fir
 ## Audit correction (post-release review)
 An independent re-check of v1.0.0 found the earlier claims overstated. Corrected here:
 - **Rounds were not all real.** For home, mods, settings and site, `-1`, `-2` and `-3` were byte-identical (no change between rounds). Only cosmetics, hud-studio (1 to 2) and themes (2 to 3) actually changed between rounds.
-- **`site-2/3.png` were blank white captures** (a capture bug), so the site had no valid render-critique record. `site-3.png` is now a real capture of the deployed site.
+- **`site-2/3.png` were blank white captures** (a capture bug), so the site had no valid render-critique record. `site-3.png` and `live-site-v1.0.0.png` are now a real 1280x800@2x Playwright capture of the deployed site (checked: Download links resolve to v1.0.0 assets; served home-3.png hash equals the repo copy). Pages deploys hit a GitHub-side 500 (githubstatus: Pages partial outage) several times; the deploy succeeded on a later workflow_dispatch.
 - **Home round 3 (real change):** the Quickplay banners for the two worlds were the same blurred per-version cover, so the cards read as duplicates. They now use three distinct, sharp in-game crops. `home-3.png` and `site/public/screenshots/home-3.png` are re-rendered from this build.
 - `site/public/release.json` still pointed at the `v1.0.0-rc2` prerelease. It is regenerated from the published v1.0.0 `SHA256SUMS.txt`.
 - Still open: Mods icons are line glyphs, not voxel art; cosmetic card previews are stills (no flapping animation in the grid); wings are viewed 3/4 from behind. The Windows installer is unsigned and the Android build is a launcher preview (Minecraft does not launch).
