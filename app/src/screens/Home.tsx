@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Boot } from "../App";
-import { Cover, Icon, Modal, SkinThumb } from "../kit";
+import { Icon, Modal, SkinThumb } from "../kit";
 import { PRESETS, QUICK } from "../data/launcher";
 import { set, useSettings } from "../store";
 import { call, isTauri, onLaunch, SEED } from "../api";
@@ -60,9 +60,9 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   const applyPreset = (id: "pvp" | "survival") => { Object.entries(PRESETS[id].set).forEach(([k, v]) => set(k as any, v as any)); setPre(id); };
   const onLog = (l: string) => { if (l === "__open__") setShowLog(true); else setLogs((x) => [...x.slice(-199), l]); };
   const cards = [
-    { k: "s", name: QUICK.server.name, sub: "Ready for launch", pill: `${QUICK.server.online.toLocaleString()} online`, ver: "1.21.11", img: QUICK.server.icon },
-    { k: "w", name: SEED.worlds[0].name, sub: "Ready for launch", pill: SEED.worlds[0].mode, ver: "26.3" },
-    { k: "w2", name: SEED.worlds[1].name, sub: "Ready for launch", pill: SEED.worlds[1].mode, ver: "26.3" },
+    { k: "s", name: QUICK.server.name, sub: "Ready for launch", pill: `${QUICK.server.online.toLocaleString()} online`, ver: "1.21.11", img: QUICK.server.icon, art: { backgroundImage: "url(/art/hud-backdrop.jpg)", backgroundSize: "cover", backgroundPosition: "50% 60%" } },
+    { k: "w", name: SEED.worlds[0].name, sub: "Ready for launch", pill: SEED.worlds[0].mode, ver: "26.3", art: { backgroundImage: "url(/art/hero-day.jpg)", backgroundSize: "240%", backgroundPosition: "18% 78%" } },
+    { k: "w2", name: SEED.worlds[1].name, sub: "Ready for launch", pill: SEED.worlds[1].mode, ver: "26.3", art: { backgroundImage: "url(/art/hero-day.jpg)", backgroundSize: "240%", backgroundPosition: "92% 30%" } },
   ];
   return (
     <div className="px-8 pt-1 pb-8 mx-auto" style={{ maxWidth: 1080 }}>
@@ -91,7 +91,7 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           {cards.map((c) => (
             <div key={c.k} className="qcard">
               <div className="relative" style={{ height: 130 }}>
-                <Cover version={c.ver} />
+                <div className="absolute inset-0" style={c.art} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(21,25,34,.55), transparent 55%)" }} />
                 {c.img && <img src={c.img} alt="" className="absolute left-3 top-3 w-9 h-9 rounded-lg skin-px" />}
                 <span className="absolute right-3 top-3 qpill">{c.pill}</span>
