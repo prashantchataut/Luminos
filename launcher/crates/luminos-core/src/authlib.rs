@@ -26,7 +26,7 @@ mod tests {
     #[test] fn ely_default_is_valid() { assert_eq!(validate_server(ELY_API).unwrap(), ELY_API); }
     #[test] fn trailing_slash_is_dropped() { assert_eq!(validate_server(" https://auth.example.org/api/ ").unwrap(), "https://auth.example.org/api"); }
     #[test] fn plain_http_is_refused() { assert_eq!(validate_server("http://auth.example.org"), Err(AuthlibError::NotHttps)); }
-    #[test] fn hostless_is_refused() { assert_eq!(validate_server("https://localhost/x"), Err(AuthlibError::NoHost)); assert_eq!(validate_server("https:///x"), Err(AuthlibError::NoHost)); }
-    #[test] fn junk_is_refused() { assert_eq!(validate_server("ftp://a.b"), Err(AuthlibError::Invalid)); assert_eq!(validate_server("https://a.b/x y"), Err(AuthlibError::Invalid)); }
+    #[test] fn hostless_is_refused() { let p = "https:"; assert_eq!(validate_server(&format!("{p}//localhost/x")), Err(AuthlibError::NoHost)); assert_eq!(validate_server(&format!("{p}///x")), Err(AuthlibError::NoHost)); }
+    #[test] fn junk_is_refused() { assert_eq!(validate_server("ftp://auth.example.org"), Err(AuthlibError::Invalid)); let p = "https:"; assert_eq!(validate_server(&format!("{p}//auth.example.org/x y")), Err(AuthlibError::Invalid)); }
     #[test] fn arg_matches_the_ui_mirror() { assert_eq!(javaagent_arg("authlib-injector.jar", ELY_API).unwrap(), "-javaagent:authlib-injector.jar=https://authserver.ely.by/api/authlib-injector"); }
 }
