@@ -228,14 +228,20 @@ mod tests {
         // idempotent: second run changes nothing and reports the same total
         let r2 = dedup(&dirs, &store).unwrap();
         assert_eq!((r2.newly_linked, r2.bytes_saved_total), (0, 200_000));
+        // Hard links share an inode. On a file system that can reflink (APFS, Btrfs, XFS, ReFS) the copies are independent
+        // files sharing blocks instead, so the inode check only applies where the engine had to fall back to hard links.
+        let probe = root.join("probe-a");
+        fs::write(&probe, b"x").unwrap();
+        let reflinks = reflink_copy::reflink(&probe, root.join("probe-b")).is_ok();
         #[cfg(unix)]
-        {
+        if !reflinks {
             use std::os::unix::fs::MetadataExt;
             assert_eq!(
                 fs::metadata(dirs[0].join("sodium.jar")).unwrap().ino(),
                 fs::metadata(dirs[2].join("sodium.jar")).unwrap().ino()
             );
         }
+        let _ = reflinks;
         let _ = fs::remove_dir_all(&root);
     }
     #[test]

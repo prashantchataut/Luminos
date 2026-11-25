@@ -1,9 +1,9 @@
 // Tests for the live panel planner, the metadata cache and the presence mirror. Run: node tools/livepanel.test.mjs (Node 22+, TS stripped by esbuild via vite's dependency).
-import { build } from "esbuild"; import { readFileSync, mkdirSync } from "node:fs"; import assert from "node:assert/strict";
-mkdirSync("/tmp/lp-test", { recursive: true });
-for (const f of ["plan", "cache"]) await build({ entryPoints: [`src/livepanel/${f}.ts`], outfile: `/tmp/lp-test/${f}.mjs`, format: "esm", bundle: true, logLevel: "error" });
-await build({ entryPoints: ["src/presence.ts"], outfile: "/tmp/lp-test/presence.mjs", format: "esm", bundle: true, logLevel: "error" });
-const P = await import("/tmp/lp-test/plan.mjs"), C = await import("/tmp/lp-test/cache.mjs"), R = await import("/tmp/lp-test/presence.mjs");
+import { build } from "esbuild"; import { tmpdir } from "node:os"; import { join } from "node:path"; import { pathToFileURL } from "node:url"; import { readFileSync, mkdirSync } from "node:fs"; import assert from "node:assert/strict";
+const T = join(tmpdir(), "lp-test"); mkdirSync(T, { recursive: true });
+for (const f of ["plan", "cache"]) await build({ entryPoints: [`src/livepanel/${f}.ts`], outfile: join(T, `${f}.mjs`), format: "esm", bundle: true, logLevel: "error" });
+await build({ entryPoints: ["src/presence.ts"], outfile: join(T, "presence.mjs"), format: "esm", bundle: true, logLevel: "error" });
+const P = await import(pathToFileURL(join(T, "plan.mjs")).href), C = await import(pathToFileURL(join(T, "cache.mjs")).href), R = await import(pathToFileURL(join(T, "presence.mjs")).href);
 let n = 0; const t = async (name, fn) => { await fn(); n++; console.log("ok  ", name); };
 const M = (id, on, requires = []) => ({ id, slug: id, name: id.toUpperCase(), version: "1", enabled: on, requires, blurb: "" });
 const mods = () => [M("sodium", true), M("iris", true, ["sodium"]), M("sodium-extra", true, ["sodium"]), M("lithium", true), M("xaero", true), M("cloth", false), M("menu", true, ["cloth"]), M("ghostmod", false, ["ghostlib"])];
