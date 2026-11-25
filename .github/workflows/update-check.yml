@@ -1,0 +1,26 @@
+name: update-check
+# Runs the launcher's real update check (the same code the app uses) against a PUBLISHED release, on a runner.
+# Needed because the release job's copy of this check runs the tag's own code; this one runs main's.
+on:
+  workflow_dispatch:
+    inputs:
+      tag: { description: "Tag the updater must offer", required: true, default: "v1.0.0-rc1" }
+jobs:
+  update-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - name: Updater against the published release (default hides release candidates; opt-in sees it and verifies the download hash)
+        working-directory: launcher
+        env: { LUMINOS_HOME: "${{ runner.temp }}/lhome", LUMINOS_GITHUB_TOKEN: "${{ github.token }}", WANT: "${{ inputs.tag }}" }
+        run: |
+          set -o pipefail
+          cargo build -q -p luminos-core --example update_check
+          echo "default (release candidates hidden):" | tee -a "$GITHUB_STEP_SUMMARY"
+          ./target/debug/examples/update_check 0.6.0 | tee default.json | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "opt-in (LUMINOS_UPDATE_PRERELEASE=1) with --verify-download:" | tee -a "$GITHUB_STEP_SUMMARY"
+          LUMINOS_UPDATE_PRERELEASE=1 ./target/debug/examples/update_check 0.6.0 --verify-download | tee optin.json | tee -a "$GITHUB_STEP_SUMMARY"
+          node -e "const j=JSON.parse(require('fs').readFileSync('optin.json','utf8'));if(!j.offered||j.tag!==process.env.WANT||!j.download_verified){console.error('updater did not offer '+process.env.WANT);process.exit(1)}console.log('UPDATER SEES',j.tag,'download hash verified')"

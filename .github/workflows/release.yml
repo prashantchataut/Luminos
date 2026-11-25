@@ -121,7 +121,7 @@ jobs:
           APK="dist/Luminos-${{ steps.v.outputs.name }}.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "$APK"
           AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
-          { echo "file: $(basename $APK)"; $AAPT dump badging "$APK" | grep -E "^package:|sdkVersion|targetSdkVersion|native-code|uses-permission"; echo "native libs inside the APK:"; (unzip -l "$APK" | grep -E "lib/" || echo "  none (pure Kotlin; the Java runtime is downloaded on the device)"); echo "signer:"; $(ls $ANDROID_HOME/build-tools/*/apksigner | tail -1) verify --print-certs "$APK" | head -3; } | tee dist/apk-info.txt
+          { echo "file: $(basename $APK)"; $AAPT dump badging "$APK" | grep -iE "^package:|sdkVersion|native-code|uses-permission"; echo "native libs inside the APK:"; (unzip -l "$APK" | grep -E "lib/" || echo "  none (pure Kotlin; the Java runtime is downloaded on the device)"); echo "signer:"; $(ls $ANDROID_HOME/build-tools/*/apksigner | tail -1) verify --print-certs "$APK" | head -3; } | tee dist/apk-info.txt
       - uses: actions/upload-artifact@v4
         with: { name: android-apk, path: "dist/*" }
       - name: Enable KVM
@@ -219,7 +219,7 @@ jobs:
         with: { workspaces: launcher }
       - name: Run the launcher's real update check against the published release
         working-directory: launcher
-        env: { LUMINOS_HOME: "${{ runner.temp }}/lhome" }
+        env: { LUMINOS_HOME: "${{ runner.temp }}/lhome", LUMINOS_GITHUB_TOKEN: "${{ github.token }}" }
         run: |
           set -o pipefail
           cargo build -q -p luminos-core --example update_check

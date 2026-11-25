@@ -49,6 +49,15 @@ pub fn send_get(url: &str, query: &[(&str, String)]) -> Result<ureq::http::Respo
     for hop in 0..MAX_HOPS {
         netaudit::check(&cur)?;
         let mut req = agent().get(&cur);
+        // Optional, for CI only: authenticated GitHub API calls avoid the shared-IP rate limit (403 on runners). First hop
+        // only and only for api.github.com, so a token can never follow a redirect to another host.
+        if hop == 0 && netaudit::host_of(&cur).as_deref() == Some("api.github.com") {
+            if let Ok(tok) = std::env::var("LUMINOS_GITHUB_TOKEN") {
+                if !tok.is_empty() {
+                    req = req.header("Authorization", &format!("Bearer {tok}"));
+                }
+            }
+        }
         if hop == 0 {
             for (k, v) in query {
                 req = req.query(k, v);
