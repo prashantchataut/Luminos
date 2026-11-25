@@ -1,0 +1,30 @@
+{
+  "note": "Shared by launcher/crates/luminos-core/src/presence.rs and app/tools/presence.test.mjs. Edit both implementations or neither.",
+  "cases": [
+    {
+      "name": "singleplayer, instance name shared",
+      "input": { "enabled": true, "instanceName": "Survival 1.21", "loader": "fabric", "mcVersion": "1.21.11", "state": "singleplayer", "serverAddress": null, "shareServer": false, "shareInstanceName": true, "startedUnix": 1760000000 },
+      "expected": { "name": "Luminos", "type": 0, "details": "Survival 1.21", "state": "Singleplayer", "timestamps": { "start": 1760000000 }, "assets": { "large_image": "luminos", "large_text": "Luminos", "small_image": "fabric", "small_text": "Fabric 1.21.11" } }
+    },
+    {
+      "name": "server address is NOT sent unless opted in",
+      "input": { "enabled": true, "instanceName": "Main", "loader": "neoforge", "mcVersion": "1.21.1", "state": "multiplayer", "serverAddress": "play.secret-server.net:25565", "shareServer": false, "shareInstanceName": true, "startedUnix": 1760000100 },
+      "expected": { "name": "Luminos", "type": 0, "details": "Main", "state": "Multiplayer", "timestamps": { "start": 1760000100 }, "assets": { "large_image": "luminos", "large_text": "Luminos", "small_image": "neoforge", "small_text": "NeoForge 1.21.1" } }
+    },
+    {
+      "name": "server address sent after opt-in",
+      "input": { "enabled": true, "instanceName": "Main", "loader": "quilt", "mcVersion": "1.20.1", "state": "multiplayer", "serverAddress": "play.example.net", "shareServer": true, "shareInstanceName": true, "startedUnix": 1760000200 },
+      "expected": { "name": "Luminos", "type": 0, "details": "Main", "state": "play.example.net", "timestamps": { "start": 1760000200 }, "assets": { "large_image": "luminos", "large_text": "Luminos", "small_image": "quilt", "small_text": "Quilt 1.20.1" } }
+    },
+    {
+      "name": "in menus, name hidden, unknown loader has no small image",
+      "input": { "enabled": true, "instanceName": "My Private Pack", "loader": "vanilla", "mcVersion": "1.21.11", "state": "menus", "serverAddress": null, "shareServer": false, "shareInstanceName": false, "startedUnix": 1760000300 },
+      "expected": { "name": "Luminos", "type": 0, "details": "Playing with Luminos", "state": "In menus", "timestamps": { "start": 1760000300 }, "assets": { "large_image": "luminos", "large_text": "Luminos" } }
+    },
+    {
+      "name": "disabled sends nothing",
+      "input": { "enabled": false, "instanceName": "Main", "loader": "fabric", "mcVersion": "1.21.11", "state": "menus", "serverAddress": null, "shareServer": false, "shareInstanceName": true, "startedUnix": 1760000400 },
+      "expected": null
+    }
+  ]
+}

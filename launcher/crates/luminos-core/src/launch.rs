@@ -363,7 +363,12 @@ pub fn build_command_ext(
         cmd.arg("--width").arg(settings.game_width.to_string());
         cmd.arg("--height").arg(settings.game_height.to_string());
     }
-    if let Some(addr) = quick_join {
+    if let Some(world) = quick_join.and_then(|q| q.strip_prefix("world:")) {
+        // Singleplayer Quick Play exists from 1.20; older versions have no way to open a world from the command line.
+        if supports_quick_play(&inst.mc_version) {
+            cmd.arg("--quickPlaySingleplayer").arg(world);
+        }
+    } else if let Some(addr) = quick_join {
         if supports_quick_play(&inst.mc_version) {
             cmd.arg("--quickPlayMultiplayer").arg(addr);
         } else {
@@ -444,6 +449,13 @@ pub fn spawn_ext(
             let _ = fs::copy(&src, dst.join(format!("{}.png", account.username)));
         }
     }
+    // Always on: every token this process knows is registered so no line of game output can carry it (see `redact`).
+    for t in [&account.access_token, &account.client_token]
+        .into_iter()
+        .flatten()
+    {
+        crate::redact::register_secret(t);
+    }
     let mut cmd = build_command_ext(inst, settings, account, prep, quick_join);
     let mut child = cmd
         .spawn()
@@ -454,7 +466,7 @@ pub fn spawn_ext(
         thread::spawn(move || {
             for line in BufReader::new(out).lines().map_while(Result::ok) {
                 let mut l = log.lock().unwrap();
-                l.push(line);
+                l.push(crate::redact::scrub(&line));
                 if l.len() > 5000 {
                     l.drain(0..1000);
                 }
@@ -465,7 +477,9 @@ pub fn spawn_ext(
         let log = log.clone();
         thread::spawn(move || {
             for line in BufReader::new(err).lines().map_while(Result::ok) {
-                log.lock().unwrap().push(format!("[stderr] {line}"));
+                log.lock()
+                    .unwrap()
+                    .push(format!("[stderr] {}", crate::redact::scrub(&line)));
             }
         });
     }
