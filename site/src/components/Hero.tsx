@@ -2,7 +2,7 @@ import Sky from "./Sky";
 import Reveal from "./Reveal";
 import { DownloadCTA, Frame, Sparkle } from "./ui";
 import type { ReleaseState } from "../lib/useRelease";
-import home from "../assets/06-home.webp";
+import home from "../assets/app-home.webp";
 
 // Skills applied here
 //  taste-skill: one serif display + one sans, one accent word, no emoji, plain copy, real product UI in the frame.
@@ -17,7 +17,7 @@ export default function Hero({ release }: { release: ReleaseState }) {
         <Sky variant="hero" moon />
         <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-6xl flex-col items-center px-6 pt-[17vh] text-center">
           <p className="eyebrow rise" style={{ ["--d" as string]: 0 }}>
-            Minecraft Java launcher · Windows
+            Minecraft Java launcher · Windows · Android preview
           </p>
           <h1 className="display mt-7 text-[clamp(3rem,6.6vw,6.4rem)]">
             <span className="rise inline-block" style={{ ["--d" as string]: 1 }}>
@@ -56,10 +56,10 @@ export default function Hero({ release }: { release: ReleaseState }) {
 
       <section className="relative z-20 -mt-[17vh] px-4 pb-8 md:px-10" aria-label="Launcher home screen">
         <div className="rise mx-auto max-w-[1180px]" style={{ ["--d" as string]: 6 }}>
-          <Frame src={home} alt="Luminos home screen: a Continue button for the last played instance, quick-play tiles, Modrinth content cards and Minecraft news." priority />
+          <Frame src={home} alt="Luminos home screen: Continue playing with a Launch button for Luminos 26.3, last server, world and modpack tiles, recent instances, a 14-day playtime chart and Mojang patch notes." priority />
           <p className="mx-auto mt-5 max-w-2xl text-center text-[0.8125rem] leading-relaxed text-mute">
-            Rendered by the launcher’s own screenshot tool from the real interface. The account name,
-            instances and playtime are demo data.
+            The launcher’s own interface, captured in a browser by tools/shots-s19.mjs. The account, instances,
+            playtime and news are demo data. It has not been run on a real Windows desktop yet.
           </p>
         </div>
         <div className="mx-auto mt-14 flex max-w-xl justify-center">

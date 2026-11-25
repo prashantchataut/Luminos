@@ -29,6 +29,18 @@ Release candidate. Not stable: builds are unsigned and nothing has been run on a
 - Code signing, real-desktop run (docs/REAL_DESKTOP_CHECKLIST.md), Windows ARM64 on ARM hardware, winget/scoop submission.
 - The updater ignores release candidates unless LUMINOS_UPDATE_PRERELEASE=1.
 
+**Added after #18 (session 19)**
+- Live panel on real data with a clear split: Luminos modules and resource packs apply in the running game (**verified on Minecraft 1.21.11 at the title screen**); other mods queue for the next launch. Third-party mods do not live-swap.
+- Tauri commands for dependency tracking, dedup, log redaction, Quick Play links and Discord, with typed bindings checked by a test. The crate compiles on Windows, Linux and macOS in CI. Quick Play has no button yet.
+- Real Modrinth store, reflink-then-hardlink dedup (reflinks unverified), cross-instance sharing engine, P2P client (signalling Worker never deployed).
+- Fixed `smoke.yml`: it was invalid YAML and had never run on main.
+- Release manifest `site/src/lib/release.json` generated from SHA256SUMS.txt, so site links name the exact tag.
+
+**Android (launcher preview)**
+Android launcher preview: installs and manages instances; Minecraft does not launch yet. `Luminos-<version>.apk`, Android 8.0+, no native libraries (Java runtimes downloaded for arm64-v8a and x86_64), **signed with a debug key**, run only on an Android 11 x86_64 emulator in CI, never on a real device. Works: offline account, instances, Java runtime download and boot, Mojang file download with checks, Modrinth browsing, 3D skins, settings. Does not work: starting Minecraft (no OpenGL or window layer), Microsoft sign-in. Details: docs/ANDROID.md.
+
+**Deferred on purpose:** live apply for third-party mods, P2P two-machine test, reflink verification, cross-instance saves in the UI, Android GL/window layer.
+
 ### Español
 Versión candidata. No es estable: las compilaciones no están firmadas y nada se ha probado todavía en un escritorio real (ver Límites conocidos).
 
@@ -55,6 +67,18 @@ Versión candidata. No es estable: las compilaciones no están firmadas y nada s
 - No hay JARs de 26.2, 26.1.2 ni 1.21.4 en esta versión (1.21.4 mantiene el JAR antiguo client-v0.2.0).
 - Firma de código, prueba en escritorio real (docs/REAL_DESKTOP_CHECKLIST.md), Windows ARM64 en hardware ARM, envío a winget/scoop.
 - El actualizador ignora las versiones candidatas salvo con LUMINOS_UPDATE_PRERELEASE=1.
+
+**Añadido tras #18 (sesión 19)**
+- Panel en vivo con datos reales y una separación clara: los módulos de Luminos y los paquetes de recursos se aplican en el juego en ejecución (**verificado en Minecraft 1.21.11 en la pantalla de título**); el resto de mods queda en cola para el próximo inicio. Los mods de terceros no se cambian en vivo.
+- Comandos de Tauri para dependencias, deduplicación, redacción de registros, enlaces de Quick Play y Discord, con tipos comprobados por una prueba. El crate compila en Windows, Linux y macOS en CI. Quick Play aún no tiene botón.
+- Tienda real de Modrinth, deduplicación con reflink y enlace duro (reflink sin verificar), motor para compartir entre instancias, cliente P2P (el Worker de señalización nunca se desplegó).
+- Corregido `smoke.yml`: era un YAML inválido y nunca se había ejecutado en main.
+- Manifiesto `site/src/lib/release.json` generado desde SHA256SUMS.txt: los enlaces del sitio apuntan a la etiqueta exacta.
+
+**Android (versión previa del launcher)**
+Versión previa del launcher para Android: instala y gestiona instancias; Minecraft todavía no se inicia. `Luminos-<versión>.apk`, Android 8.0+, sin bibliotecas nativas (se descargan runtimes de Java para arm64-v8a y x86_64), **firmado con una clave de depuración**, probado solo en un emulador Android 11 x86_64 en CI, nunca en un dispositivo real. Funciona: cuenta sin conexión, instancias, descarga y arranque de Java, descarga de archivos de Mojang con verificación, exploración de Modrinth, skins en 3D, ajustes. No funciona: iniciar Minecraft (no hay capa OpenGL ni de ventana) ni el inicio de sesión de Microsoft. Detalles: docs/ANDROID.md.
+
+**Aplazado a propósito:** aplicación en vivo de mods de terceros, prueba P2P entre dos equipos, verificación de reflink, guardados entre instancias en la interfaz, capa GL/ventana de Android.
 
 ## 0.5.0
 - Auto-update, storage manager, honest username check, offline skin + cape server, original skins and cape, Client page, optional mods (Resourcify and others). See docs/RELEASE_NOTES.md.

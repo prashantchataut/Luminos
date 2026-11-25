@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Hero from "./components/Hero";
 import Tour from "./components/Tour";
+import Themes from "./components/Themes";
+import Android from "./components/Android";
 import { Features, Client, Worlds, Limits } from "./components/Sections";
 import { Changelog, FAQ, Closing } from "./components/Closing";
 import Legal from "./components/Legal";
@@ -9,6 +11,8 @@ import { REPO_URL, useRelease } from "./lib/useRelease";
 
 const links = [
   ["Launcher", "#tour"],
+  ["Themes", "#themes"],
+  ["Android", "#android"],
   ["Client", "#client"],
   ["Not yet", "#limits"],
   ["FAQ", "#faq"],
@@ -92,9 +96,11 @@ export default function App() {
         <main id="main">
           <Hero release={release} />
           <Tour />
+          <Themes />
           <Features />
           <Client />
           <Worlds />
+          <Android state={release} />
           <Limits />
           <Changelog />
           <FAQ />

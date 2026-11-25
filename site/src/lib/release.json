@@ -1,1 +1,29 @@
-{ "version": "1.0.0-rc1", "tag": "v1.0.0-rc1" }
+{
+  "published": false,
+  "tag": "v1.0.0-rc1",
+  "version": "1.0.0-rc1",
+  "prerelease": true,
+  "releasePage": "https://github.com/prashantchataut/Luminos/releases/tag/v1.0.0-rc1",
+  "windows": {
+    "name": "Luminos-Setup.exe",
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-Setup.exe",
+    "sha256": null,
+    "portable": { "name": "Luminos-Portable.zip", "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-Portable.zip", "sha256": null },
+    "signed": false
+  },
+  "android": {
+    "name": "Luminos-1.0.0-rc1.apk",
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-1.0.0-rc1.apk",
+    "sha256": null,
+    "status": "launcher-preview",
+    "label": "Android launcher preview: installs and manages instances; Minecraft does not launch yet.",
+    "minecraftLaunch": false,
+    "minAndroid": "8.0 (API 26)",
+    "abis": ["arm64-v8a", "x86_64"],
+    "abiNote": "x86_64 verified on an emulator only; arm64-v8a never run on a phone.",
+    "signing": "debug key (no release keystore exists)",
+    "realDeviceTested": false
+  },
+  "jars": [],
+  "checksums": { "name": "SHA256SUMS.txt", "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/SHA256SUMS.txt" }
+}
