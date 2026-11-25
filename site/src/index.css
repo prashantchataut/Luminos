@@ -25,15 +25,15 @@
   --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-ink-0: #02040d;
-  --color-ink-1: #050a1f;
-  --color-ink-2: #0a1433;
-  --color-ink-3: #12204d;
+  --color-ink-0: #07090d;
+  --color-ink-1: #0b0d12;
+  --color-ink-2: #151922;
+  --color-ink-3: #1c212d;
   --color-line: rgba(160, 190, 255, 0.14);
   --color-fg: #e9f0ff;
-  --color-mute: #93a2c8;
+  --color-mute: #8f99ad;
   --color-accent: #8fb4ff;
-  --color-accent-deep: #3b6cf0;
+  --color-accent-deep: #2b4bff;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);

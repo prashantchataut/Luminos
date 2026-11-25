@@ -3,8 +3,8 @@
 //  2. every value is a hex colour;
 //  3. every text pair passes WCAG AA 4.5:1.
 import { readFileSync } from "node:fs";
-const KEYS = ["bg", "surface", "surface-2", "hover", "line", "line-strong", "fg", "mute", "accent", "accent-fg", "accent-soft", "ok", "warn", "bad"];
-const PAIRS = [["fg", "bg"], ["fg", "surface"], ["fg", "surface-2"], ["fg", "hover"], ["mute", "bg"], ["mute", "surface"], ["mute", "surface-2"], ["mute", "hover"], ["accent-fg", "accent"], ["accent", "surface"], ["fg", "accent-soft"], ["ok", "surface"], ["warn", "surface"], ["bad", "surface"]];
+const KEYS = ["bg", "side", "surface", "surface-2", "hover", "line", "line-strong", "fg", "mute", "accent", "accent-fg", "accent-soft", "ok", "warn", "bad"];
+const PAIRS = [["fg", "bg"], ["fg", "surface"], ["fg", "surface-2"], ["fg", "hover"], ["mute", "bg"], ["mute", "surface"], ["mute", "surface-2"], ["mute", "hover"], ["accent-fg", "accent"], ["fg", "side"], ["mute", "side"], ["fg", "accent-soft"], ["ok", "surface"], ["warn", "surface"], ["bad", "surface"]];
 const ts = readFileSync(new URL("../src/theme.ts", import.meta.url), "utf8");
 const listed = [...ts.match(/TOKEN_KEYS = \[([^\]]+)\]/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 let fails = 0; const fail = (m) => { console.log("   FAIL", m); fails++; };
@@ -12,7 +12,7 @@ if (JSON.stringify(listed) !== JSON.stringify(KEYS)) fail(`theme.ts TOKEN_KEYS d
 const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = (h) => { if (h.length === 4) h = "#" + [...h.slice(1)].map((c) => c + c).join(""); const n = parseInt(h.slice(1), 16); return 0.2126 * lin(n >> 16 & 255) + 0.7152 * lin(n >> 8 & 255) + 0.0722 * lin(n & 255); };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-for (const id of ["default", "lunar", "light"]) {
+for (const id of ["default", "neutral", "minecraft", "light"]) {
   const css = readFileSync(new URL(`../src/themes/${id}.css`, import.meta.url), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   const body = css.match(/\{([\s\S]*)\}/)[1];
   const decl = Object.fromEntries([...body.matchAll(/([a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1].trim(), m[2].trim()]));

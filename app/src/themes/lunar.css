@@ -1,9 +1,0 @@
-/* Lunar: blue-black surfaces, soft blue accent. */
-:root[data-theme="lunar"] {
-  color-scheme: dark;
-  --bg: #080b15; --surface: #0e1322; --surface-2: #151c31; --hover: #1b2440;
-  --line: #243050; --line-strong: #4a5d92;
-  --fg: #e9eefc; --mute: #aab6d6;
-  --accent: #7ba8ff; --accent-fg: #06122a; --accent-soft: #1a2c57;
-  --ok: #6fd9a6; --warn: #f2c14e; --bad: #ff8f9c;
-}

@@ -1,0 +1,9 @@
+/* Luminos Neutral Dark: obsidian greys, crisp white text, cobalt accent. */
+:root[data-theme="neutral"] {
+  color-scheme: dark;
+  --bg: #0d0d0f; --side: #111114; --surface: #17171b; --surface-2: #1f1f24; --hover: #26262c;
+  --line: #1e1e23; --line-strong: #44444c;
+  --fg: #f2f2f4; --mute: #9b9ba6;
+  --accent: #3f5cff; --accent-fg: #ffffff; --accent-soft: #1d2672;
+  --ok: #5ee0a5; --warn: #f2c14e; --bad: #ff808f;
+}

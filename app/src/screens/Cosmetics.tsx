@@ -18,10 +18,10 @@ function CapeTile({ file }: { file: string }) {
   return <canvas ref={ref} width={10} height={16} className="skin-px" style={{ width: 25, height: 40 }} />;
 }
 
-export default function Cosmetics({ boot }: { boot: Boot }) {
+export default function Cosmetics({ boot, q, setQ }: { boot: Boot; q: string; setQ: (v: string) => void }) {
   const L = useLocker(), s = useSettings();
   const canvas = useRef<HTMLCanvasElement>(null), wrap = useRef<HTMLDivElement>(null), scene = useRef<LockerScene | null>(null);
-  const [tab, setTab] = useState<Cat | "skins">("skins"), [q, setQ] = useState(""), [favOnly, setFavOnly] = useState(false);
+  const [tab, setTab] = useState<Cat | "skins">("skins"), [favOnly, setFavOnly] = useState(false);
   const [mode, setMode] = useState<Mode>("studio"), [move, setMove] = useState<Move>("idle"), [spin, setSpin] = useState(true);
   const [note, setNote] = useState<{ ok: boolean; t: string } | null>(null), [focus, setFocus] = useState<Item | null>(null);
   const [edit, setEdit] = useState<SkinRec | null>(null), [uname, setUname] = useState(""), [found, setFound] = useState<any>(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(false);
@@ -73,94 +73,75 @@ export default function Cosmetics({ boot }: { boot: Boot }) {
     setEdit(null); say("Saved.");
   };
   const worn = Object.entries(L.equipped).filter(([, v]) => v).map(([c, v]) => ({ c: c as Cat, item: ITEMS.find((i) => i.id === v)! })).filter((w) => w.item);
-  const Seg = <T extends string>({ v, o, on, label }: { v: T; o: [T, string][]; on: (v: T) => void; label: string }) => <div role="group" aria-label={label} className="inline-flex rounded-md overflow-hidden" style={{ border: "1px solid var(--line)" }}>{o.map(([k, l]) => <button key={k} className="px-2.5 h-7 t1 font-semibold" aria-pressed={v === k} style={{ background: v === k ? "var(--accent-soft)" : "transparent", color: v === k ? "var(--fg)" : "var(--mute)" }} onClick={() => on(k)}>{l}</button>)}</div>;
+  const Seg = <T extends string>({ v, o, on, label }: { v: T; o: [T, string][]; on: (v: T) => void; label: string }) => <div role="group" aria-label={label} className="seg">{o.map(([k, l]) => <button key={k} aria-pressed={v === k} onClick={() => on(k)}>{l}</button>)}</div>;
   const count = (c: Cat | "skins") => (c === "skins" ? skins.length : ITEMS.filter((i) => i.cat === c).length);
 
   return (
-    <div className="grid gap-3 max-w-[1280px]" style={{ gridTemplateColumns: "176px minmax(0,1fr) 372px", height: "calc(100vh - 44px - 20px)" }}>
-      <nav className="panel p-1.5 flex flex-col gap-0.5 min-h-0 overflow-y-auto" aria-label="Locker categories">
-        {CATS.map((c) => { const on = tab === c.id, eq = c.id !== "skins" && !!L.equipped[c.id as Cat]; return (
-          <button key={c.id} onClick={() => { setTab(c.id); setQ(""); }} aria-current={on} className="lrow !min-h-[34px] text-left" style={{ background: on ? "var(--accent-soft)" : undefined, borderColor: on ? "var(--accent)" : undefined }}>
-            <Icon n={c.icon} s={15} /><span className="t2 font-medium flex-1">{c.label}</span>
-            {eq && <span title="Something is equipped" className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent)" }} />}<span className="t1 mute num">{count(c.id)}</span>
-          </button>); })}
-        <div className="flex-1" />
-        <div className="px-2 pt-2 border-t border-line">
-          <div className="flex items-center justify-between min-h-[30px]"><span className="t1 font-semibold">Classic client</span><button role="switch" aria-checked={L.classic} aria-label="Classic client" className="sw" onClick={() => setClassic(!L.classic)} /></div>
-          <div className="t1 mute leading-snug pb-1.5">Hides pets, wings and emotes. Everything else stays.</div>
+    <div className="flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
+      <div className="flex items-center gap-2 px-6 pb-3">
+        <div className="flex gap-2 overflow-x-auto flex-1 min-w-0 py-0.5" role="tablist" aria-label="Locker categories">
+          {CATS.map((c) => { const on = tab === c.id; return <button key={c.id} role="tab" aria-selected={on} data-on={on} className="pill !px-2.5 !gap-1.5" title={`${count(c.id)} items`} onClick={() => { setTab(c.id); setQ(""); }}><Icon n={c.icon} s={14} />{c.label}</button>; })}
         </div>
-      </nav>
-
-      <div className="panel flex flex-col min-h-0 overflow-hidden">
-        <div className="flex items-center gap-2 p-2 border-b border-line flex-wrap">
-          <Seg<Mode> label="Preview" v={mode} on={setMode} o={[["studio", "Studio"], ["scene", "Sunset scene"]]} />
-          <Seg<Move> label="Pose" v={move} on={setMove} o={MOVES.map((m) => [m, MOVE_LABEL[m]] as [Move, string])} />
-          <div className="flex-1" />
-          <button className="ibtn" aria-pressed={spin} aria-label="Spin" title="Spin" onClick={() => setSpin(!spin)}><Icon n="refresh" s={14} /></button>
-          <button className="ibtn" aria-label="Save a picture" title="Save a picture" onClick={() => canvas.current!.toBlob((b) => { const a = document.createElement("a"); a.href = URL.createObjectURL(b!); a.download = `${skin.id}.png`; a.click(); })}><Icon n="download" s={14} /></button>
-        </div>
-        <div ref={wrap} className="flex-1 min-h-0 relative"><canvas ref={canvas} className="absolute inset-0 w-full h-full" aria-label={`3D preview of ${skin.name}`} />
-          {L.classic && <div className="absolute left-2 bottom-2 badge">Classic client: pets, wings and emotes hidden</div>}
-        </div>
-        <div className="p-2 border-t border-line flex items-center gap-1.5 flex-wrap min-h-[44px]" aria-label="Equipped">
-          <span className="eyebrow mr-1">Equipped</span>
-          <span className="chip" data-on="true"><Icon n="shirt" s={11} />{skin.name}</span>
-          {worn.map(({ c, item }) => <button key={c} className="chip" title={`Unequip ${item.name}`} onClick={() => equip(item)}><Icon n={CATS.find((x) => x.id === c)!.icon} s={11} />{item.name}<Icon n="x" s={10} /></button>)}
-          {!worn.length && <span className="t1 mute">No cosmetics worn.</span>}
-        </div>
+        <label className="flex items-center gap-2.5 shrink-0 t2 font-medium cursor-pointer pl-3" title="Hides pets, wings and emotes. Everything else stays.">Classic mode<button role="switch" aria-checked={L.classic} aria-label="Classic Client Mode" className="sw" onClick={() => setClassic(!L.classic)} /></label>
       </div>
-
-      <div className="flex flex-col gap-2 min-h-0 overflow-y-auto pr-0.5" onDragOver={(e) => { if (tab === "skins") { e.preventDefault(); setDrag(true); } }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); if (tab === "skins") importFile(e.dataTransfer.files?.[0]); }}>
-        <div className="flex gap-1.5"><SearchBox value={q} onChange={setQ} placeholder={tab === "skins" ? "Search skins" : `Search ${CATS.find((c) => c.id === tab)!.label.toLowerCase()}`} /><button className="chip !h-[30px]" data-on={favOnly} onClick={() => setFavOnly(!favOnly)} aria-label="Favourites only"><Icon n="star" s={12} />Favourites</button></div>
-        {note && <div role="status" className="panel-2 px-2.5 py-1.5 t2" style={{ color: note.ok ? "var(--ok)" : "var(--bad)", borderColor: note.ok ? "var(--ok)" : "var(--bad)" }}>{note.t}</div>}
-
-        {tab === "skins" ? (<>
-          <div className="panel p-2.5" style={drag ? { borderColor: "var(--accent)", background: "var(--accent-soft)" } : undefined}>
-            <div className="flex items-center gap-2"><label className="btn cursor-pointer"><Icon n="upload" s={13} />Import PNG<input type="file" accept="image/png" className="hidden" onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ""; }} /></label><span className="t1 mute">or drop a file here. 64×64 or 64×32.</span></div>
-            <div className="flex gap-1.5 mt-2"><input className="field plain" placeholder="Minecraft username" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === "Enter" && lookup()} aria-label="Minecraft username" /><button className="btn" disabled={busy || !uname.trim()} onClick={lookup}>{busy ? "Looking…" : "Look up"}</button></div>
-            {found && <div className="mt-2 flex items-center gap-2.5 panel-2 p-2"><SkinThumb src={found.png} scale={2.4} /><div className="flex-1 min-w-0"><div className="t2 font-semibold truncate">{found.name}</div><div className="t1 mute leading-snug">{found.slim ? "Slim" : "Classic"} model. This saves a copy. It does not follow their future changes.</div></div><button className="btn btn-primary" onClick={useFound}>Use this skin</button></div>}
-            <div className="t1 mute mt-1.5">Username lookups go to Mojang only.</div>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {shownSkins.map((x) => { const on = x.id === L.skin; return (
-              <div key={x.id} className="relative group panel-2 flex flex-col items-center pt-2 pb-1.5 px-1" style={{ borderColor: on ? "var(--accent)" : undefined, background: on ? "var(--accent-soft)" : undefined }}>
-                <button onClick={() => setSkin(x.id)} aria-pressed={on} aria-label={`Use ${x.name}`} className="grid place-items-center"><SkinThumb src={skinSrc(x)} scale={3} /></button>
-                <div className="t1 font-semibold truncate max-w-full mt-1">{x.name}</div>
-                <div className="flex gap-1 mt-0.5"><span className="badge">{x.model === "slim" ? "Slim" : "Classic"}</span>{on && <span className="badge accent">Worn</span>}</div>
-                <button aria-label={`${L.favs.includes(x.id) ? "Unfavourite" : "Favourite"} ${x.name}`} onClick={() => toggleFav(x.id)} className="absolute top-1 right-1 ibtn !w-6 !h-6" style={{ color: L.favs.includes(x.id) ? "var(--accent)" : undefined }}><Icon n="star" s={12} /></button>
-              </div>); })}
-          </div>
-          <div className="panel p-2.5">
-            <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="t2 font-semibold truncate">{skin.name}</div><div className="t1 mute truncate">{skin.builtin ? "Luminos original. Free to use." : skin.source === "mojang" ? "Copy of a Mojang skin" : skin.description}</div></div>{skin.reported && <Badge tone="warn">Reported</Badge>}</div>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              <button className="btn btn-primary" onClick={() => setEdit(skin)}><Icon n="edit" s={13} />{skin.custom ? "Edit" : "Edit a copy"}</button>
-              <button className="btn" onClick={() => duplicate(skin)}><Icon n="copy" s={13} />Duplicate</button>
-              {skin.custom && <button className="btn" onClick={() => { removeSkin(skin.id); say("Deleted."); }}><Icon n="trash" s={13} />Delete</button>}
-              {skin.custom && skin.source !== "editor" && !skin.reported && <button className="btn" onClick={() => { reportSkin(skin.id); say("Reported. It is hidden from the shared library and flagged for review."); }}><Icon n="flag" s={13} />Report this skin</button>}
+      <div className="flex-1 min-h-0 flex gap-4 px-6 pb-4">
+        <div className="relative overflow-hidden flex flex-col min-w-0" style={{ width: "55%", background: "#0f131c", borderRadius: 16 }}>
+          <div ref={wrap} className="flex-1 min-h-0 relative"><canvas ref={canvas} className="absolute inset-0 w-full h-full" aria-label={`3D preview of ${skin.name}`} />
+            {L.classic && <div className="absolute left-3 top-3 badge">Classic client: pets, wings and emotes hidden</div>}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-2 p-1.5 rounded-xl" style={{ background: "#151922" }}>
+              <Seg<Mode> label="Preview" v={mode} on={setMode} o={[["studio", "Studio"], ["scene", "Sunset"]]} />
+              <Seg<Move> label="Pose" v={move} on={setMove} o={MOVES.map((m) => [m, MOVE_LABEL[m]] as [Move, string])} />
+              <button className="ibtn !w-8 !h-8" aria-pressed={spin} aria-label="Orbit" title="Orbit" onClick={() => setSpin(!spin)}><Icon n="refresh" s={14} /></button>
+              <button className="ibtn !w-8 !h-8" aria-label="Orbit reset" title="Orbit reset" onClick={() => { (scene.current?.v as any)?.resetCameraPose?.(); }}><Icon n="target" s={14} /></button>
+              <button className="ibtn !w-8 !h-8" aria-label="Screenshot" title="Screenshot" onClick={() => canvas.current!.toBlob((b) => { const a = document.createElement("a"); a.href = URL.createObjectURL(b!); a.download = `${skin.id}.png`; a.click(); })}><Icon n="download" s={14} /></button>
             </div>
           </div>
-          <Visibility skin={skin} account={boot.account || {}} />
-        </>) : (<>
-          <div className="grid grid-cols-3 gap-1.5">
-            {shownItems.map((it) => { const on = isEquipped(it, L); return (
-              <div key={it.id} className="relative panel-2" style={{ borderColor: on ? "var(--accent)" : undefined, background: on ? "var(--accent-soft)" : undefined }}>
-                <button onClick={() => equip(it)} aria-pressed={on} aria-label={`${on ? "Unequip" : "Equip"} ${it.name}`} className="w-full flex flex-col items-center gap-1 pt-3 pb-2 px-1">
-                  <span className="grid place-items-center h-10">{it.capeFile ? <CapeTile file={it.capeFile} /> : <Icon n={CATS.find((c) => c.id === it.cat)!.icon} s={26} />}</span>
-                  <span className="t1 font-semibold truncate max-w-full">{it.name}</span>
-                  <span className={`badge ${on ? "accent" : ""}`}>{on ? "Equipped" : "Equip"}</span>
-                </button>
-                <button aria-label={`${L.favs.includes(it.id) ? "Unfavourite" : "Favourite"} ${it.name}`} onClick={() => toggleFav(it.id)} className="absolute top-1 right-1 ibtn !w-6 !h-6" style={{ color: L.favs.includes(it.id) ? "var(--accent)" : undefined }}><Icon n="star" s={12} /></button>
-              </div>); })}
+          <div className="px-4 py-3 flex items-center gap-1.5 flex-wrap min-h-[52px]" aria-label="Equipped" style={{ background: "#151922" }}>
+            <span className="eyebrow mr-1">Equipped</span>
+            <span className="chip"><Icon n="shirt" s={11} />{skin.name}</span>
+            {worn.map(({ c, item }) => <button key={c} className="chip" title={`Unequip ${item.name}`} onClick={() => equip(item)}><Icon n={CATS.find((x) => x.id === c)!.icon} s={11} />{item.name}<Icon n="x" s={10} /></button>)}
+            {!worn.length && <span className="t1 mute">No cosmetics worn.</span>}
           </div>
-          {!shownItems.length && <div className="panel p-4 t2 mute text-center">{favOnly ? "No favourites in this category yet. Star an item to keep it here." : `Nothing matches “${q}”.`}</div>}
-          {(() => { const it = focus && focus.cat === tab ? focus : shownItems.find((i) => isEquipped(i, L)) || shownItems[0]; return it ? (
-            <div className="panel p-2.5"><div className="flex items-center gap-2"><div className="t2 font-semibold flex-1">{it.name}</div>{tab === "emotes" && <button className="btn" onClick={() => scene.current?.playEmote(it.id.slice(6) as EmoteId)}><Icon n="play" s={12} />Play</button>}<button className="btn btn-primary" onClick={() => equip(it)}>{isEquipped(it, L) ? "Unequip" : "Equip"}</button></div>
-              <div className="t1 mute mt-1 leading-snug">{it.blurb}</div>
-              <div className="t1 mt-1.5 leading-snug"><b>Visible to:</b> <span className="mute">{it.visible}</span></div>
-              {(tab === "wings" || tab === "cloaks" || tab === "back") && <div className="t1 mute mt-1 leading-snug">Wings, cloaks and back items share the back. Wearing one removes the others. Pets can be worn with any of them.</div>}
-              {it.cat === "pets" && <div className="t1 mute mt-1 leading-snug">Pets stack with wings, hats and back items.</div>}
-            </div>) : null; })()}
-        </>)}
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col gap-3 overflow-y-auto pr-1" onDragOver={(e) => { if (tab === "skins") { e.preventDefault(); setDrag(true); } }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); if (tab === "skins") importFile(e.dataTransfer.files?.[0]); }}>
+          {note && <div role="status" className="panel-2 px-3 py-2 t2" style={{ color: note.ok ? "var(--ok)" : "var(--bad)" }}>{note.t}</div>}
+          {tab === "skins" ? (<>
+            <div className="flex items-center gap-2 flex-wrap" style={drag ? { outline: "2px dashed var(--accent)", outlineOffset: 4, borderRadius: 8 } : undefined}>
+              <label className="btn cursor-pointer" title="64×64 or 64×32. Slim arms are detected."><Icon n="upload" s={13} />Import PNG<input type="file" accept="image/png" className="hidden" onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ""; }} /></label>
+              <input className="field plain !w-[170px]" placeholder="Mojang or Ely.by name" value={uname} onChange={(e) => setUname(e.target.value)} onKeyDown={(e) => e.key === "Enter" && lookup()} aria-label="Minecraft username" />
+              <button className="btn" disabled={busy || !uname.trim()} onClick={lookup}>{busy ? "Looking…" : "Look up"}</button>
+              <div className="flex-1" /><button className="btn btn-primary" onClick={() => setEdit(skin)}><Icon n="brush" s={13} />Open Pixel Skin Editor</button>
+            </div>
+            {found && <div className="flex items-center gap-3 panel p-3"><SkinThumb src={found.png} scale={2.4} /><div className="flex-1 min-w-0"><div className="t2 font-semibold truncate">{found.name}</div><div className="t1 mute leading-snug">{found.slim ? "Slim" : "Classic"} model. Saves a copy; it does not follow their future changes.</div></div><button className="btn btn-primary" onClick={useFound}>Use this skin</button></div>}
+            <div className="grid grid-cols-3 gap-3">
+              {shownSkins.map((x) => { const on = x.id === L.skin; return (
+                <div key={x.id} className="mod" data-on={on} style={{ aspectRatio: "auto", height: 176 }}>
+                  <button className="mod-icon" onClick={() => setSkin(x.id)} aria-label={`Use ${x.name}`}><SkinThumb src={skinSrc(x)} scale={3} /></button>
+                  <button aria-label={`${L.favs.includes(x.id) ? "Unfavourite" : "Favourite"} ${x.name}`} onClick={() => toggleFav(x.id)} className="absolute top-1.5 right-1.5 ibtn !w-7 !h-7" style={{ color: L.favs.includes(x.id) ? "var(--accent-text)" : undefined }}><Icon n="star" s={13} /></button>
+                  <span className="absolute left-2.5 top-2.5 badge">{x.model === "slim" ? "Slim" : "Classic"}</span>
+                  <button className="mod-bar" aria-pressed={on} onClick={() => setSkin(x.id)}>{x.name}</button>
+                </div>); })}
+            </div>
+            <div className="panel p-4"><div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="t3 font-semibold truncate">{skin.name}</div><div className="t2 mute truncate">{skin.builtin ? "Luminos original. Free to use." : skin.source === "mojang" ? "Copy of a Mojang skin" : skin.description}</div></div>{skin.reported && <Badge tone="warn">Reported</Badge>}</div>
+              <div className="flex flex-wrap gap-2 mt-3"><button className="btn" onClick={() => duplicate(skin)}><Icon n="copy" s={13} />Duplicate</button>{skin.custom && <button className="btn" onClick={() => { removeSkin(skin.id); say("Deleted."); }}><Icon n="trash" s={13} />Delete</button>}{skin.custom && skin.source !== "editor" && !skin.reported && <button className="btn" onClick={() => { reportSkin(skin.id); say("Reported. It is hidden from the shared library and flagged for review."); }}><Icon n="flag" s={13} />Report</button>}</div></div>
+            <details className="panel"><summary className="flex items-center gap-2 px-4 h-12 cursor-pointer t2 font-semibold list-none"><Icon n="eye" s={15} />Who sees this skin<span className="flex-1" /><Icon n="chev" s={13} /></summary><div className="px-4 pb-4"><Visibility skin={skin} account={boot.account || {}} /></div></details>
+          </>) : (<>
+            <div className="grid grid-cols-3 gap-3">
+              {shownItems.map((it) => { const on = isEquipped(it, L); return (
+                <div key={it.id} className="mod" data-on={on} style={{ aspectRatio: "auto", height: 136 }}>
+                  <button className="mod-icon" onClick={() => equip(it)} aria-label={`${on ? "Unequip" : "Equip"} ${it.name}`}>{it.capeFile ? <CapeTile file={it.capeFile} /> : <Icon n={CATS.find((c) => c.id === it.cat)!.icon} s={30} />}</button>
+                  <button aria-label={`${L.favs.includes(it.id) ? "Unfavourite" : "Favourite"} ${it.name}`} onClick={() => toggleFav(it.id)} className="absolute top-1.5 right-1.5 ibtn !w-7 !h-7" style={{ color: L.favs.includes(it.id) ? "var(--accent-text)" : undefined }}><Icon n="star" s={13} /></button>
+                  <button className="mod-bar" aria-pressed={on} onClick={() => equip(it)}>{it.name}</button>
+                </div>); })}
+            </div>
+            {!shownItems.length && <div className="panel p-4 t2 mute text-center">{favOnly ? "No favourites in this category yet. Star an item to keep it here." : `Nothing matches “${q}”.`}</div>}
+            {(() => { const it = focus && focus.cat === tab ? focus : shownItems.find((i) => isEquipped(i, L)) || shownItems[0]; return it ? (
+              <div className="panel p-4"><div className="flex items-center gap-2"><div className="t3 font-semibold flex-1">{it.name}</div>{tab === "emotes" && <button className="btn" onClick={() => scene.current?.playEmote(it.id.slice(6) as EmoteId)}><Icon n="play" s={12} />Play</button>}<button className="btn btn-primary" onClick={() => equip(it)}>{isEquipped(it, L) ? "Unequip" : "Equip"}</button></div>
+                <div className="t2 mute mt-1.5 leading-snug">{it.blurb}</div><div className="t2 mt-2 leading-snug"><b>Visible to:</b> <span className="mute">{it.visible}</span></div>
+                {(tab === "wings" || tab === "cloaks" || tab === "back") && <div className="t1 mute mt-2 leading-snug">Wings, cloaks and back items share the back. Wearing one removes the others. Pets can be worn with any of them.</div>}</div>) : null; })()}
+          </>)}
+        </div>
       </div>
       {edit && <SkinEditor src={skinSrc(edit)} name={edit.name} slim={edit.model === "slim"} mine={!!edit.custom} onSave={saveEdit} onClose={() => setEdit(null)} />}
     </div>

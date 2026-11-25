@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.0-rc2
+
+### English
+Release candidate. Windows build unsigned, APK debug-signed and emulator-only (see STATUS.md).
+
+**Launcher redesign (OneClient / OneConfig / Ankama references)**
+- One 220px sidebar with grouped pill rows and a pinned account dock. The second category sidebar and the one-pixel borders around every panel are gone; surfaces carry the hierarchy.
+- Four themes that change colours only: OneClient Cobalt (default), Luminos Neutral Dark, Minecraft Dark, Clean Light. Every text pair passes 4.5:1 (`npm test`).
+- Mods: 4-column cards with a solid status bar, compact view, settings drawer, keybind recorder, and a "What changed" banner when a dependency flips.
+- HUD Design Studio: drag with a 5px snap gap, selection chrome, docked inspector, custom .ttf/.otf fonts.
+- Home: morphing launch bar, Resume and Quickplay strip, Host World dialog, skin rail with the space saved by dedup.
+- Cosmetics: one pill bar, 55/45 stage and locker, OneConfig-style cards.
+- Accounts: offline, Ely.by through authlib-injector (argument builder in luminos-core, 6 tests), Microsoft device-code (not live until an Azure app exists).
+- Instances: profiles as plain JSON with a SHA-256 id and a verify-and-link button.
+
+**Site**: new palette, new captures, download links read from release.json for the exact tag.
+
+**Not done**: the FPS comparison with other packs was not measured (no GPU in CI). Ely.by browser sign-in needs an OAuth client id. P2P hosting is not deployed.
+
+### Español
+Versión candidata. Compilación de Windows sin firmar, APK con clave de depuración y solo probado en emulador (ver STATUS.md).
+
+**Rediseño del lanzador (referencias OneClient / OneConfig / Ankama)**
+- Una sola barra lateral de 220 px con filas agrupadas y la cuenta fijada abajo. Desaparecen la segunda barra de categorías y los bordes de un píxel en cada panel.
+- Cuatro temas que solo cambian colores: OneClient Cobalt (por defecto), Luminos Neutral Dark, Minecraft Dark y Clean Light. Todos los pares de texto superan 4,5:1.
+- Mods: tarjetas de 4 columnas con barra de estado sólida, vista compacta, panel de ajustes, grabador de teclas y aviso "Qué cambió" cuando cambia una dependencia.
+- Estudio de HUD: arrastre con separación de 5 px, inspector acoplado y fuentes .ttf/.otf propias.
+- Inicio: barra de lanzamiento animada, Reanudar y Quickplay, diálogo para alojar mundo y espacio ahorrado por deduplicación.
+- Cosméticos: una barra de categorías, escenario y casillero 55/45.
+- Cuentas: sin conexión, Ely.by con authlib-injector (6 pruebas en luminos-core) y Microsoft por código de dispositivo (no activo hasta que exista una app de Azure).
+- Instancias: perfiles en JSON con id SHA-256 y botón de verificar y enlazar.
+
+**Sitio**: paleta nueva, capturas nuevas y descargas desde release.json para la etiqueta exacta.
+
+**Pendiente**: no se midió la comparación de FPS con otros paquetes (sin GPU en CI). El inicio de sesión de Ely.by en el navegador necesita un client id de OAuth. El alojamiento P2P no está desplegado.
+
 ## 1.0.0-rc1
 
 ### English

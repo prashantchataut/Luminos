@@ -1,0 +1,9 @@
+/* Minecraft Dark: deep slate with classic high-contrast edges and a grass-green accent. */
+:root[data-theme="minecraft"] {
+  color-scheme: dark;
+  --bg: #111315; --side: #15181a; --surface: #1b1e21; --surface-2: #25292d; --hover: #2e3338;
+  --line: #3b4148; --line-strong: #7a838e;
+  --fg: #f1f4f2; --mute: #a3acb5;
+  --accent: #6cc24a; --accent-fg: #0b1a06; --accent-soft: #1f3a14;
+  --ok: #6cc24a; --warn: #f2c14e; --bad: #ff7f6e;
+}

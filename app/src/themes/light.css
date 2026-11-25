@@ -1,9 +1,9 @@
-/* Light: daytime surfaces. Every text pair is at least 4.5:1 (checked by `npm test`). */
+/* Clean Light: cool white canvas, white cards, cobalt accent. Every text pair is at least 4.5:1 (checked by `npm test`). */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #e9ebef; --surface: #ffffff; --surface-2: #f1f3f6; --hover: #e4e8ee;
-  --line: #c4cad4; --line-strong: #6b7385;
-  --fg: #14171c; --mute: #434b59;
-  --accent: #1a56c4; --accent-fg: #ffffff; --accent-soft: #dce8fb;
+  --bg: #f4f6fa; --side: #ebeef4; --surface: #ffffff; --surface-2: #f0f2f7; --hover: #e6eaf2;
+  --line: #e1e5ed; --line-strong: #6b7385;
+  --fg: #12151c; --mute: #4b5568;
+  --accent: #2b4bff; --accent-fg: #ffffff; --accent-soft: #dce4ff;
   --ok: #0f6b3b; --warn: #7a4d00; --bad: #a8201a;
 }

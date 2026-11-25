@@ -3,7 +3,7 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 const out = process.env.OUT || "../theme-regression"; mkdirSync(out, { recursive: true });
-const THEMES = ["default", "lunar", "light"], SCREENS = ["home", "cosmetics", "library", "settings"];
+const THEMES = ["default", "neutral", "minecraft", "light"], SCREENS = ["home", "cosmetics", "library", "settings"];
 const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const p = await (await b.newContext({ viewport: { width: 1360, height: 820 } })).newPage();
 const boxes = {}; let bad = 0;

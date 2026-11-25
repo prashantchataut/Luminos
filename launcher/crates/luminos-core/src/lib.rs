@@ -2,6 +2,7 @@
 //! The headless engine behind Luminos Launcher. No UI code lives here, so the same crate can power
 //! a CLI, tests, or any other front-end.
 pub mod accounts;
+pub mod authlib;
 pub mod agent;
 pub mod backup;
 pub mod config;

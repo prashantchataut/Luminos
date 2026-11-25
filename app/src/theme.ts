@@ -1,11 +1,12 @@
 /** Themes are token files (themes/*.css): colours only. Import/export is one JSON file of those colours. */
 export const THEMES = [
-  { id: "default", name: "Default", note: "Neutral grey" },
-  { id: "lunar", name: "Lunar", note: "Blue-black night" },
-  { id: "light", name: "Light", note: "Daytime" },
+  { id: "default", name: "OneClient Cobalt", note: "Carbon navy, cobalt accent" },
+  { id: "neutral", name: "Luminos Neutral Dark", note: "Obsidian grey" },
+  { id: "minecraft", name: "Minecraft Dark", note: "Slate, grass green, hard edges" },
+  { id: "light", name: "Clean Light", note: "Cool white daytime" },
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"] | "custom";
-export const TOKEN_KEYS = ["bg", "surface", "surface-2", "hover", "line", "line-strong", "fg", "mute", "accent", "accent-fg", "accent-soft", "ok", "warn", "bad"] as const;
+export const TOKEN_KEYS = ["bg", "side", "surface", "surface-2", "hover", "line", "line-strong", "fg", "mute", "accent", "accent-fg", "accent-soft", "ok", "warn", "bad"] as const;
 export type Tokens = Record<(typeof TOKEN_KEYS)[number], string>;
 export type ThemeFile = { luminosTheme: 1; name: string; tokens: Tokens };
 
@@ -19,13 +20,14 @@ export const luminance = (h: string) => { const [r, g, b] = rgb(h); return 0.212
 export function contrast(a: string, b: string) { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
 
 /** Text pairs every theme must pass at 4.5:1 (WCAG AA for normal text, so it holds at every size). */
-export const PAIRS: [keyof Tokens, keyof Tokens][] = [["fg", "bg"], ["fg", "surface"], ["fg", "surface-2"], ["fg", "hover"], ["mute", "bg"], ["mute", "surface"], ["mute", "surface-2"], ["mute", "hover"], ["accent-fg", "accent"], ["accent", "surface"], ["fg", "accent-soft"], ["ok", "surface"], ["warn", "surface"], ["bad", "surface"]];
+export const PAIRS: [keyof Tokens, keyof Tokens][] = [["fg", "bg"], ["fg", "surface"], ["fg", "surface-2"], ["fg", "hover"], ["mute", "bg"], ["mute", "surface"], ["mute", "surface-2"], ["mute", "hover"], ["accent-fg", "accent"], ["fg", "side"], ["mute", "side"], ["fg", "accent-soft"], ["ok", "surface"], ["warn", "surface"], ["bad", "surface"]];
 
 export function parseTheme(text: string): { ok: true; theme: ThemeFile } | { ok: false; error: string } {
   let j: any;
   try { j = JSON.parse(text); } catch { return { ok: false, error: "That file is not valid JSON." }; }
   if (!j || j.luminosTheme !== 1 || typeof j.tokens !== "object") return { ok: false, error: "That file is not a Luminos theme (missing \"luminosTheme\": 1)." };
   const tokens = {} as Tokens;
+  if (typeof j.tokens.side !== "string") j.tokens.side = j.tokens.surface; // files exported before the sidebar token existed
   for (const k of TOKEN_KEYS) {
     const v = j.tokens[k];
     if (typeof v !== "string" || !HEX.test(v.trim())) return { ok: false, error: `Token "${k}" must be a hex colour such as #1a56c4.` };
@@ -44,5 +46,5 @@ export function applyTheme(id: ThemeId, custom?: ThemeFile | null) {
   const r = document.documentElement;
   for (const k of TOKEN_KEYS) r.style.removeProperty("--" + k);
   if (id === "custom" && custom) { r.setAttribute("data-theme", "default"); for (const k of TOKEN_KEYS) r.style.setProperty("--" + k, custom.tokens[k]); r.setAttribute("data-custom", "1"); r.style.colorScheme = luminance(custom.tokens.bg) > 0.4 ? "light" : "dark"; return; }
-  r.removeAttribute("data-custom"); r.style.colorScheme = ""; r.setAttribute("data-theme", id === "custom" ? "default" : id);
+  r.removeAttribute("data-custom"); r.style.colorScheme = ""; r.setAttribute("data-theme", id === "custom" || !THEMES.some((t) => t.id === id) ? "default" : id);
 }
