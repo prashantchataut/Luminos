@@ -1,0 +1,15 @@
+file: Luminos-0.0.0-ci.36.apk
+package: name='app.luminos.mobile' versionCode='36' versionName='0.0.0-ci.36' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'
+targetSdkVersion:'28'
+uses-permission: name='android.permission.INTERNET'
+uses-permission: name='app.luminos.mobile.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'
+native libs inside the APK:
+    10096  1981-01-01 01:01   lib/arm64-v8a/libandroidx.graphics.path.so
+     7252  1981-01-01 01:01   lib/armeabi-v7a/libandroidx.graphics.path.so
+     9284  1981-01-01 01:01   lib/x86/libandroidx.graphics.path.so
+    10760  1981-01-01 01:01   lib/x86_64/libandroidx.graphics.path.so
+signer:
+V2 Signer: certificate DN: C=US, O=Android, CN=Android Debug
+V2 Signer: certificate SHA-256 digest: 903cd556265d65b0ddec316db6d81b20b81710164f42a271ecb1e80a0662b7d1
+V2 Signer: certificate SHA-1 digest: e59675a2b4fe124f9a0848805faf31e5954e96ba

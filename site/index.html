@@ -3,24 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Luminos: a Minecraft launcher with a performance client built in</title>
+    <title>Luminos: a Minecraft Java launcher for Windows, with an Android preview</title>
     <meta
       name="description"
-      content="Luminos is a small Windows launcher for Minecraft Java. Vanilla, Fabric and Quilt, mods from Modrinth, a crash doctor, world backups and an optional performance client."
+      content="Luminos is a Minecraft Java launcher for Windows with a live mod panel, themes and skins. Release candidate, unsigned. Android launcher preview: no game launch yet."
     />
+    <link rel="canonical" href="https://prashantchataut.github.io/Luminos/" />
     <meta name="theme-color" content="#050a1f" />
-    <meta property="og:title" content="Luminos: Minecraft, minus the wait" />
-    <meta
-      property="og:description"
-      content="A small Minecraft launcher with a performance client built in. Game files from Mojang, mods from Modrinth."
-    />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:site_name" content="Luminos" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://prashantchataut.github.io/Luminos/" />
+    <meta property="og:title" content="Luminos: a Minecraft Java launcher for Windows" />
+    <meta property="og:description" content="Fabric and Quilt, Modrinth mods, a live panel, three themes, five skins. Release candidate, unsigned. Android launcher preview: Minecraft does not launch on Android yet." />
+    <meta property="og:image" content="https://prashantchataut.github.io/Luminos/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Luminos launcher home screen with a Launch button, recent instances and a playtime chart." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Luminos: a Minecraft Java launcher for Windows" />
+    <meta name="twitter:description" content="Release candidate, unsigned. Windows installer plus an Android launcher preview (Minecraft does not launch on Android yet)." />
+    <meta name="twitter:image" content="https://prashantchataut.github.io/Luminos/og.png" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/instrument-serif-latin-400-normal.woff2" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/inter-latin-wght-normal.woff2" />
-    <link
-      rel="icon"
-      href="favicon.svg"
-    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Luminos",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Windows 10, Windows 11, Android 8.0+ (launcher preview)",
+        "softwareVersion": "1.0.0-rc1",
+        "description": "A Minecraft Java launcher with a live mod panel, themes, skins and a performance client. Release candidate; the Android app is a launcher preview and does not start Minecraft.",
+        "url": "https://prashantchataut.github.io/Luminos/",
+        "downloadUrl": "https://github.com/prashantchataut/Luminos/releases/tag/v1.0.0-rc1",
+        "image": "https://prashantchataut.github.io/Luminos/og.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Prashant Chataut" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

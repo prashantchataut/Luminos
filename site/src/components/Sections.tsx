@@ -12,46 +12,15 @@ import fo from "../assets/fabulously-optimized.jpg";
 /* ------------------------------------------------------------------ features */
 type Status = "Verified" | "Built";
 const rows: { name: string; text: string; status: Status }[] = [
-  {
-    name: "Vanilla and Fabric launch",
-    text: "Vanilla 1.21.4 and Fabric 1.21.4 with the full Luminos preset boot to graphics init. Run headless on Linux with a real JVM.",
-    status: "Verified",
-  },
-  {
-    name: "Crash doctor",
-    text: "Reads logs for out of memory, wrong Java, missing dependency, mixin owner and GPU driver. Five unit tests.",
-    status: "Verified",
-  },
-  {
-    name: "World backups",
-    text: "Zip, list, prune and restore, with path-traversal checks. Round trip is a test.",
-    status: "Verified",
-  },
-  {
-    name: "Server list",
-    text: "Server List Ping written from scratch. Checked live against a public server.",
-    status: "Verified",
-  },
-  {
-    name: "Mod library",
-    text: "Modrinth search, required dependencies, toggle, unlink, update all, .mrpack import.",
-    status: "Built",
-  },
-  {
-    name: "Java management",
-    text: "Finds a compatible runtime, refuses Java 8 for 1.21, downloads Temurin if none fits.",
-    status: "Built",
-  },
-  {
-    name: "Quilt",
-    text: "Profile resolves and launches through the same path as Fabric.",
-    status: "Built",
-  },
-  {
-    name: "Playtime and skins",
-    text: "Per-instance playtime with a weekly chart. Skin studio with username fetch.",
-    status: "Built",
-  },
+  { name: "Client reaches the title screen", text: "The Luminos Client jars for 1.21.11 and 26.3 launch to Minecraft’s title screen under software OpenGL on a Linux CI runner (Fabric accepts the default preset).", status: "Verified" },
+  { name: "Live apply (Luminos modules, resource packs)", text: "Toggling a Luminos module and a resource pack in the running 1.21.11 game, through the game’s own reload. Third-party mods are queued for the next launch.", status: "Verified" },
+  { name: "Crash doctor", text: "Reads logs for out of memory, wrong Java, missing dependency, mixin owner and GPU driver. Unit tests.", status: "Verified" },
+  { name: "World backups", text: "Zip, list, prune and restore, with path-traversal checks. The round trip is a test.", status: "Verified" },
+  { name: "Themes", text: "Default, Lunar, Light: colour files only, with a contrast test and a layout regression job.", status: "Verified" },
+  { name: "Tauri app compiles", text: "The desktop app builds on Windows, Linux and macOS runners. The installer was installed and launched on a clean Windows runner.", status: "Verified" },
+  { name: "Dependency tracking, dedup, redaction, Quick Play links", text: "Engine commands are wired to the interface and covered by tests. Quick Play has no button yet. Reflinks have not run on a filesystem that supports them.", status: "Built" },
+  { name: "Mod library and store", text: "Modrinth search, required dependencies, toggle, unlink, update all, .mrpack export. Real Modrinth results were seen in a browser capture.", status: "Built" },
+  { name: "Microsoft sign-in", text: "Written in pieces, needs an Azure app only the owner can register. Never run against a real account.", status: "Built" },
 ];
 
 export function Features() {
@@ -138,8 +107,9 @@ export function Client() {
             <div className="mt-8 rounded-2xl border border-line bg-white/[0.02] p-5">
               <p className="eyebrow">Status, honestly</p>
               <p className="mt-3 text-sm leading-relaxed text-mute">
-                The mod compiles and the game boots with it on 1.21.4. We haven’t captured the HUD in a real window yet,
-                so there’s no in-game screenshot here. The jar is built for Minecraft 1.21.4 only.
+                The client jars for Minecraft 1.21.11 and 26.3 are built in CI and reach the title screen on a Linux runner with
+                software OpenGL. There is no in-game HUD screenshot here, because nobody has run it on a real desktop yet.
+                Jars for other versions are not built for this release.
               </p>
             </div>
           </Reveal>
@@ -211,12 +181,14 @@ export function Worlds() {
 
 /* -------------------------------------------------------------------- limits */
 const limits = [
-  ["Microsoft sign-in", "The login flow is written and tested in pieces, but it isn’t connected to the interface. Accounts are offline profiles for now."],
+  ["Unsigned Windows build", "The installer is unsigned, so Windows SmartScreen will warn. The FAQ says what to check."],
+  ["No real desktop test", "Everything ran on CI runners. Nobody has used it on a fresh Windows PC yet."],
+  ["Microsoft sign-in", "Unverified. Accounts are offline profiles until the owner connects an Azure app."],
+  ["Android: no game launch", "The APK is a launcher preview, signed with a debug key, run only on an emulator. Minecraft does not start on it."],
+  ["Third-party mods don’t live-swap", "Only Luminos modules and resource packs apply in a running game. Other mods apply on the next launch."],
   ["Forge and NeoForge", "Vanilla, Fabric and Quilt launch. Forge and NeoForge don’t."],
-  ["Client on other versions", "Luminos Client is built for 1.21.4 only. Each newer version needs its own build. That’s the next job."],
-  ["Skins in multiplayer", "You see your skin locally. Other players see it only on servers with a skin plugin. Changing your Mojang skin from inside Luminos isn’t wired up."],
-  ["Code signing", "The installer is unsigned, so Windows SmartScreen will warn. There’s a section in the FAQ on why and what to check."],
-  ["A clean-machine test", "CI builds the installer. It hasn’t been run end to end on a fresh Windows install yet."],
+  ["Client versions", "Client jars exist for 1.21.11 and 26.3. Other versions are not built for this release."],
+  ["Not built", "Cross-instance saves, peer-to-peer sharing, Discord presence (no Discord app registered) and a sandbox."],
 ];
 
 export function Limits() {

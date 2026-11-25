@@ -1,68 +1,55 @@
 import { useEffect, useState } from "react";
+import manifest from "./release.json";
 
 const REPO = "prashantchataut/Luminos";
 export const RELEASES_URL = `https://github.com/${REPO}/releases`;
 export const REPO_URL = `https://github.com/${REPO}`;
+export const release = manifest;
 
-export type ReleaseState =
-  | { status: "loading" }
-  | { status: "ready"; tag: string; url: string; sizeMb: string; date: string; sums?: string }
-  | { status: "none" } // repo reachable, no installer asset attached yet
-  | { status: "error" }; // offline, rate-limited, blocked
-
-interface GhAsset {
-  name: string;
-  browser_download_url: string;
-  size: number;
-}
-interface GhRelease {
-  tag_name: string;
-  published_at: string;
-  draft: boolean;
+/**
+ * Download links come from release.json (written by the release job from the real SHA256SUMS.txt) and always name a specific tag:
+ * /releases/latest/ skips pre-releases, so it would not resolve to a release candidate. The GitHub API is only used to add the
+ * installer size and date for that exact tag; if it fails, the links still work.
+ */
+export type ReleaseState = {
+  status: "ready" | "pending";
+  tag: string;
+  version: string;
   prerelease: boolean;
-  assets: GhAsset[];
-}
+  url: string;
+  apkUrl: string;
+  sums: string;
+  page: string;
+  sizeMb?: string;
+  date?: string;
+};
 
-/** Reads the newest GitHub release that carries a Windows installer. */
 export function useRelease(): ReleaseState {
-  const [state, setState] = useState<ReleaseState>({ status: "loading" });
+  const base: ReleaseState = {
+    status: manifest.published ? "ready" : "pending",
+    tag: manifest.tag,
+    version: manifest.version,
+    prerelease: manifest.prerelease,
+    url: manifest.windows.url,
+    apkUrl: manifest.android.url,
+    sums: manifest.checksums.url,
+    page: manifest.releasePage,
+  };
+  const [extra, setExtra] = useState<Pick<ReleaseState, "sizeMb" | "date">>({});
   useEffect(() => {
+    if (!manifest.published) return;
     const ctl = new AbortController();
-    fetch(`https://api.github.com/repos/${REPO}/releases?per_page=15`, {
-      signal: ctl.signal,
-      headers: { Accept: "application/vnd.github+json" },
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json() as Promise<GhRelease[]>;
+    fetch(`https://api.github.com/repos/${REPO}/releases/tags/${manifest.tag}`, { signal: ctl.signal, headers: { Accept: "application/vnd.github+json" } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((rel: { published_at: string; assets: { name: string; size: number }[] }) => {
+        const exe = rel.assets.find((a) => a.name === manifest.windows.name);
+        setExtra({
+          sizeMb: exe ? (exe.size / 1048576).toFixed(1) : undefined,
+          date: new Date(rel.published_at).toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" }),
+        });
       })
-      .then((list) => {
-        for (const rel of list) {
-          if (rel.draft) continue;
-          const exe = rel.assets.find((a) => /^Luminos-Setup.*\.exe$/i.test(a.name));
-          if (exe) {
-            const sums = rel.assets.find((a) => /sha256/i.test(a.name));
-            setState({
-              status: "ready",
-              tag: rel.tag_name,
-              url: exe.browser_download_url,
-              sizeMb: (exe.size / 1048576).toFixed(1),
-              date: new Date(rel.published_at).toLocaleDateString("en", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              }),
-              sums: sums?.browser_download_url,
-            });
-            return;
-          }
-        }
-        setState({ status: "none" });
-      })
-      .catch((e) => {
-        if (e?.name !== "AbortError") setState({ status: "error" });
-      });
+      .catch(() => undefined);
     return () => ctl.abort();
   }, []);
-  return state;
+  return { ...base, ...extra };
 }

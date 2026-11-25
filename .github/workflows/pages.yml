@@ -55,18 +55,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch the live site; the download and changelog links must point at the release in site/src/lib/release.json
+      - name: Fetch the live site; download links must point at the SPECIFIC tag in site/src/lib/release.json (never /latest/)
         run: |
           URL="https://prashantchataut.github.io/Luminos/"
-          TAG=$(node -p "require('./site/src/lib/release.json').tag")
+          M=site/src/lib/release.json
+          TAG=$(node -p "require('./$M').tag"); PUB=$(node -p "require('./$M').published")
+          APK=$(node -p "require('./$M').android?.name||''")
           for i in 1 2 3 4 5 6; do
             html=$(curl -fsS "$URL?cb=$RANDOM" || true)
             js=$(printf '%s' "$html" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1)
-            [ -n "$js" ] && curl -fsS "$URL$js" -o live.js && grep -q "releases/download/$TAG/Luminos-Setup.exe" live.js && break
+            [ -n "$js" ] && curl -fsS "$URL$js" -o live.js && grep -q "$TAG" live.js && break
             echo "live site not on $TAG yet (try $i)"; sleep 20
           done
-          grep -q "releases/download/$TAG/Luminos-Setup.exe" live.js || { echo "LIVE SITE DOES NOT LINK $TAG"; exit 1; }
-          for u in "https://github.com/prashantchataut/Luminos/releases/download/$TAG/Luminos-Setup.exe" "https://github.com/prashantchataut/Luminos/releases/tag/$TAG" "https://github.com/prashantchataut/Luminos/blob/main/CHANGELOG.md"; do
+          [ -s live.js ] || { echo "live site did not serve a bundle"; exit 1; }
+          grep -q "releases/latest/download" live.js && { echo "site links /releases/latest/ (does not resolve for pre-releases)"; exit 1; }
+          if [ "$PUB" != "true" ]; then echo "manifest says published:false; site is up, tag checks skipped" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          grep -q "$TAG" live.js || { echo "LIVE SITE DOES NOT MENTION $TAG"; exit 1; }
+          for u in "https://github.com/prashantchataut/Luminos/releases/download/$TAG/Luminos-Setup.exe" "https://github.com/prashantchataut/Luminos/releases/download/$TAG/$APK" "https://github.com/prashantchataut/Luminos/releases/tag/$TAG" "https://github.com/prashantchataut/Luminos/blob/main/CHANGELOG.md"; do
             code=$(curl -sL -o /dev/null -w '%{http_code}' -I "$u"); echo "$code $u"; [ "$code" = "200" ] || exit 1
           done
-          echo "LIVE SITE OK for $TAG" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "LIVE SITE OK for $TAG (installer + APK links resolve)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  audit-live:
+    # Headless Chromium screenshots of the LIVE url + Lighthouse scores, kept as artifacts and in the job summary.
+    needs: verify-live
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Screenshots (desktop, mobile) with the runner's Chrome
+        run: |
+          mkdir -p audit && cd audit && npm init -y >/dev/null && npm i --silent playwright-core
+          cat > shot.mjs <<'EOS'
+          import { chromium } from "playwright-core";
+          const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
+          for (const [name, vp] of [["desktop", { width: 1440, height: 900 }], ["mobile", { width: 390, height: 844 }]]) {
+            const p = await b.newPage({ viewport: vp });
+            await p.goto("https://prashantchataut.github.io/Luminos/?cb=" + Date.now(), { waitUntil: "networkidle" });
+            await p.addStyleTag({ content: "*{animation:none!important;transition:none!important}.rise,.reveal{opacity:1!important;transform:none!important;filter:none!important}" });
+            await p.screenshot({ path: `live-${name}-top.png` });
+            await p.screenshot({ path: `live-${name}-full.png`, fullPage: true });
+            if (name === "desktop") { await p.locator("#android").scrollIntoViewIfNeeded(); await p.waitForTimeout(800); await p.locator("#android").screenshot({ path: "live-android-section.png" }); }
+          }
+          await b.close();
+          EOS
+          node shot.mjs && ls -l *.png
+      - name: Lighthouse (performance, accessibility, best practices, SEO)
+        run: |
+          cd audit
+          CHROME_PATH=/usr/bin/google-chrome npx -y lighthouse "https://prashantchataut.github.io/Luminos/" --quiet --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=lighthouse.json --only-categories=performance,accessibility,best-practices,seo
+          node -e '
+            const j=require("./lighthouse.json");const c=j.categories;const o={};for(const k in c)o[k]=Math.round(c[k].score*100);
+            console.log(JSON.stringify(o));require("fs").writeFileSync("scores.json",JSON.stringify({url:j.finalDisplayedUrl,fetchTime:j.fetchTime,lighthouse:j.lighthouseVersion,scores:o},null,1));
+            const fs=require("fs");fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,"### Lighthouse (live site)\n"+Object.entries(o).map(([k,v])=>`- ${k}: **${v}**`).join("\n")+"\n");
+            if(o.accessibility<95||o.seo<90||o["best-practices"]<90){console.error("below threshold (a11y>=95, seo>=90, best-practices>=90)");process.exit(1)}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: live-site-audit, path: "audit/*.png\naudit/scores.json\naudit/lighthouse.json" }

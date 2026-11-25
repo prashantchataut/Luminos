@@ -75,15 +75,14 @@ body {
   letter-spacing: -0.015em;
   line-height: 1.02;
 }
+/* frontend-design: accenting one word per headline is a generated-page tell. The markup stays, the styling is neutral. */
 .accent-word {
-  font-style: italic;
-  color: var(--color-accent);
-  text-shadow: 0 0 28px rgba(110, 160, 255, 0.55), 0 0 2px rgba(143, 180, 255, 0.6);
+  font-style: normal;
+  color: inherit;
 }
 .eyebrow {
   font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--color-mute);
   font-weight: 500;
 }
@@ -124,10 +123,12 @@ body {
   color: #06112e;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4) inset, 0 10px 40px -10px rgba(120, 165, 255, 0.55);
 }
+@media (hover: hover) {
 .btn-primary:hover {
   background: #fff;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset, 0 14px 50px -8px rgba(130, 175, 255, 0.8);
   transform: translateY(-1px);
+}
 }
 .btn-ghost {
   background: rgba(20, 34, 80, 0.35);
@@ -136,9 +137,11 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+@media (hover: hover) {
 .btn-ghost:hover {
   background: rgba(40, 62, 130, 0.5);
   border-color: rgba(200, 220, 255, 0.5);
+}
 }
 
 /* ---------- motion ---------- */
@@ -216,5 +219,11 @@ canvas.sky {
   .sparkle,
   .spinner {
     animation: none;
+  }
+  /* tiered (accessible-animation): keep the opacity crossfade, drop the travel and scale */
+  .tour-layer {
+    transform: none !important;
+    transition-property: opacity !important;
+    transition-duration: 150ms !important;
   }
 }

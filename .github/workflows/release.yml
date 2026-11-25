@@ -7,7 +7,7 @@ on:
   push:
     tags: ["v*"]
   pull_request:
-    paths: ["app/**", "client/**", "client26/**", "launcher/crates/luminos-core/**", ".github/workflows/release.yml", "scripts/**"]
+    paths: ["android/**", "app/**", "client/**", "client26/**", "launcher/crates/luminos-core/**", ".github/workflows/release.yml", "scripts/**"]
   workflow_dispatch:
     inputs:
       version:
@@ -18,6 +18,7 @@ permissions:
   contents: write
   id-token: write
   attestations: write
+  actions: write
 
 jobs:
   windows:
@@ -96,6 +97,53 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: windows, path: dist/* }
 
+  android:
+    # Builds the Android APK (release variant, signed with the DEBUG key: no release keystore exists) and drives it on an emulator.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.11.1" }
+      - name: Version
+        id: v
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="0.0.0-ci.${GITHUB_RUN_NUMBER}"; fi
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+      - name: Build the APK
+        working-directory: android
+        run: gradle :app:assembleRelease --stacktrace -PlxVersionName="${{ steps.v.outputs.name }}" -PlxVersionCode="${GITHUB_RUN_NUMBER}"
+      - name: Package, record ABIs / minSdk / signer
+        run: |
+          mkdir -p dist
+          APK="dist/Luminos-${{ steps.v.outputs.name }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
+          { echo "file: $(basename $APK)"; $AAPT dump badging "$APK" | grep -E "^package:|sdkVersion|targetSdkVersion|native-code|uses-permission"; echo "native libs inside the APK:"; (unzip -l "$APK" | grep -E "lib/" || echo "  none (pure Kotlin; the Java runtime is downloaded on the device)"); echo "signer:"; $(ls $ANDROID_HOME/build-tools/*/apksigner | tail -1) verify --print-certs "$APK" | head -3; } | tee dist/apk-info.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: android-apk, path: "dist/*" }
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Emulator end to end (install, open, onboarding, home, library, skins, settings; fails on crash or ANR)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          profile: pixel_5
+          ram-size: 4096M
+          heap-size: 512M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: bash android/ci/emulator_test.sh dist/Luminos-${{ steps.v.outputs.name }}.apk android/ci/shots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: android-screenshots, path: "android/ci/shots/*" }
+
   client-jars:
     strategy:
       fail-fast: false
@@ -117,7 +165,7 @@ jobs:
           path: ${{ matrix.dir }}/build/libs/luminos-client-*-mc${{ matrix.mc }}.jar
 
   publish:
-    needs: [windows, client-jars]
+    needs: [windows, client-jars, android]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -131,8 +179,10 @@ jobs:
           mkdir -p rel pkg
           cp art/windows/* rel/
           cp art/jar-*/*.jar rel/
+          cp art/android-apk/Luminos-*.apk rel/
+          cp art/android-apk/apk-info.txt rel/apk-info.txt
           node scripts/gen-compat.mjs rel "$GITHUB_REF_NAME" client/client-compat.json rel/client-compat.json
-          (cd rel && sha256sum Luminos-Setup.exe Luminos-Portable.zip *.jar client-compat.json > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          (cd rel && sha256sum Luminos-Setup.exe Luminos-Portable.zip Luminos-*.apk *.jar client-compat.json apk-info.txt > SHA256SUMS.txt && cat SHA256SUMS.txt)
           node scripts/release-notes.mjs "$GITHUB_REF_NAME" > notes.md
           node scripts/gen-package-manifests.mjs "$GITHUB_REF_NAME" rel/SHA256SUMS.txt pkg
           tar -czf rel/package-manifests.tar.gz -C pkg .
@@ -152,9 +202,12 @@ jobs:
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main && git checkout -B compat-update origin/main
           cp rel/client-compat.json client/client-compat.json
+          node scripts/gen-release-json.mjs "$GITHUB_REF_NAME" rel/SHA256SUMS.txt site/src/lib/release.json
           mkdir -p packaging && rm -rf packaging/* && cp -r pkg/* packaging/
-          git add client/client-compat.json packaging
+          git add client/client-compat.json packaging site/src/lib/release.json
           git diff --cached --quiet && echo "nothing to commit" || { git commit -m "release ${GITHUB_REF_NAME}: client-compat.json (sha256) and winget/scoop manifests, generated from this release's SHA256SUMS.txt" && git push origin HEAD:main; }
+          # a push made with GITHUB_TOKEN does not start other workflows, so ask the Pages workflow to run explicitly
+          GH_TOKEN="${{ github.token }}" gh workflow run pages.yml --ref main
 
   update-check:
     needs: publish

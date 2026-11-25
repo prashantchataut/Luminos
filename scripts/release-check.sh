@@ -12,6 +12,14 @@ echo "== stub grep (src crates client client26 launcher app/src app/src-tauri/sr
 hits=$(grep -rniE "todo!|unimplemented!|lorem|coming soon|placeholder|FIXME" src crates client client26 launcher app/src app/src-tauri/src site/src 2>/dev/null \
   --exclude-dir={node_modules,target,build,dist,.gradle} | grep -viE "placeholder=|placeholder: *string|placeholder=\{|placeholder\}" || true)
 [ -z "$hits" ] && ok "no stubs" || { echo "$hits" | head -20; no "stub markers found"; }
+echo "== every workflow file parses (a bad file silently runs nothing: smoke.yml did exactly that on main)"
+( d=$(mktemp -d); cd "$d" && npm i --silent yaml >/dev/null 2>&1; node -e 'const Y=require("yaml"),fs=require("fs"),p=process.argv[1];let bad=0;for(const f of fs.readdirSync(p)){try{Y.parse(fs.readFileSync(p+"/"+f,"utf8"))}catch(e){bad++;console.log("  BAD",f,e.message.split("\n")[0])}}process.exit(bad?1:0)' "$OLDPWD/.github/workflows" ) && ok "workflows parse" || no "workflow YAML"
+echo "== site manifest matches the release being cut, and never links /latest/"
+node -e 'const m=require("./site/src/lib/release.json");if(m.tag!=="v"+process.argv[1]){console.log("  release.json tag",m.tag,"!= v"+process.argv[1]+" (the release job regenerates it; before the tag it must still be consistent)");}' "$TAG_VERSION"
+grep -rn "releases/latest/download" site/src site/index.html >/dev/null 2>&1 && no "site links /releases/latest/download" || ok "no /latest/ links"
+echo "== Android: honesty line present, no overclaim"
+grep -q "Minecraft does not launch yet" docs/ANDROID.md && ok "ANDROID.md states the limit" || no "docs/ANDROID.md missing the limit line"
+grep -rniE "play java minecraft on android" site/src site/index.html README.md docs/ANDROID.md CHANGELOG.md 2>/dev/null | grep -viE "not|never|until|do not|don't" && no "overclaim: Minecraft on Android" || ok "no Android overclaim"
 echo "== changelog has EN + ES for $TAG_VERSION, and the notes build"
 node scripts/release-notes.mjs "$TAG_VERSION" > /tmp/notes.md 2>/tmp/notes.err && ok "release notes build ($(wc -l < /tmp/notes.md) lines)" || { cat /tmp/notes.err; no "changelog section"; }
 echo "== client-compat.json: every entry has a sha256 and an https url"
@@ -31,7 +39,7 @@ if [ "${1:-}" = "--ci" ]; then
   sha=$(git rev-parse HEAD); auth=(); [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
   curl -fsS "${auth[@]}" "https://api.github.com/repos/prashantchataut/Luminos/commits/$sha/check-runs?per_page=100" | node -e '
     let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s).check_runs;const bad=r.filter(c=>!["success","skipped","neutral"].includes(c.conclusion));
-    const need=["smoke (26.3, full)","smoke (1.21.11, full)","client-jars (26.3, client26)","client-jars (1.21.11, client)","windows","rust (windows-latest)","rust (ubuntu-latest)"];
+    const need=["android","build-and-test","smoke (26.3, full)","smoke (1.21.11, full)","client-jars (26.3, client26)","client-jars (1.21.11, client)","windows","rust (windows-latest)","rust (ubuntu-latest)"];
     const miss=need.filter(n=>!r.find(c=>c.name==n&&c.conclusion=="success"));
     bad.forEach(c=>console.log("  not green:",c.name,c.status,c.conclusion||""));miss.forEach(n=>console.log("  required check missing or not green:",n));
     process.exit(bad.length||miss.length?1:0)})' && ok "all checks green" || no "CI on HEAD"

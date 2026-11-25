@@ -15,6 +15,8 @@ android {
         // apps targeting 29+, and the Java runtime we download is exactly such a file. Distribution is
         // GitHub Releases / F-Droid, not Google Play (which also restricts launchers).
         targetSdk = 28
+        // The downloaded Java runtimes exist for arm64-v8a and x86_64 only, so the APK carries only those ABIs.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         versionCode = (project.findProperty("lxVersionCode") as String? ?: "1").toInt()
         versionName = project.findProperty("lxVersionName") as String? ?: "0.1.0"
     }

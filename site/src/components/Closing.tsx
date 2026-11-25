@@ -9,6 +9,15 @@ import { REPO_URL, RELEASES_URL, type ReleaseState } from "../lib/useRelease";
 /* ----------------------------------------------------------------- changelog */
 const log = [
   {
+    v: "1.0.0-rc1",
+    items: [
+      "Release candidate, not stable: unsigned, and never run on a real desktop.",
+      "Themes (Default, Lunar, Light), five skins with a 3D preview, the locker, a live panel that separates what applies now from what waits for the next launch, and a real Modrinth store.",
+      "Android launcher preview: installs and manages instances; Minecraft does not launch yet. Debug-signed, emulator-tested.",
+      "Client jars for 1.21.11 and 26.3, SHA256SUMS.txt and build attestations on every release asset.",
+    ],
+  },
+  {
     v: "0.3.0",
     items: [
       "Fixed Minecraft not starting: Fabric plus vanilla pulled in two ASM versions and Fabric Loader aborted. Libraries are de-duplicated now, with a test.",
@@ -58,6 +67,10 @@ export function Changelog() {
 /* ----------------------------------------------------------------------- FAQ */
 const faqs: { q: string; a: React.ReactNode }[] = [
   {
+    q: "Can I play Minecraft with the Android app?",
+    a: "No. The Android app is a launcher preview: it creates instances, downloads Java and the game files, browses Modrinth and edits skins. Starting the game needs an OpenGL layer and a window layer that don’t exist yet. The home screen says so.",
+  },
+  {
     q: "Windows says “unknown publisher”. Is it safe?",
     a: (
       <>
@@ -79,7 +92,7 @@ const faqs: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is Luminos a mod?",
-    a: "No. It’s a desktop program written in Rust that downloads and starts Minecraft. Luminos Client is a separate Fabric mod it can install for you.",
+    a: "No. It’s a desktop program (Rust engine, Tauri interface) that downloads and starts Minecraft. Luminos Client is a separate Fabric mod it can install for you.",
   },
   {
     q: "Do I need to own Minecraft?",
@@ -152,7 +165,7 @@ export function Closing({ release }: { release: ReleaseState }) {
         </Reveal>
         <Reveal delay={1}>
           <p className="mx-auto mt-6 max-w-lg text-[1.0625rem] leading-relaxed text-mute">
-            Windows 10 or 11, 64-bit. Java is fetched for you if your machine doesn’t have a fitting one.
+            Windows 10 or 11, 64-bit. Java is fetched for you if your machine doesn’t have a fitting one. An Android launcher preview is available too; Minecraft does not launch on it.
           </p>
         </Reveal>
         <Reveal delay={2} className="mt-10">

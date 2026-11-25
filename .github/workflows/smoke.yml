@@ -97,7 +97,7 @@ jobs:
             done ) &
           launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
           sleep 2; cat out/capture.log
-      - name: Agent end to end (real game, real agent link: module toggle, pack reload, pause refusal)
+      - name: "Agent end to end (real game, real agent link; module toggle, pack reload, pause refusal)"
         if: ${{ matrix.mc == '1.21.11' }}
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"

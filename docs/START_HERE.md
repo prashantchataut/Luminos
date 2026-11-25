@@ -1,4 +1,10 @@
-# START HERE (session 19)
-Read `STATUS.md` first. This PR (#18) now has the live panel on real data, the in-game agent, Tauri wiring, real store, reflink dedup, sharing, P2P client and the Discord runner, **but the release, the pipeline run and the site update were not done**.
+# START HERE (session 19b)
+Read `STATUS.md` (per-item VERIFIED / UNVERIFIED / NOT BUILT), then `docs/SESSIONS.md` (one line per merged PR), then `docs/ANDROID.md` for the Android truth.
 
-Next, in order: (1) check the `rust (windows-latest)` and `rust (ubuntu-latest)` jobs on the PR and fix the first red one; (2) run `scripts/release-check.sh --ci`; (3) merge #18; (4) tag `v1.0.0-rc1` from merged main and watch `release.yml`; (5) deploy the site with the session-19 captures; (6) owner: revoke the pasted PAT, register the Discord app (`docs/DISCORD.md`), deploy `p2p-signal/`, decide the radius contract (`docs/design/AUDIT.md`).
+State: #18 is merged; PR #19 adds the Android job and APK to the release pipeline, the site rebuild and the fixes above. The release is a **pre-release candidate**: `v1.0.0-rc1`, Windows unsigned, APK debug-signed and emulator-only.
+
+Run `scripts/release-check.sh --ci` before any release; it is the single gate (workflow lint, stub grep, changelog EN+ES, site manifest, Android honesty line, tests, every required CI check).
+
+Site links come only from `site/src/lib/release.json`, which the release job regenerates from the real `SHA256SUMS.txt` and then dispatches the Pages workflow.
+
+Next, in order: (1) owner: **revoke the GitHub PAT that was pasted into chat (again) and use a fine-grained token**, register the Discord app, decide on code signing; (2) run the manual real-desktop checklist; (3) Android: GLFW shim + gl4es on the emulator; (4) Quick Play button; (5) two-machine P2P test.
