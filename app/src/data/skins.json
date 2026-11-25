@@ -1,57 +1,134 @@
 [
  {
-  "id": "luminos-default",
-  "name": "Luminos Default",
+  "id": "aether-knight",
+  "name": "Aether Knight",
   "model": "classic",
-  "description": "Dark navy and off-white with panel lines and the Luminos crescent on the back.",
-  "file": "skins/luminos-default.png",
+  "description": "Sky-silver plate under a white surcoat, gold hair, a wing crest on the cape.",
+  "file": "skins/aether-knight.png",
   "author": "Luminos",
   "licence": "CC0-1.0",
   "builtin": true,
-  "outerFill": 0.24
+  "outerFill": 0.64
  },
  {
-  "id": "ember",
-  "name": "Ember",
+  "id": "cobalt-rogue",
+  "name": "Cobalt Rogue",
   "model": "slim",
-  "description": "Worn rust leather over charcoal, stitched cuffs and boots.",
-  "file": "skins/ember.png",
+  "description": "Hooded cobalt coat, dark gloves and a blue lining that catches the light.",
+  "file": "skins/cobalt-rogue.png",
   "author": "Luminos",
   "licence": "CC0-1.0",
   "builtin": true,
-  "outerFill": 0.53
+  "outerFill": 0.62
  },
  {
-  "id": "glasshouse",
-  "name": "Glasshouse",
-  "model": "classic",
-  "description": "Mint and white with a vine pattern on the back layer.",
-  "file": "skins/glasshouse.png",
-  "author": "Luminos",
-  "licence": "CC0-1.0",
-  "builtin": true,
-  "outerFill": 0.4
- },
- {
-  "id": "nightshift",
-  "name": "Nightshift",
+  "id": "sakura-ronin",
+  "name": "Sakura Ronin",
   "model": "slim",
-  "description": "Black hoodie, violet trim, sleeves that fade toward the cuff.",
-  "file": "skins/nightshift.png",
+  "description": "Plum haori over a pale kimono, long ink hair and petals on the back.",
+  "file": "skins/sakura-ronin.png",
   "author": "Luminos",
   "licence": "CC0-1.0",
   "builtin": true,
-  "outerFill": 0.33
+  "outerFill": 0.64
  },
  {
-  "id": "paper",
-  "name": "Paper",
+  "id": "void-walker",
+  "name": "Void Walker",
   "model": "classic",
-  "description": "Cream and ink with thin line art.",
-  "file": "skins/paper.png",
+  "description": "Horned, violet-skinned wanderer with glowing eyes and an eclipse on the back.",
+  "file": "skins/void-walker.png",
   "author": "Luminos",
   "licence": "CC0-1.0",
   "builtin": true,
-  "outerFill": 0.2
+  "outerFill": 0.63
+ },
+ {
+  "id": "frost-warden",
+  "name": "Frost Warden",
+  "model": "classic",
+  "description": "Ice-blue guard with a silver mane, glacier pauldrons and a shard cape.",
+  "file": "skins/frost-warden.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.67
+ },
+ {
+  "id": "solaris-mage",
+  "name": "Solaris Mage",
+  "model": "classic",
+  "description": "Ember-red robes with a gold sun, wild flame hair and a sunburst cape.",
+  "file": "skins/solaris-mage.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.67
+ },
+ {
+  "id": "cyber-drift",
+  "name": "Cyber Drift",
+  "model": "slim",
+  "description": "Cyan mohawk, neon visor and a black jacket with circuit traces.",
+  "file": "skins/cyber-drift.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.49
+ },
+ {
+  "id": "obsidian-monarch",
+  "name": "Obsidian Monarch",
+  "model": "classic",
+  "description": "Black regalia trimmed in gold, a jewelled crown and a crest on the cape.",
+  "file": "skins/obsidian-monarch.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.66
+ },
+ {
+  "id": "crimson-valkyrie",
+  "name": "Crimson Valkyrie",
+  "model": "slim",
+  "description": "Gold-haired shield-maiden in crimson with winged pauldrons.",
+  "file": "skins/crimson-valkyrie.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.63
+ },
+ {
+  "id": "moss-spirit",
+  "name": "Moss Spirit",
+  "model": "classic",
+  "description": "A forest spirit in layered leaf cloth with firefly-lit moss hair.",
+  "file": "skins/moss-spirit.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.63
+ },
+ {
+  "id": "astral-traveler",
+  "name": "Astral Traveler",
+  "model": "classic",
+  "description": "Indigo coat dusted with stars, a hair bun and a nebula cape.",
+  "file": "skins/astral-traveler.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.64
+ },
+ {
+  "id": "amethyst-duelist",
+  "name": "Amethyst Duelist",
+  "model": "classic",
+  "description": "Violet fencer's coat with silver cuffs and a swept dark fringe.",
+  "file": "skins/amethyst-duelist.png",
+  "author": "Luminos",
+  "licence": "CC0-1.0",
+  "builtin": true,
+  "outerFill": 0.65
  }
 ]

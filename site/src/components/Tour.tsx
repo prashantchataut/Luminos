@@ -1,23 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Frame, SectionHead } from "./ui";
 import Reveal from "./Reveal";
-import home from "../assets/app-home.webp";
-import library from "../assets/app-library.webp";
-import livePanel from "../assets/app-live-panel.webp";
-import liveDone from "../assets/app-live-done.webp";
-import cosmetics from "../assets/app-cosmetics.webp";
-import store from "../assets/app-store.webp";
 
 // Skills applied (session 19): better-ui (density, grouping), accessible-animation (reduced-motion = instant swap), improve-animations; earlier: ui-ux-pro-max (one idea per step, 4.5:1 text contrast, visible focus, no motion-only state),
 // reanimate (crossfade 700 ms expo-out, 14 px travel, transform+opacity only; reduced-motion = instant swap).
 
+const shot = (n: string) => `${import.meta.env.BASE_URL}screenshots/${n}-3.png`;
 const steps = [
-  { kicker: "Home", title: "Press play, or resume a world.", body: "One launch bar that says what it is doing: verifying assets, starting the JVM, running. Recent worlds and servers sit underneath as one-click Quickplay cards, and your skin and the disk space saved by dedup are on the right.", img: home, alt: "Home screen: a night-time hero with a Ready to Launch button, three Resume and Quickplay cards and a skin rail." },
-  { kicker: "Mods", title: "Every module is a card with an on/off bar.", body: "Four columns, a solid blue bar when a mod is on, a settings drawer on click, and a banner that lists what else changed when a dependency flips. The performance stack (Sodium, Lithium, Entity Culling, FerriteCore, ImmediatelyFast) is in the same grid.", img: library, alt: "Mods grid with FPS, CPS, Keystrokes and Ping on, plus category pills and a Grid and Compact switch." },
-  { kicker: "HUD Design Studio", title: "Drag it where you want it.", body: "Widgets snap to each other with a 5 px gap. Pick one to get its size, a mini toolbar and an inspector with position, scale, background, colour, font import and visibility.", img: livePanel, alt: "HUD Design Studio: a night scene with Keystrokes, CPS and FPS stacked top-left and an inspector on the right." },
-  { kicker: "Accounts", title: "Offline, Ely.by or Microsoft.", body: "Ely.by accounts launch through authlib-injector and the exact launch argument is shown before you add one. Microsoft sign-in is not live until an Azure app exists, and the screen says so. Profiles are plain JSON with a SHA-256 id.", img: liveDone, alt: "Accounts dialog on the Ely.by tab showing the authlib-injector launch argument, over the profile JSON page." },
-  { kicker: "Cosmetics", title: "One stage, one locker.", body: "A 3D stage on the left with pose controls; five original skins, pets, wings and cloaks on the right, and a built-in pixel editor. A short panel says who can see each skin.", img: cosmetics, alt: "Cosmetics: a 3D skin stage, a category pill bar and a grid of skin cards." },
-  { kicker: "Themes", title: "Four themes. Colours only.", body: "OneClient Cobalt, Luminos Neutral Dark, Minecraft Dark and Clean Light. A theme never moves anything; text must stay at 4.5:1 or an imported theme is refused.", img: store, alt: "Themes screen with four miniature layout previews, an accent colour row and a gameplay preset switch." },
+  { kicker: "Home", title: "Press play, or resume a world.", body: "One launch bar that says what it is doing: verifying assets, starting the JVM, running. Recent worlds and servers sit underneath as one-click Quickplay cards, and your skin and the disk space saved by dedup are on the right.", img: shot("home"), alt: "Home screen: a night-time hero with a Ready to Launch button, three Resume and Quickplay cards and a skin rail." },
+  { kicker: "Mods", title: "Every module is a card with an on/off bar.", body: "Four columns, a solid blue bar when a mod is on, a settings drawer on click, and a banner that lists what else changed when a dependency flips. The performance stack (Sodium, Lithium, Entity Culling, FerriteCore, ImmediatelyFast) is in the same grid.", img: shot("mods"), alt: "Mods grid with FPS, CPS, Keystrokes and Ping on, plus category pills and a Grid and Compact switch." },
+  { kicker: "HUD Design Studio", title: "Drag it where you want it.", body: "Widgets snap to each other with a 5 px gap. Pick one to get its size, a mini toolbar and an inspector with position, scale, background, colour, font import and visibility.", img: shot("hud-studio"), alt: "HUD Design Studio: a night scene with Keystrokes, CPS and FPS stacked top-left and an inspector on the right." },
+  { kicker: "Accounts", title: "Offline, Ely.by or Microsoft.", body: "Ely.by accounts launch through authlib-injector and the exact launch argument is shown before you add one. Microsoft sign-in is not live until an Azure app exists, and the screen says so. Profiles are plain JSON with a SHA-256 id.", img: shot("accounts"), alt: "Accounts dialog on the Ely.by tab showing the authlib-injector launch argument, over the profile JSON page." },
+  { kicker: "Cosmetics", title: "One stage, one locker.", body: "A 3D stage on the left with pose controls; twelve hand-shaded skins, eight cloaks, four articulated wings, emotes and pets on the right, and a built-in pixel editor. A short panel says who can see each skin.", img: shot("cosmetics-wings"), alt: "Cosmetics: a 3D skin stage, a category pill bar and a grid of skin cards." },
+  { kicker: "Themes", title: "Four themes. Colours only.", body: "OneClient Cobalt, Luminos Neutral Dark, Minecraft Dark and Clean Light. A theme never moves anything; text must stay at 4.5:1 or an imported theme is refused.", img: shot("themes"), alt: "Themes screen with four miniature layout previews, an accent colour row and a gameplay preset switch." },
 ];
 
 export default function Tour() {

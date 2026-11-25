@@ -38,7 +38,7 @@ export default function HudStudio() {
   const [cfg, setCfg] = useState<Record<string, Cfg>>(load), [sel, setSel] = useState("keystrokes"), [tab, setTab] = useState<"Settings" | "Designer">("Settings");
   const [guides, setGuides] = useState<{ x?: number; y?: number }>({}), [k, setK] = useState(0.7), [note, setNote] = useState("");
   const wrap = useRef<HTMLDivElement>(null), drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
-  useEffect(() => { const el = wrap.current!, f = () => setK(Math.min((el.clientWidth - 32) / W, (el.clientHeight - 32 - 64) / H)); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
+  useEffect(() => { const el = wrap.current!, f = () => setK(Math.min(el.clientWidth / W, (el.clientHeight - 70) / H)); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
   const save = (n: Record<string, Cfg>) => { setCfg(n); try { localStorage.setItem(KEY, JSON.stringify(n)); } catch { /* private mode */ } call("set_setting", { key: "hudLayout", value: JSON.stringify(n) }).catch(() => undefined); };
   const patch = (id: string, p: Partial<Cfg>) => save({ ...cfg, [id]: { ...cfg[id], ...p } });
   const live = useMemo(() => BASE.filter((w) => mods.on[w.id] && !cfg[w.id].hidden), [mods.on, cfg]);
@@ -65,8 +65,8 @@ export default function HudStudio() {
 
   return (
     <div className="flex h-full min-h-0" style={{ background: "var(--bg)" }}>
-      <div ref={wrap} className="flex-1 min-w-0 flex flex-col items-center justify-center gap-3 p-4" onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
-        <div className="relative overflow-hidden" style={{ width: W * k, height: H * k, borderRadius: 14 }} onPointerDown={() => setSel("")}>
+      <div ref={wrap} className="flex-1 min-w-0 flex flex-col items-center justify-center gap-3 p-0" style={{ background: "linear-gradient(rgba(11,13,18,.72), rgba(11,13,18,.82)), url(/art/hud-backdrop.jpg) center/cover" }} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
+        <div className="relative overflow-hidden" style={{ width: W * k, height: H * k, borderRadius: 0 }} onPointerDown={() => setSel("")}>
           <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left", position: "absolute", inset: 0, backgroundImage: "url(/art/hud-backdrop.jpg)", backgroundSize: "cover", fontFamily: MONO }}>
             {/* in-game furniture: chat, bars, hotbar (drawn, so the preview matches the game's layout at GUI scale 2) */}
             <div style={{ position: "absolute", left: 0, bottom: 0, width: 400, padding: "8px 10px", background: "rgba(0,0,0,.42)", color: "#fff", fontSize: 12, lineHeight: "17px", textShadow: "1px 1px 0 #000" }}><b style={{ color: "#f2c14e" }}>Chatting</b><br />This is a preview of your chat window.<br />&lt;Steve&gt; Awesome!<br />&lt;Alex&gt; Let’s go!</div>

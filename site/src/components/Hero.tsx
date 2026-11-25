@@ -2,7 +2,7 @@ import Sky from "./Sky";
 import Reveal from "./Reveal";
 import { DownloadCTA, Frame, Sparkle } from "./ui";
 import type { ReleaseState } from "../lib/useRelease";
-import home from "../assets/app-home.webp";
+const home = `${import.meta.env.BASE_URL}screenshots/home-3.png`;
 
 // Skills applied here
 //  taste-skill: one serif display + one sans, one accent word, no emoji, plain copy, real product UI in the frame.

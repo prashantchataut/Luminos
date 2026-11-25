@@ -18,9 +18,17 @@ const ITEMS_BASE: Item[] = [
   { id: "pet-dragon", cat: "pets", name: "Wyrmling", blurb: "Perches on your shoulder. Folds its wings to swim.", visible: LUMI },
   { id: "pet-wisp", cat: "pets", name: "Wisp", blurb: "Orbits your head and leaves a trail.", visible: LUMI },
   { id: "pet-minime", cat: "pets", name: "Mini-Me", blurb: "A small copy of you in your skin. Copies every move.", visible: LUMI },
-  { id: "wing-feather", cat: "wings", name: "Feather", blurb: "Five-feather fan, off-white.", visible: LUMI },
-  { id: "wing-shard", cat: "wings", name: "Shard", blurb: "Three flat crystal blades.", visible: LUMI },
-  { id: "wing-cape", cat: "wings", name: "Cape wing", blurb: "A scalloped cape that lifts like a wing.", visible: LUMI },
+  { id: "wing-angel", cat: "wings", name: "Celestial Wings", blurb: "Feathered angel wings, gilded primaries.", visible: LUMI },
+  { id: "wing-dragon", cat: "wings", name: "Ember Dragon Wings", blurb: "Bone-and-membrane wings that fold at the wrist.", visible: LUMI },
+  { id: "wing-crystal", cat: "wings", name: "Cyber Crystal Wings", blurb: "Seven glowing glass shards that lag the beat.", visible: LUMI },
+  { id: "wing-nebula", cat: "wings", name: "Nebula Wings", blurb: "Star-dusted feathers in violet and cyan.", visible: LUMI },
+  { id: "emote-wave", cat: "emotes", name: "Wave", blurb: "Raise a hand and wave.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-backflip", cat: "emotes", name: "Victory Backflip", blurb: "Tuck, rotate, land with arms up.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-meditate", cat: "emotes", name: "Floating Meditate", blurb: "Cross-legged, a slow hover.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-sword", cat: "emotes", name: "Sword Spin", blurb: "Two quick turns with a drawn blade.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-dance", cat: "emotes", name: "Hype Dance", blurb: "Alternating arms, bouncing knees.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-facepalm", cat: "emotes", name: "Facepalm", blurb: "Head down, hand to face.", visible: "Luminos users nearby, once the cosmetics service is running." },
+  { id: "emote-hug", cat: "emotes", name: "Hug", blurb: "Plays alone, or syncs with another Luminos player next to you.", visible: "Two Luminos players within 4 blocks of each other. The other player must also have it equipped." },
   { id: "hat-cap", cat: "hats", name: "Field cap", blurb: "Navy cap with a short brim.", visible: LUMI },
   { id: "hat-crown", cat: "hats", name: "Crown", blurb: "Gold band with five points.", visible: LUMI },
   { id: "hat-wizard", cat: "hats", name: "Wizard hat", blurb: "Tall cone, wide brim.", visible: LUMI },
@@ -30,9 +38,6 @@ const ITEMS_BASE: Item[] = [
   { id: "band-head", cat: "bandanas", name: "Headband", blurb: "Ink band with a knot at the back.", visible: LUMI },
   { id: "back-pack", cat: "back", name: "Backpack", blurb: "Satchel with a flap and a pocket.", visible: LUMI },
   { id: "back-quiver", cat: "back", name: "Quiver", blurb: "Slanted quiver with three arrows.", visible: LUMI },
-  { id: "emote-wave", cat: "emotes", name: "Wave", blurb: "Raise a hand and wave.", visible: "Luminos users nearby, once the cosmetics service is running." },
-  { id: "emote-hug", cat: "emotes", name: "Hug", blurb: "Plays alone, or syncs with another Luminos player standing next to you.", visible: "Two Luminos players within 4 blocks of each other. The other player must also have it equipped." },
-  { id: "emote-spin", cat: "emotes", name: "Spin", blurb: "A quick turn with arms out.", visible: "Luminos users nearby, once the cosmetics service is running." },
 ];
 const CLOAKS: Item[] = library.capes.map((c) => ({ id: "cloak-" + c.id, cat: "cloaks" as const, name: c.name.replace(/ Cape$/, ""), blurb: c.description, visible: "Luminos users. Vanilla clients only show the cape your Mojang account owns.", capeFile: c.file, animated: c.animated }));
 export const ITEMS: Item[] = [...ITEMS_BASE, ...CLOAKS];
@@ -44,7 +49,7 @@ export type Equipped = Record<Cat, string | null>;
 export type LockerState = { skin: string; equipped: Equipped; favs: string[]; mine: SkinRec[]; classic: boolean; reported: string[] };
 const EMPTY: Equipped = { pets: null, wings: null, hats: null, masks: null, bandanas: null, cloaks: null, back: null, emotes: null };
 const KEY = "luminos.locker.v1";
-let state: LockerState = { skin: "luminos-default", equipped: { ...EMPTY, pets: "pet-cube" }, favs: [], mine: [], classic: false, reported: [] };
+let state: LockerState = { skin: "aether-knight", equipped: { ...EMPTY, pets: "pet-cube", wings: "wing-angel" }, favs: [], mine: [], classic: false, reported: [] };
 try { const j = JSON.parse(localStorage.getItem(KEY) || "null"); if (j) state = { ...state, ...j, equipped: { ...EMPTY, ...j.equipped } }; } catch { /* first run */ }
 const subs = new Set<() => void>();
 let writeTimer = 0;
@@ -76,6 +81,19 @@ export function setSkin(id: string) { commit({ ...state, skin: id }); }
 export function setClassic(v: boolean) { commit({ ...state, classic: v }); }
 export function addSkin(rec: SkinRec, select = true) { commit({ ...state, mine: [...state.mine, rec], skin: select ? rec.id : state.skin }); }
 export function updateSkin(rec: SkinRec) { commit({ ...state, mine: state.mine.map((m) => (m.id === rec.id ? rec : m)) }); }
-export function removeSkin(id: string) { commit({ ...state, mine: state.mine.filter((m) => m.id !== id), skin: state.skin === id ? "luminos-default" : state.skin }); }
+export function removeSkin(id: string) { commit({ ...state, mine: state.mine.filter((m) => m.id !== id), skin: state.skin === id ? "aether-knight" : state.skin }); }
 export function reportSkin(id: string) { commit({ ...state, reported: [...state.reported, id], mine: state.mine.map((m) => (m.id === id ? { ...m, reported: true } : m)) }); }
 export const newId = (p: string) => `${p}-${Date.now().toString(36)}${Math.floor(Math.random() * 1e3)}`;
+
+export type Bundle = { id: string; name: string; sub: string; skin: string; items: string[] };
+export const BUNDLES: Bundle[] = [
+  { id: "b-aether", name: "Aether Set", sub: "Knight, wings and a wisp", skin: "aether-knight", items: ["wing-angel", "pet-wisp"] },
+  { id: "b-void", name: "Void Set", sub: "Walker, dragon wings", skin: "void-walker", items: ["wing-dragon", "pet-dragon"] },
+  { id: "b-cyber", name: "Cyber Set", sub: "Drift, crystal wings, visor", skin: "cyber-drift", items: ["wing-crystal", "mask-visor"] },
+  { id: "b-astral", name: "Astral Set", sub: "Traveler and nebula wings", skin: "astral-traveler", items: ["wing-nebula", "pet-wisp"] },
+];
+export function equipBundle(b: Bundle) {
+  setSkin(b.skin);
+  for (const id of b.items) { const it = ITEMS.find((i) => i.id === id); if (it && !isEquipped(it)) toggleEquip(it); }
+}
+export const bundleOn = (b: Bundle, s: LockerState = state) => s.skin === b.skin && b.items.every((id) => { const it = ITEMS.find((i) => i.id === id); return !!it && isEquipped(it, s); });

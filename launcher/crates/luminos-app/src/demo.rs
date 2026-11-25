@@ -425,7 +425,7 @@ pub fn app(ctx: &egui::Context) -> App {
         );
     }
     if let Some(acc) = a.accounts.accounts.get_mut(0) {
-        acc.skin_id = Some("luminos-default".into());
+        acc.skin_id = Some("aether-knight".into());
         acc.cape_id = Some("luminos-moon-cape".into());
     }
     // Client page: pretend the Luminos Client instance is installed, with a few optional mods present.
@@ -492,7 +492,7 @@ pub fn app(ctx: &egui::Context) -> App {
             reclaimable: false,
         },
     ]);
-    a.skins.selected = Some("luminos-default".into());
+    a.skins.selected = Some("aether-knight".into());
     a.detail.tab = DTab::Content;
     a.page = Page::Home;
     a

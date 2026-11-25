@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 const out = process.env.OUT || "../skin3d"; mkdirSync(out, { recursive: true });
-const SKINS = ["luminos-default", "ember", "glasshouse", "nightshift", "paper"], MOVES = ["idle", "walk", "jump", "swim", "hurt"];
+const SKINS = ["aether-knight", "cobalt-rogue", "sakura-ronin", "void-walker", "frost-warden"], MOVES = ["idle", "walk", "jump", "swim", "hurt"];
 const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const p = await (await b.newContext({ viewport: { width: 1360, height: 820 } })).newPage();
 let bad = 0; const fail = (m) => { console.log("FAIL", m); bad++; };

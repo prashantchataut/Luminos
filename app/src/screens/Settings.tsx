@@ -1,138 +1,81 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Boot } from "../App";
-import { Badge, Icon, LRow, SearchBox, Slider, Switch } from "../kit";
+import { Icon } from "../kit";
 import { set, useSettings, type Settings } from "../store";
 import { setClassic, useLocker } from "../locker/catalog";
-import { ClickProbe, parseGpu, recommend, whyLow, type Facts } from "../perf";
-import { meta } from "../data/launcher";
-import PresenceCard from "./PresenceCard";
-import SharesCard from "./SharesCard";
-import P2PCard from "./P2PCard";
+import { engine, fmtBytes } from "../engine";
+import { PRESETS } from "../data/launcher";
+import AccountSwitcher, { useAccounts } from "./Accounts";
+import Themes from "./Themes";
 
-type Ctl = { t: "sw"; k: keyof Settings } | { t: "rng"; k: keyof Settings; min: number; max: number; step?: number; fmt?: (v: number) => string } | { t: "seg"; k: keyof Settings; o: [string, string][] } | { t: "classic" };
-type Row = { g: string; icon: string; name: string; desc: string; c: Ctl };
-const ROWS: Row[] = [
-  { g: "General", icon: "play", name: "Close launcher on game start", desc: "Frees memory while you play; reopens when the game exits.", c: { t: "sw", k: "closeOnLaunch" } },
-  { g: "General", icon: "download", name: "Check for updates", desc: "Looks for a new launcher or client release on start.", c: { t: "sw", k: "checkUpdates" } },
-  { g: "General", icon: "puzzle", name: "Allow beta mods", desc: "Lets the solver pick beta builds when no stable one exists.", c: { t: "sw", k: "allowBeta" } },
-  { g: "General", icon: "shirt", name: "Offline skin preview", desc: "Shows your chosen skin to you, in the launcher and in game.", c: { t: "sw", k: "offlineSkins" } },
-  { g: "Appearance", icon: "eye", name: "Theme", desc: "Default, Lunar or Light. Colours only. Import and export from the Theme button in the top bar.", c: { t: "seg", k: "theme", o: [["default", "Default"], ["lunar", "Lunar"], ["light", "Light"]] } },
-  { g: "Appearance", icon: "bolt", name: "Reduce motion", desc: "Removes slides, pop-ins and pet animation.", c: { t: "sw", k: "reduceMotion" } },
-  { g: "Appearance", icon: "ghost", name: "Classic client", desc: "Hides pets, wings and emotes. Hats, masks and the rest stay.", c: { t: "classic" } },
-  { g: "Appearance", icon: "layers", name: "Compact rows", desc: "32 px rows instead of 40 px.", c: { t: "sw", k: "compact" } },
-  { g: "Performance", icon: "cpu", name: "Profile", desc: "Luminos Performance is the default; Sodium-only is the baseline.", c: { t: "seg", k: "profile", o: [["luminos-performance", "Luminos"], ["sodium-baseline", "Sodium only"], ["vanilla", "Vanilla"]] } },
-  { g: "Performance", icon: "layers", name: "Throttle HUD and GUI", desc: "Draws the HUD at a lower fixed rate so the world gets the frames.", c: { t: "sw", k: "hudThrottle" } },
-  { g: "Performance", icon: "gauge", name: "HUD frame rate", desc: "Exordium-style cap for HUD elements.", c: { t: "rng", k: "hudFps", min: 10, max: 120, step: 5, fmt: (v) => v + " fps" } },
-  { g: "Performance", icon: "mouse", name: "Sample input every frame", desc: "Reads clicks and keys at frame rate instead of 20 TPS.", c: { t: "sw", k: "inputSampling" } },
-  { g: "Performance", icon: "bolt", name: "Startup cache", desc: "Caches transformed mixins and mod metadata between launches.", c: { t: "sw", k: "startupCache" } },
-  { g: "Java & memory", icon: "cpu", name: "Allocated memory", desc: "Too much starves the OS; 4 GB suits most mod lists.", c: { t: "rng", k: "memoryMb", min: 1024, max: 16384, step: 512, fmt: (v) => (v / 1024).toFixed(1) + " GB" } },
-  { g: "Developer", icon: "terminal", name: "Startup profiler", desc: "Shows where the launcher's own start time goes.", c: { t: "sw", k: "devProfiler" } },
-];
-const GROUPS = ["General", "Appearance", "Performance", "Java & memory", "Accounts", "Developer"];
-const GIC: Record<string, string> = { General: "gear", Appearance: "eye", Performance: "gauge", "Java & memory": "cpu", Accounts: "user", Developer: "terminal" };
-
-function readGpu(): string {
-  try { const c = document.createElement("canvas"); const gl = (c.getContext("webgl2") || c.getContext("webgl")) as WebGLRenderingContext | null; const e = gl?.getExtension("WEBGL_debug_renderer_info"); return gl && e ? String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)) : "Unknown GPU"; } catch { return "Unknown GPU"; }
-}
-function useFrameMs() {
-  const [ms, setMs] = useState(0);
-  useEffect(() => { let n = 0, t0 = performance.now(), raf = 0; const f = () => { n++; if (n === 60) { setMs((performance.now() - t0) / 60); return; } raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf); }, []);
-  return ms;
-}
-const SIM: [string, string][] = [["", "This machine"], ["NVIDIA GeForce RTX 4070", "GeForce RTX 4070"], ["Intel(R) UHD Graphics 770", "Intel UHD 770"], ["AMD Radeon RX 6600", "Radeon RX 6600"], ["NVIDIA GeForce GTX 1060", "GeForce GTX 1060"]];
-
-function Diagnostic({ boot }: { boot: Boot }) {
-  const s = useSettings(); const real = useMemo(readGpu, []); const [sim, setSim] = useState(""); const frame = useFrameMs();
-  const inst = boot.instances[0];
-  const nav: any = navigator;
-  const f: Facts = { gpu: parseGpu(sim || real), ramGb: nav.deviceMemory || 0, cores: nav.hardwareConcurrency || 0, mods: inst?.mods || 0, frameMs: sim ? (sim.includes("RTX") ? 4 : 13) : frame || 16.7, renderer: s.renderer, shaders: false, allocatedMb: s.memoryMb, hudThrottle: s.hudThrottle, inputSampling: s.inputSampling };
-  const tip = whyLow(f); const recs = recommend(f);
+// One uniform row: icon + title + one-line description on the left, exactly one control on the right.
+export function SRow({ icon, title, desc, children }: { icon: string; title: string; desc: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2"><div className="eyebrow">Why is my FPS low?</div><select aria-label="Test with another GPU" className="field !h-6 !w-auto !pl-2 t1" value={sim} onChange={(e) => setSim(e.target.value)}>{SIM.map(([v, l]) => <option key={l} value={v} style={{ color: "#000" }}>{l}</option>)}</select></div>
-        <div className="grid grid-cols-4 gap-2 mb-2.5">{[["Renderer", f.gpu.name.replace(/ANGLE \(|\)|Direct3D11|vs_5_0|ps_5_0/g, "").split(",").slice(-1)[0].trim().slice(0, 24)], ["RAM", f.ramGb ? `≥${f.ramGb} GB` : "n/a"], ["Mods", String(f.mods)], ["Frame", `${f.frameMs.toFixed(1)} ms`]].map(([k, v]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "var(--bg)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t2 font-semibold num truncate" title={v}>{v}</div></div>)}</div>
-        <div className="rounded-lg p-2.5" style={{ background: "rgba(143,180,255,.1)", border: "1px solid rgba(143,180,255,.35)" }}>
-          <div className="flex items-center gap-1.5 mb-0.5"><Badge tone={tip.severity === "high" ? "bad" : tip.severity === "med" ? "warn" : "ok"}>{tip.severity === "high" ? "Fix first" : tip.severity === "med" ? "Worth trying" : "Minor"}</Badge><span className="t2 font-semibold">{tip.title}</span></div>
-          <div className="t2">{tip.change}</div><div className="t1 mute mt-0.5">{tip.because}</div>
+    <div className="srow">
+      <span className="srow-ic"><Icon n={icon} s={20} /></span>
+      <div className="min-w-0 flex-1"><div className="srow-t">{title}</div><div className="srow-d">{desc}</div></div>
+      <div className="srow-c">{children}</div>
+    </div>
+  );
+}
+const Sw = ({ k, label }: { k: keyof Settings; label: string }) => { const s = useSettings(); return <button role="switch" aria-checked={!!s[k]} aria-label={label} className="sw2" onClick={() => set(k, !s[k] as never)} />; };
+const Dd = ({ value, o, on, label }: { value: string; o: [string, string][]; on: (v: string) => void; label: string }) => <label className="dd"><select aria-label={label} value={value} onChange={(e) => on(e.target.value)}>{o.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select><Icon n="chev" s={12} /></label>;
+
+const TABS: [string, string][] = [["general", "General & Gameplay"], ["java", "Java & Memory"], ["storage", "Storage & Shard Dedup"], ["accounts", "Accounts"], ["themes", "Themes"]];
+
+export default function Settings({ boot }: { boot: Boot }) {
+  const s = useSettings(), L = useLocker(), acc = useAccounts(boot.account?.username);
+  const [tab, setTab] = useState(() => new URLSearchParams(location.search).get("tab") || "general");
+  const [saved, setSaved] = useState<number | null>(null), [verified, setVerified] = useState(false), [mgr, setMgr] = useState(false);
+  const check = () => engine.dedupStatus().then((d) => { setSaved(d.total_saved); setVerified(true); setTimeout(() => setVerified(false), 2200); }).catch(() => undefined);
+  useEffect(() => { engine.dedupStatus().then((d) => setSaved(d.total_saved)).catch(() => undefined); }, []);
+  const active = acc.list.find((a) => a.id === acc.active) || acc.list[0];
+  const preset = s.keystrokes === "B" ? "survival" : "pvp";
+  return (
+    <div className="mx-auto pb-10" style={{ maxWidth: 860 }}>
+      <div className="flex gap-1.5 flex-wrap mb-5" role="tablist" aria-label="Preferences sections">
+        {TABS.map(([id, l]) => <button key={id} role="tab" aria-selected={tab === id} className="cos-tab" data-on={tab === id} onClick={() => setTab(id)}>{l}</button>)}
+      </div>
+      {tab === "general" && (
+        <div className="grid gap-2 stagger">
+          <SRow icon="swords" title="Gameplay preset" desc="Keystrokes, crosshair, fog and fire in one choice."><Dd label="Gameplay preset" value={preset} o={[["pvp", "PvP"], ["survival", "Survival"]]} on={(v) => Object.entries(PRESETS[v as "pvp" | "survival"].set).forEach(([k, x]) => set(k as any, x as any))} /></SRow>
+          <SRow icon="play" title="Close launcher on game start" desc="Frees memory while you play and reopens when the game exits."><Sw k="closeOnLaunch" label="Close launcher on game start" /></SRow>
+          <SRow icon="download" title="Check for updates" desc="Looks for a new launcher or client release on start."><Sw k="checkUpdates" label="Check for updates" /></SRow>
+          <SRow icon="puzzle" title="Allow beta mods" desc="Lets the solver pick beta builds when no stable one exists."><Sw k="allowBeta" label="Allow beta mods" /></SRow>
+          <SRow icon="mouse" title="Sample input every frame" desc="Reads clicks and keys at frame rate instead of 20 TPS."><Sw k="inputSampling" label="Sample input every frame" /></SRow>
+          <SRow icon="bolt" title="Startup cache" desc="Keeps transformed mixins and mod metadata between launches."><Sw k="startupCache" label="Startup cache" /></SRow>
+          <SRow icon="shirt" title="Offline skin preview" desc="Shows your chosen skin to you, in the launcher and in game."><Sw k="offlineSkins" label="Offline skin preview" /></SRow>
+          <SRow icon="ghost" title="Classic client" desc="Hides pets, wings and emotes. Hats and masks stay."><button role="switch" aria-checked={L.classic} aria-label="Classic client" className="sw2" onClick={() => setClassic(!L.classic)} /></SRow>
+          <SRow icon="user" title="Discord presence" desc="Friends see “Playing Luminos”. Off removes it at once."><Sw k="presenceOn" label="Discord presence" /></SRow>
+          <SRow icon="eye" title="Reduce motion" desc="Removes slides, pop-ins and idle sway."><Sw k="reduceMotion" label="Reduce motion" /></SRow>
         </div>
-        <div className="t1 mute mt-1.5">Reads the WebView’s GPU, frame time, memory and your instance. Real, not an estimate.</div>
-      </div>
-      <div className="panel p-3">
-        <div className="eyebrow mb-2">Renderer · never installed silently</div>
-        {recs.map((r) => (
-          <button key={r.renderer} disabled={!r.allowed} onClick={() => set("renderer", r.renderer)} aria-pressed={s.renderer === r.renderer} className="lrow w-full text-left !items-start !py-1.5" style={{ opacity: r.allowed ? 1 : .6, borderColor: s.renderer === r.renderer ? "var(--color-accent)" : undefined, minHeight: 0 }}>
-            <img src={`/mods/${r.renderer}.webp`} alt="" className="w-6 h-6 rounded-md mt-0.5" />
-            <span className="flex-1 min-w-0"><span className="flex items-center gap-1.5"><span className="t2 font-semibold">{meta[r.renderer]?.title || r.renderer}</span>{r.renderer === "sodium" && <Badge>Baseline</Badge>}{!r.allowed && <Badge tone="warn">Not on this GPU</Badge>}{s.renderer === r.renderer && <Badge tone="accent">Selected</Badge>}</span><span className="block t1 mute leading-[14px]">{r.why}</span></span>
-          </button>
-        ))}
-        <div className="t1 mute mt-1">Picking a renderer saves your choice only. Install it from Library.</div>
-      </div>
-    </div>
-  );
-}
-
-function ClickTest() {
-  const s = useSettings(); const probe = useRef(new ClickProbe()); const [v, setV] = useState({ raw: 0, cps: 0, lat: 0, peak: 0 });
-  useEffect(() => { let raf = 0, last = 0, peak = 0; const f = (t: number) => { const tick = t - last >= 50; if (tick) last = t; probe.current.frame(s.inputSampling, tick); peak = Math.max(peak, probe.current.rawCps); setV({ raw: probe.current.rawCps, cps: probe.current.cps, lat: probe.current.avgLatencyMs, peak }); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf); }, [s.inputSampling]);
-  return (
-    <div className="panel p-3 flex gap-3 items-stretch">
-      <button onMouseDown={() => probe.current.down()} aria-label="Click test pad" className="lift rounded-xl grid place-items-center t2 font-semibold" style={{ width: 200, border: "1px dashed rgba(143,180,255,.5)", background: "rgba(143,180,255,.08)" }}><span><Icon n="mouse" s={20} className="mx-auto mb-1" />Click here fast</span></button>
-      <div className="flex-1">
-        <div className="eyebrow mb-1.5">Click test · input sampling {s.inputSampling ? "on" : "off"}</div>
-        <div className="grid grid-cols-4 gap-2">{[["Raw input", v.raw + "/s"], ["Processed CPS", v.cps + "/s"], ["Added delay", v.lat.toFixed(1) + " ms"], ["Peak raw", v.peak + "/s"]].map(([k, x]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "var(--bg)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t3 font-semibold num">{x}</div></div>)}</div>
-        <div className="t1 mute mt-1.5">Off: clicks wait for the next 20 TPS tick (up to 50 ms). On: they are read on the very next frame. Toggle above and compare the delay.</div>
-      </div>
-    </div>
-  );
-}
-
-function Profiler() {
-  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-  const paint = Object.fromEntries(performance.getEntriesByType("paint").map((p) => [p.name, p.startTime]));
-  const boot = (window as any).__bootMs as number | undefined;
-  const rows: [string, number | undefined][] = [["HTML parsed (domInteractive)", nav?.domInteractive], ["DOM content loaded", nav?.domContentLoadedEventEnd], ["First paint", paint["first-paint"]], ["First contentful paint", paint["first-contentful-paint"]], ["Engine bootstrap answered", boot ? boot + (nav?.domContentLoadedEventEnd || 0) : undefined], ["Window load", nav?.loadEventEnd]];
-  const max = Math.max(...rows.map((r) => r[1] || 0), 1);
-  return (
-    <div className="panel p-3"><div className="flex items-center justify-between mb-2"><div className="eyebrow">Launcher startup · measured in this window</div><Badge tone="accent">Dev</Badge></div>
-      {rows.filter((r) => r[1] !== undefined).map(([k, v]) => <div key={k} className="flex items-center gap-2 min-h-[24px]"><span className="t1 w-[190px] mute">{k}</span><span className="flex-1 h-1.5 rounded bg-white/10 overflow-hidden"><span className="block h-full rounded bg-[var(--color-accent)]" style={{ width: `${(v! / max) * 100}%` }} /></span><span className="t1 num w-[64px] text-right">{v!.toFixed(0)} ms</span></div>)}
-      <div className="t1 mute mt-2">Game stages (JVM start, mod discovery, mixin apply, resource reload, first frame) are written by the engine to the launch log; none has been recorded on this machine yet.</div>
-    </div>
-  );
-}
-
-export default function SettingsPage({ boot }: { boot: Boot }) {
-  const s = useSettings(); const locker = useLocker(); const [q, setQ] = useState(""); const [g, setG] = useState(new URLSearchParams(location.search).get("g") || "General");
-  const ql = q.trim().toLowerCase();
-  const match = (r: Row) => !ql || (r.name + r.desc + r.g).toLowerCase().includes(ql);
-  const groups = ql ? GROUPS.filter((x) => ROWS.some((r) => r.g === x && match(r)) || (ql.length > 2 && x === "Performance" && ("fps diagnostic renderer click test vulkan").includes(ql))) : [g];
-  const control = (r: Row) => { const c = r.c; if (c.t === "classic") return <Switch label={r.name} on={locker.classic} onChange={setClassic} />; const v = s[c.k] as any;
-    if (c.t === "sw") return <Switch label={r.name} on={!!v} onChange={(x) => set(c.k as any, x as any)} />;
-    if (c.t === "rng") return <Slider label={r.name} value={v} min={c.min} max={c.max} step={c.step} fmt={c.fmt} onChange={(x) => set(c.k as any, x as any)} />;
-    return <div className="inline-flex rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-line)" }}>{c.o.map(([k, l]) => <button key={k} aria-pressed={v === k} onClick={() => set(c.k as any, k as any)} className="px-2.5 h-7 t1 font-semibold" style={{ background: v === k ? "rgba(143,180,255,.22)" : "transparent", color: v === k ? "#fff" : "var(--color-mute)" }}>{l}</button>)}</div>; };
-  return (
-    <div className="max-w-[1180px] grid gap-4" style={{ gridTemplateColumns: "190px minmax(0,1fr)" }}>
-      <div className="flex flex-col gap-1">
-        <SearchBox value={q} onChange={setQ} placeholder="Search settings" />
-        <div className="mt-1.5 flex flex-col gap-0.5">{GROUPS.filter((x) => x !== "Developer" || s.devProfiler || true).map((x) => <button key={x} onClick={() => { setG(x); setQ(""); }} aria-current={!ql && g === x} className="lrow !min-h-[32px] text-left" style={!ql && g === x ? { background: "var(--accent-soft)", borderColor: "var(--accent)" } : undefined}><Icon n={GIC[x]} s={14} /><span className="t2 font-medium">{x}</span></button>)}</div>
-      </div>
-      <div className="flex flex-col gap-3 min-w-0">
-        {groups.map((gr) => (
-          <div key={gr}>
-            <div className="eyebrow mb-1.5 px-1">{gr}</div>
-            <div className="panel p-1.5">
-              {ROWS.filter((r) => r.g === gr && match(r)).map((r) => <LRow key={r.name} icon={r.icon} name={r.name} desc={r.desc}>{control(r)}</LRow>)}
-              {gr === "Accounts" && <>
-                <LRow icon="user" name={`${boot.account.username || "Player"} · ${boot.account.kind || "Offline"}`} desc="The profile used to launch. Sign in with Microsoft for online servers."><a className="btn" href="#/onboarding/2">Manage</a></LRow>
-                <LRow icon="lock" name="Microsoft device-code sign-in" desc="Approve at microsoft.com/link; no password is typed into Luminos."><a className="btn btn-primary" href="#/onboarding/2">Sign in</a></LRow></>}
-            </div>
-            {gr === "General" && !ql && <div className="mt-3 flex flex-col gap-3"><PresenceCard /><SharesCard /><P2PCard /></div>}
-            {gr === "Performance" && !ql && <div className="flex flex-col gap-3 mt-3"><Diagnostic boot={boot} /><ClickTest /></div>}
-            {gr === "Developer" && s.devProfiler && <div className="mt-3"><Profiler /></div>}
-          </div>
-        ))}
-        {ql && !groups.length && <div className="panel p-6 t2 mute text-center">No setting matches “{q}”.</div>}
-      </div>
+      )}
+      {tab === "java" && (
+        <div className="grid gap-2 stagger">
+          <SRow icon="cpu" title="Allocated memory" desc="Too much starves the OS. 4 GB suits most mod lists.">
+            <div className="flex items-center gap-3"><span className="mono-badge">{s.memoryMb} MB</span><input type="range" className="rng2" aria-label="Allocated memory" min={2048} max={16384} step={512} value={s.memoryMb} onChange={(e) => set("memoryMb", +e.target.value)} style={{ ["--p" as any]: `${((s.memoryMb - 2048) / (16384 - 2048)) * 100}%` }} /></div>
+          </SRow>
+          <SRow icon="gauge" title="Renderer" desc="Saved as your choice. Nothing is installed silently."><Dd label="Renderer" value={s.renderer} o={[["sodium", "Sodium"], ["vulkanmod", "VulkanMod"], ["nvidium", "Sodium + Nvidium"]]} on={(v) => set("renderer", v as Settings["renderer"])} /></SRow>
+          <SRow icon="layers" title="Performance profile" desc="Luminos Performance is the default; Sodium-only is the baseline."><Dd label="Performance profile" value={s.profile} o={[["luminos-performance", "Luminos Performance"], ["sodium-baseline", "Sodium baseline"], ["vanilla", "Vanilla"]]} on={(v) => set("profile", v as Settings["profile"])} /></SRow>
+          <SRow icon="layers" title="Throttle HUD and GUI" desc="Draws the HUD at a lower fixed rate so the world gets the frames."><Sw k="hudThrottle" label="Throttle HUD and GUI" /></SRow>
+          <SRow icon="terminal" title="Startup profiler" desc="Shows where the launcher's own start time goes."><Sw k="devProfiler" label="Startup profiler" /></SRow>
+        </div>
+      )}
+      {tab === "storage" && (
+        <div className="grid gap-2 stagger">
+          <SRow icon="verify" title="Shard dedup" desc="Identical files across instances are stored once."><button className="abtn" onClick={check}>{verified ? "Verified" : "Verify Cache"}<span className="abtn-s">{saved === null ? "…" : `${fmtBytes(saved)} saved`}</span></button></SRow>
+          <SRow icon="box" title="Include worlds when comparing" desc="Off by default. Worlds are large, so you choose when."><Sw k="compliance" label="Include worlds when comparing" /></SRow>
+        </div>
+      )}
+      {tab === "accounts" && (
+        <div className="grid gap-2 stagger">
+          <SRow icon="user" title={active?.name || "No account"} desc={`Active account · ${(active?.kind || "offline").toLowerCase()}`}><button className="abtn" onClick={() => setMgr(true)}>Switch account</button></SRow>
+          <SRow icon="globe" title="Ely.by / authlib-injector" desc="Use an Ely.by account or a custom Yggdrasil server."><button className="abtn" onClick={() => setMgr(true)}>Add Ely.by</button></SRow>
+          <SRow icon="shield" title="Microsoft account" desc="Device-code sign-in needs the owner's Azure app id."><button className="abtn" onClick={() => setMgr(true)}>Sign in</button></SRow>
+        </div>
+      )}
+      {tab === "themes" && <Themes q="" />}
+      {mgr && <AccountSwitcher boot={boot} onClose={() => setMgr(false)} />}
     </div>
   );
 }

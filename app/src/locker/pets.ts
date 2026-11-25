@@ -72,16 +72,39 @@ export function petPose(kind: PetKind, move: Move, t: number): Pose {
 }
 
 /** Emote poses (arms and body only). `partner` marks the one that needs a second player. */
-export type EmoteId = "wave" | "hug" | "spin";
-export const EMOTE_SECONDS: Record<EmoteId, number> = { wave: 2.4, hug: 3, spin: 1.4 };
+export type EmoteId = "wave" | "hug" | "backflip" | "meditate" | "sword" | "dance" | "facepalm";
+export const EMOTE_SECONDS: Record<EmoteId, number> = { wave: 2.4, hug: 3, backflip: 2, meditate: 4, sword: 2.2, dance: 2.4, facepalm: 2.4 };
+const ease = (x: number) => x * x * (3 - 2 * x);
 export function applyEmote(rig: Rig, id: EmoteId, t: number): { yaw: number; pitch: number; lift: number } {
   applyMove(rig, "idle", t);
-  const k = (t % EMOTE_SECONDS[id]) / EMOTE_SECONDS[id];
+  const D = EMOTE_SECONDS[id], k = (t % D) / D;
   if (id === "wave") { rig.rightArm.rotation.z = 2.5 + Math.sin(t * 9) * 0.35; rig.rightArm.rotation.x = 0; return { yaw: 0, pitch: 0, lift: 0 }; }
   if (id === "hug") { const e = Math.sin(Math.min(1, k * 1.4) * Math.PI / 2); rig.rightArm.rotation.x = -1.5 * e; rig.leftArm.rotation.x = -1.5 * e; rig.rightArm.rotation.y = 0.5 * e; rig.leftArm.rotation.y = -0.5 * e; return { yaw: 0, pitch: 0.12 * e, lift: 0 }; }
-  const e = k < 0.85 ? Math.sin((k / 0.85) * Math.PI) : 0;
-  rig.rightArm.rotation.z = 0.5 + e * 1.2; rig.leftArm.rotation.z = -0.5 - e * 1.2;
-  return { yaw: k * Math.PI * 2, pitch: 0, lift: e * 3 };
+  if (id === "backflip") {
+    const e = Math.min(1, k / 0.75), j = Math.sin(e * Math.PI), tuck = Math.sin(Math.min(1, e * 1.1) * Math.PI);
+    rig.rightArm.rotation.z = 0.4 + 2.2 * (k > 0.75 ? 1 - (k - 0.75) * 2 : 1); rig.leftArm.rotation.z = -rig.rightArm.rotation.z; if (k > 0.75 && k < 0.95) { rig.rightArm.rotation.z = 2.7; rig.leftArm.rotation.z = -2.7; }
+    rig.rightLeg.rotation.x = -1.3 * tuck; rig.leftLeg.rotation.x = -1.3 * tuck;
+    return { yaw: 0, pitch: -ease(e) * Math.PI * 2, lift: j * 9 };
+  }
+  if (id === "meditate") {
+    rig.rightLeg.rotation.x = -1.45; rig.leftLeg.rotation.x = -1.45; rig.rightLeg.rotation.z = 0.55; rig.leftLeg.rotation.z = -0.55;
+    rig.rightArm.rotation.x = -0.7; rig.leftArm.rotation.x = -0.7; rig.rightArm.rotation.z = 0.5; rig.leftArm.rotation.z = -0.5; rig.head.rotation.x = 0.18 + Math.sin(t * 1.4) * 0.03;
+    return { yaw: Math.sin(t * 0.6) * 0.2, pitch: 0, lift: 5 + Math.sin(t * 1.6) * 1.1 };
+  }
+  if (id === "sword") {
+    const e = Math.sin(Math.min(1, k / 0.8) * Math.PI);
+    rig.rightArm.rotation.x = -1.45 - e * 0.3; rig.rightArm.rotation.z = 0.15; rig.leftArm.rotation.z = -0.9 - e * 0.5; rig.rightLeg.rotation.x = 0.35; rig.leftLeg.rotation.x = -0.25;
+    return { yaw: ease(Math.min(1, k / 0.8)) * Math.PI * 4, pitch: 0, lift: e * 1.5 };
+  }
+  if (id === "dance") {
+    const s = Math.sin(t * 6.4), c = Math.sin(t * 6.4 + Math.PI);
+    rig.rightArm.rotation.z = 1.9 + s * 0.8; rig.leftArm.rotation.z = -1.9 - c * 0.8; rig.rightArm.rotation.x = Math.sin(t * 3.2) * 0.4; rig.leftArm.rotation.x = -Math.sin(t * 3.2) * 0.4;
+    rig.rightLeg.rotation.x = s * 0.5; rig.leftLeg.rotation.x = c * 0.5; rig.head.rotation.z = s * 0.18;
+    return { yaw: Math.sin(t * 3.2) * 0.45, pitch: 0, lift: Math.abs(s) * 1.3 };
+  }
+  const e = ease(Math.min(1, k * 3.2)) * (k > 0.8 ? 1 - (k - 0.8) * 5 : 1);
+  rig.rightArm.rotation.x = -2.55 * e; rig.rightArm.rotation.z = 0.25 * e; rig.rightArm.rotation.y = 0.35 * e; rig.head.rotation.x = 0.4 * e; rig.head.rotation.y = -0.1 * e;
+  return { yaw: 0, pitch: 0.06 * e, lift: 0 };
 }
 
 /** Equipment rule: wings, cloaks and back items share the back, so wearing one removes the others. Pets and wings never conflict. */

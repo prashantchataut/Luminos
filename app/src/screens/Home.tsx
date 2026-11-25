@@ -8,7 +8,7 @@ import { engine, fmtBytes } from "../engine";
 import { skinById, skinSrc, useLocker } from "../locker/catalog";
 
 type Phase = "idle" | "prepare" | "start" | "run";
-const LABEL: Record<Phase, string> = { idle: "Ready to Launch", prepare: "Verifying Assets (Shard Engine)…", start: "Launching JVM…", run: "Running · view live log" };
+const LABEL: Record<Phase, string> = { idle: "Launch Game", prepare: "Verifying (Shard)…", start: "Starting…", run: "Running" };
 
 export function LaunchBar({ inst, label, onLog }: { inst: string; label?: string; onLog: (l: string) => void }) {
   const demo = new URLSearchParams(location.search).get("demo");
@@ -54,54 +54,55 @@ function HostModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void }) {
-  const s = useSettings(), locker = useLocker();
-  const [sel, setSel] = useState(boot.instances[0]?.id), [host, setHost] = useState(false), [logs, setLogs] = useState<string[]>([]), [showLog, setShowLog] = useState(false), [saved, setSaved] = useState<number | null>(null), [pre, setPre] = useState<"pvp" | "survival">(s.keystrokes === "B" ? "survival" : "pvp");
+  const s = useSettings();
+  const [sel, setSel] = useState(boot.instances[0]?.id), [host, setHost] = useState(false), [logs, setLogs] = useState<string[]>([]), [showLog, setShowLog] = useState(false), [pre, setPre] = useState<"pvp" | "survival">(s.keystrokes === "B" ? "survival" : "pvp");
   const cur = boot.instances.find((i) => i.id === sel) || boot.instances[0];
-  useEffect(() => { engine.dedupStatus().then((d) => setSaved(d.total_saved)).catch(() => undefined); }, []);
   const applyPreset = (id: "pvp" | "survival") => { Object.entries(PRESETS[id].set).forEach(([k, v]) => set(k as any, v as any)); setPre(id); };
   const onLog = (l: string) => { if (l === "__open__") setShowLog(true); else setLogs((x) => [...x.slice(-199), l]); };
   const cards = [
-    { k: "w", name: SEED.worlds[0].name, sub: SEED.worlds[0].played, badge: SEED.worlds[0].mode, ver: "26.3", icon: "cube" },
-    { k: "s", name: QUICK.server.name, sub: `${QUICK.server.online.toLocaleString()} online · ${QUICK.server.ago}`, badge: "Server", ver: "1.21.11", icon: "globe", img: QUICK.server.icon },
-    { k: "w2", name: SEED.worlds[1].name, sub: SEED.worlds[1].played, badge: SEED.worlds[1].mode, ver: "26.3", icon: "cube" },
+    { k: "s", name: QUICK.server.name, sub: "Ready for launch", pill: `${QUICK.server.online.toLocaleString()} online`, ver: "1.21.11", img: QUICK.server.icon },
+    { k: "w", name: SEED.worlds[0].name, sub: "Ready for launch", pill: SEED.worlds[0].mode, ver: "26.3" },
+    { k: "w2", name: SEED.worlds[1].name, sub: "Ready for launch", pill: SEED.worlds[1].mode, ver: "26.3" },
   ];
   return (
-    <div className="flex gap-4 px-6" style={{ height: "calc(100vh - 56px - 16px)" }}>
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
-        <div className="relative overflow-hidden shrink-0" style={{ height: "52%", minHeight: 270, borderRadius: 16 }}>
-          <div className="absolute inset-0 cover" style={{ backgroundImage: `url(/art/${pre === "pvp" ? "hud-backdrop" : "hero-day"}.jpg)` }} />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(8,10,16,.88) 0%, rgba(8,10,16,.55) 46%, rgba(8,10,16,0) 80%)" }} />
-          <div className="relative h-full p-7 flex flex-col justify-end gap-4" style={{ color: "#fff" }}>
-            <div><div className="flex items-center gap-2 mb-2"><span className="badge accent">{pre === "pvp" ? "PvP Competitive" : "Survival Plus"}</span><span className="badge" style={{ background: "rgba(255,255,255,.14)", color: "#fff" }}>{cur.loader} · Java {cur.java}</span></div>
-              <h2 className="m-0 font-bold" style={{ fontSize: 30, letterSpacing: "-.02em", lineHeight: 1.1 }}>Luminos Client {cur.mc}</h2>
-              <p className="t2 m-0 mt-1.5" style={{ color: "rgba(255,255,255,.78)" }}>{cur.mods} mods · {s.memoryMb / 1024} GB · {s.renderer === "sodium" ? "Sodium" : s.renderer === "vulkanmod" ? "VulkanMod" : "Sodium + Nvidium"}</p></div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <LaunchBar inst={cur.id} onLog={onLog} />
-              <label className="flex items-center gap-2 h-11 px-3.5 rounded-[10px]" style={{ background: "rgba(8,10,16,.72)" }}><span className="sr-only">Version and loader</span><select aria-label="Version and loader" className="bg-transparent t2 font-medium outline-none cursor-pointer" value={cur.id} onChange={(e) => setSel(e.target.value)}>{boot.instances.map((i) => <option key={i.id} value={i.id} style={{ background: "#151922", color: "#fff" }}>{i.loader} {i.mc}</option>)}</select><Icon n="chev" s={12} /></label>
-              <div className="seg ml-auto" role="group" aria-label="Preset" style={{ background: "rgba(8,10,16,.72)" }}>{(["pvp", "survival"] as const).map((id) => <button key={id} aria-pressed={pre === id} onClick={() => applyPreset(id)}>{id === "pvp" ? "PvP" : "Survival"}</button>)}</div>
-            </div>
+    <div className="px-8 pt-1 pb-8 mx-auto" style={{ maxWidth: 1080 }}>
+      <section className="relative overflow-hidden" style={{ height: 300, borderRadius: 16 }} aria-label="Luminos Client">
+        <div className="absolute inset-0 cover" style={{ backgroundImage: "url(/art/hero-day.jpg)", transform: "scale(1.02)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,0.92) 0%, rgba(11,13,18,0.4) 60%, transparent 100%), linear-gradient(0deg, rgba(11,13,18,.72) 0%, transparent 55%)" }} />
+        <div className="absolute left-0 bottom-0 flex flex-col" style={{ padding: 32 }}>
+          <div className="hero-eyebrow">{cur.loader} {cur.mc} <span aria-hidden>•</span> Shard engine ready</div>
+          <h2 className="m-0 mt-2 font-bold text-white" style={{ fontSize: 32, letterSpacing: "-.02em", lineHeight: 1.1 }}>Luminos Client</h2>
+          <p className="m-0 mt-1.5" style={{ fontSize: 13, color: "#9BA3B4" }}>High-frame-rate Fabric client with a built-in HUD studio and live Modrinth mods.</p>
+          <div className="flex items-center gap-3" style={{ marginTop: 20 }}>
+            <LaunchBar inst={cur.id} onLog={onLog} />
+            <label className="hero-pill"><span className="sr-only">Version and preset</span>
+              <select aria-label="Version and preset" value={cur.id + "|" + pre} onChange={(e) => { const [i, p] = e.target.value.split("|"); setSel(i); applyPreset(p as "pvp" | "survival"); }}>
+                {boot.instances.flatMap((i) => (["pvp", "survival"] as const).map((p) => <option key={i.id + p} value={i.id + "|" + p} style={{ background: "#151922" }}>{i.mc} • {p === "pvp" ? "PvP" : "Survival"} Preset</option>))}
+              </select><Icon n="chev" s={12} />
+            </label>
+            <button className="hero-pill" onClick={() => setHost(true)}><Icon n="globe" s={15} />Host World</button>
           </div>
         </div>
-        <section className="flex-1 min-h-0 flex flex-col" aria-label="Resume and Quickplay">
-          <div className="flex items-center mb-2"><h3 className="t3 font-semibold m-0">Resume & Quickplay</h3><span className="badge ml-2 num">{cards.length}</span><div className="flex-1" /><button className="t2 flex items-center gap-1" style={{ color: "var(--accent-text)" }} onClick={() => go("servers")}>Explore all<Icon n="fwd" s={13} /></button></div>
-          <div className="grid grid-cols-3 gap-3 stagger items-start">
-            {cards.map((c) => (
-              <div key={c.k} className="panel overflow-hidden flex flex-col min-h-0">
-                <div className="relative h-[116px]"><Cover version={c.ver} /><span className="absolute left-2 top-2 badge" style={{ background: "rgba(8,10,16,.8)", color: "#fff" }}>{c.badge}</span>{c.img && <img src={c.img} alt="" className="absolute right-2 top-2 w-8 h-8 rounded-md skin-px" />}</div>
-                <div className="flex items-center gap-2 p-3"><div className="min-w-0 flex-1"><div className="t2 font-semibold truncate">{c.name}</div><div className="t1 mute truncate num">{c.sub}</div></div>
-                  <button className="ibtn" style={{ background: "var(--accent)", color: "var(--accent-fg)" }} aria-label={`Quickplay ${c.name}`} onClick={() => { setLogs((x) => [...x, `${new Date().toLocaleTimeString("en-GB")}  quickplay ${c.name}`]); if (isTauri) call("quickplay_launch", { target: c.name }).catch(() => undefined); }}><Icon n="play" s={13} /></button></div>
-              </div>))}
-          </div>
-        </section>
-      </div>
-      <aside className="w-[240px] shrink-0 flex flex-col gap-3" aria-label="Player">
-        <div className="panel flex flex-col items-center pt-5 pb-4"><SkinThumb src={skinSrc(skinById(locker.skin))} scale={7} /><div className="t3 font-semibold mt-3">{boot.account.username || "Player"}</div><div className="t1 mute">{skinById(locker.skin).name}</div></div>
-        <button className="btn btn-lg w-full justify-start" onClick={() => setHost(true)}><Icon n="globe" s={16} />Host World</button>
-        <button className="btn btn-lg w-full justify-start" onClick={() => go("cosmetics")}><Icon n="shirt" s={16} />Switch Skin</button>
-        <button className="btn btn-lg w-full justify-start" onClick={() => go("profiles")}><Icon n="profile" s={16} />Switch Preset</button>
-        <div className="flex-1" />
-        <div className="panel p-3 flex items-center gap-2.5"><Icon n="verify" s={18} /><div className="min-w-0"><div className="t2 font-semibold">Storage saved</div><div className="t1 mute num">{saved === null ? "Measuring…" : `Dedup: ${fmtBytes(saved)} saved`}</div></div></div>
-      </aside>
+      </section>
+
+      <section style={{ marginTop: 24 }} aria-label="Quickplay">
+        <div className="flex items-center mb-3.5"><h3 className="m-0 font-bold text-white" style={{ fontSize: 16 }}>Quickplay</h3><div className="flex-1" /><button className="flex items-center gap-1 font-medium" style={{ fontSize: 13, color: "#2B4BFF" }} onClick={() => go("servers")}>Explore Servers<Icon n="fwd" s={13} /></button></div>
+        <div className="grid grid-cols-3 gap-4 stagger">
+          {cards.map((c) => (
+            <div key={c.k} className="qcard">
+              <div className="relative" style={{ height: 130 }}>
+                <Cover version={c.ver} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(21,25,34,.55), transparent 55%)" }} />
+                {c.img && <img src={c.img} alt="" className="absolute left-3 top-3 w-9 h-9 rounded-lg skin-px" />}
+                <span className="absolute right-3 top-3 qpill">{c.pill}</span>
+              </div>
+              <div className="flex items-center gap-3 px-4" style={{ height: 48 }}>
+                <div className="min-w-0 flex-1"><div className="truncate font-semibold text-white" style={{ fontSize: 13 }}>{c.name}</div><div className="truncate" style={{ fontSize: 11, color: "#6E7787" }}>{c.sub}</div></div>
+                <button className="qplay" aria-label={`Quickplay ${c.name}`} onClick={() => { setLogs((x) => [...x, `${new Date().toLocaleTimeString("en-GB")}  quickplay ${c.name}`]); if (isTauri) call("quickplay_launch", { target: c.name }).catch(() => undefined); }}><Icon n="play" s={12} /></button>
+              </div>
+            </div>))}
+        </div>
+      </section>
       {host && <HostModal onClose={() => setHost(false)} />}
       {showLog && <Modal onClose={() => setShowLog(false)} title="Live log" w={640}><p className="t1 mute m-0 mb-3">Launcher events for this session. Tokens and home-folder paths are removed before anything is shown.</p><pre className="panel-2 p-3 m-0 t1 num overflow-auto select-text" style={{ maxHeight: 280, fontFamily: '"JetBrains Mono", ui-monospace, Consolas, monospace' }}>{logs.length ? logs.join("\n") : "No events yet."}</pre><div className="flex justify-end mt-3"><button className="btn" onClick={() => setShowLog(false)}>Close</button></div></Modal>}
     </div>

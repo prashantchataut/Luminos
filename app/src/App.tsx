@@ -24,7 +24,7 @@ const GROUPS: [string, Item[]][] = [
   ["System", [["changelog", "Changelog", "history"], ["settings", "Preferences", "gear"]]],
 ];
 const TITLE: Record<string, string> = { home: "Home", instances: "Instances", servers: "Servers & P2P", mods: "Mods", hud: "HUD Design Studio", profiles: "Profiles", keybinds: "Keybinds", cosmetics: "Cosmetics", themes: "Themes", changelog: "Changelog", settings: "Preferences", library: "Instances", client: "Profiles", livepanel: "Profiles" };
-const SEARCH: Record<string, string> = { mods: "Search mods…", themes: "Search themes…", cosmetics: "Search skins…", instances: "Search instances…", servers: "Search servers…" };
+const SEARCH: Record<string, string> = { mods: "Search mods…", instances: "Search instances…", servers: "Search servers…" };
 
 function useHash() {
   const [h, setH] = useState(location.hash.slice(2) || "home");
@@ -69,11 +69,11 @@ export default function App() {
             </div>
           ))}
         </div>
-        <div className="p-3" style={{ borderTop: "1px solid var(--line)" }}>
+        <div className="p-3">
           <div className="flex items-center gap-1">
             <button className="flex-1 min-w-0 flex items-center gap-2.5 p-1.5 rounded-lg text-left hover:bg-[var(--surface-2)]" onClick={() => setAcct(true)} aria-label={`Account: ${active.name}. Switch account`}>
               <span className="w-9 h-9 rounded-lg overflow-hidden grid place-items-center shrink-0 panel-2"><SkinThumb src={skinSrc(skinById(locker.skin))} scale={3} bust className="!w-9 !h-9" /></span>
-              <span className="min-w-0 flex-1 leading-tight"><span className="flex items-center gap-1.5"><span className="t2 font-semibold truncate">{active.name}</span><span className="badge !h-[18px]">{active.kind}</span></span><span className="t1 mute block truncate num">{inst ? `${inst.loader} ${inst.mc}` : "No instance"}</span></span>
+              <span className="min-w-0 flex-1 leading-tight"><span className="flex items-center gap-1.5"><span className="t2 font-semibold truncate">{active.name}</span></span><span className="t1 mute block truncate num">{active.kind.toLowerCase()} · {inst ? `${inst.loader} ${inst.mc}` : "no instance"}</span></span>
             </button>
             <button className="ibtn relative" aria-label="Notifications" onClick={() => nav("changelog")}><Icon n="bell" s={16} /><span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent-text)" }} /></button>
           </div>
@@ -86,7 +86,6 @@ export default function App() {
           <h1 className="t4 font-bold m-0 ml-1">{TITLE[page] || "Home"}</h1>
           <div className="flex-1" />
           {SEARCH[page] && <div className="relative w-[280px]"><Icon n="search" s={14} className="absolute left-3 top-[10px] mute" /><input ref={search} className="field" placeholder={SEARCH[page]} aria-label={SEARCH[page]} value={q} onChange={(e) => setQ(e.target.value)} /><kbd className="absolute right-2 top-[8px] t1 mute px-1.5 rounded" style={{ background: "var(--surface-2)" }}>Ctrl K</kbd></div>}
-          {page !== "home" && inst && <button className="btn btn-primary" onClick={() => nav("home")} aria-label="Go to Home to launch"><Icon n="play" s={13} />Ready · {inst.loader} {inst.mc}</button>}
         </header>
         <main className={`flex-1 min-h-0 ${full ? "overflow-hidden" : "overflow-y-auto"}`} key={page}>
           <div className={`rise ${full ? "h-full" : "pb-4"}`}>

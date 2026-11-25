@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { PlayerObject, SkinViewer } from "skinview3d";
 import { applyEmote, applyMove, EMOTE_SECONDS, EmoteId, Move, petPose, PetKind, Rig } from "./pets";
 import type { Equipped } from "./catalog";
+import { buildWings } from "./wings";
 
 const mat = (c: number) => new THREE.MeshLambertMaterial({ color: c });
 const glow = (c: number, o = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: o < 1, opacity: o });
@@ -23,9 +24,10 @@ const BUILD: Record<string, Builder> = {
   "band-head": () => { const o = g("head"), m = mat(C.ink); o.add(box(8.8, 1.3, 0.7, m, 0, 6.3, 4.35), box(8.8, 1.3, 0.7, m, 0, 6.3, -4.35), box(0.7, 1.3, 8.8, m, 4.35, 6.3, 0), box(0.7, 1.3, 8.8, m, -4.35, 6.3, 0), box(1.6, 1.6, 1.2, m, 0, 6.3, -5.1), box(1, 3, 0.5, m, -0.8, 5, -5.3)); return o; },
   "back-pack": () => { const o = g("player"); o.add(box(7, 9.5, 3.2, mat(C.mid), 0, -5.5, -3.8), box(7.2, 2.6, 3.5, mat(C.navy), 0, -1.4, -3.8), box(5, 3, 1.1, mat(C.navy), 0, -7.5, -5.9), box(0.8, 9, 0.5, mat(C.off), -2.4, -5, -1.9), box(0.8, 9, 0.5, mat(C.off), 2.4, -5, -1.9)); return o; },
   "back-quiver": () => { const o = g("player"); const q = new THREE.Group(); q.rotation.z = 0.35; q.position.set(2.6, -5, -3.4); q.add(new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.4, 10, 12), mat(C.rust))); for (const x of [-0.7, 0, 0.7]) { const a = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5, 6), mat(C.cream)); a.position.set(x, 7, 0.3 * x); q.add(a); const t = cone(0.45, 1.2, 4, mat(C.ink), x, 9.9, 0.3 * x); q.add(t); } o.add(q, box(0.6, 9, 0.4, mat(C.ink), -2.2, -5, -2.1)); return o; },
-  "wing-feather": () => wings((s) => { const grp = new THREE.Group(); for (let i = 0; i < 5; i++) { const len = 9 + i * 1.6, f = box(len, 1.5, 0.35, mat(C.off), s * (len / 2 + 1), 0, 0); const tip = box(1.4, 1.5, 0.4, mat(C.blue), s * (len + 1.4), 0, 0); const arm = new THREE.Group(); arm.add(f, tip); arm.rotation.z = s * (0.75 - i * 0.42); arm.position.y = 2 - i * 0.3; grp.add(arm); } return grp; }),
-  "wing-shard": () => wings((s) => { const grp = new THREE.Group(); for (let i = 0; i < 3; i++) { const sh = cone(1.6, 11 - i * 2, 4, new THREE.MeshLambertMaterial({ color: C.blue, flatShading: true }), 0, 0, 0); sh.scale.z = 0.3; sh.position.x = s * (5.5 - i); sh.rotation.z = -s * (Math.PI / 2 - 0.5 + i * 0.5); sh.position.y = 3 - i * 3.2; grp.add(sh); } return grp; }),
-  "wing-cape": () => wings((s) => { const grp = new THREE.Group(); grp.add(box(10, 14, 0.4, mat(C.navy), s * 5.5, -5, 0), box(10, 0.8, 0.5, mat(C.blue), s * 5.5, 2, 0)); for (let i = 0; i < 3; i++) grp.add(box(3.2, 2.4, 0.4, mat(C.navy), s * (2.4 + i * 3.3), -13, 0)); return grp; }),
+  "wing-angel": () => buildWings("angel"),
+  "wing-dragon": () => buildWings("dragon"),
+  "wing-crystal": () => buildWings("crystal"),
+  "wing-nebula": () => buildWings("nebula"),
 
   "pet-cube": () => { const o = g("world"); o.add(box(5, 5, 5, mat(C.off)), box(2.4, 2.4, 2.4, glow(C.blue)), box(0.9, 1.3, 0.3, glow(C.ink), -1, 0.4, 2.55), box(0.9, 1.3, 0.3, glow(C.ink), 1, 0.4, 2.55)); const shell = ball(4.6, glow(0x9fd0ff, 0.22)); shell.name = "helmet"; o.add(shell); return o; },
   "pet-dragon": () => { const o = g("world"), wl: THREE.Object3D[] = []; o.add(box(2.8, 2.4, 4.6, mat(C.ember)), box(2.4, 0.8, 4.2, mat(C.cream), 0, -1.1, 0)); const head = new THREE.Group(); head.position.set(0, 1, 2.9); head.add(box(2.2, 2, 2.2, mat(C.ember)), box(1.5, 1, 1.2, mat(C.dark), 0, -0.4, 1.6), cone(0.35, 1.1, 4, mat(C.cream), -0.8, 1.5, -0.3), cone(0.35, 1.1, 4, mat(C.cream), 0.8, 1.5, -0.3), box(0.4, 0.4, 0.2, glow(0xffe08a), -0.6, 0.4, 1.12), box(0.4, 0.4, 0.2, glow(0xffe08a), 0.6, 0.4, 1.12)); const hm = ball(2.4, glow(0x9fd0ff, 0.25)); hm.name = "helmet"; head.add(hm); o.add(head); for (let i = 0; i < 3; i++) o.add(box(1.8 - i * 0.4, 1.6 - i * 0.4, 2, mat(C.ember), 0, -0.2 - i * 0.2, -3.2 - i * 1.8)); for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * 1.4, 1.2, -0.4); w.add(box(4.2, 0.25, 3, mat(C.dark), s * 2.1, 0, 0)); w.userData.side = s; wl.push(w); o.add(w); } o.userData.flap = wl; return o; },
@@ -51,11 +53,19 @@ export class LockerScene {
   private raf = 0; private t0 = performance.now();
   move: Move = "idle"; emote: { id: EmoteId; t0: number } | null = null; classic = false; reduced = false; mode: Mode = "studio";
   private trail: THREE.Vector3[] = [];
+  private sword = new THREE.Group(); sway = true; transparent = false;
   private eq: Equipped | null = null;
 
   constructor(canvas: HTMLCanvasElement, w: number, h: number) {
     this.v = new SkinViewer({ canvas, width: w, height: h, fov: 38, zoom: 0.62 });
-    this.v.controls.enableZoom = false; this.v.autoRotate = true; this.v.autoRotateSpeed = 0.5; this.v.animation = null;
+    this.v.controls.enableZoom = false; this.v.autoRotate = false; this.v.animation = null;
+    // soft studio light: low ambient, warm key from the front-left, cool rim from behind
+    this.v.globalLight.intensity = 0.62; this.v.cameraLight.intensity = 0.28;
+    const key = new THREE.DirectionalLight(0xfff0dc, 1.15); key.position.set(-26, 34, 30); const rim = new THREE.DirectionalLight(0x7aa2ff, 0.9); rim.position.set(24, 16, -30);
+    this.v.scene.add(key, rim);
+    this.sword.add(box(0.7, 13, 0.25, mat(0xd8e2f2), 0, 7.5, 0), box(3.6, 0.8, 0.8, mat(0xe0b83c), 0, 0.8, 0), box(0.9, 2.6, 0.9, mat(0x4a2a1a), 0, -0.8, 0)); this.sword.visible = false;
+    this.v.playerObject.skin.rightArm.add(this.sword); this.sword.position.set(0, -5.5, 1.2); this.sword.rotation.x = Math.PI / 2;
+    { const r = this.v.camera.position.length(), yaw = (25 * Math.PI) / 180, pit = (10 * Math.PI) / 180; this.v.camera.position.set(r * Math.cos(pit) * Math.sin(yaw), r * Math.sin(pit), r * Math.cos(pit) * Math.cos(yaw)); this.v.controls.update(); }
     (window as any).__locker = this;
     this.v.playerWrapper.add(this.pets, this.deco);
     this.mini = new PlayerObject(); this.mini.visible = false; this.mini.scale.setScalar(0.35); this.pets.add(this.mini);
@@ -83,6 +93,7 @@ export class LockerScene {
 
   setMode(mode: Mode) {
     this.mode = mode;
+    if (this.transparent) { this.v.background = null; return; }
     for (const c of [...this.deco.children]) if (c !== this.water) this.deco.remove(c);
     if (mode === "studio") { this.v.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--surface-2").trim() || "#28292f"); return; }
     // sunset over a grass block: a vertical gradient with two flat hill bands and a sun, drawn once
@@ -123,13 +134,19 @@ export class LockerScene {
     root.traverse((o: any) => { const m = o.material; if (m && m.emissive) m.emissive.setRGB(f * 0.9, 0, 0); });
   }
 
+  tick() { this.frame(); }
+  /** finish pop-in animations at once (used for card snapshots) */
+  settle() { for (const sl of Object.values(this.slots)) sl.t0 = -1e9; this.frame(); }
   private frame() {
     const now = performance.now(), t = this.reduced ? 0 : (now - this.t0) / 1000;
     const player = this.v.playerObject, rig = player.skin as unknown as Rig;
     let lift = 0, pitch = 0, yaw = 0, flash = 0;
     if (this.emote) {
-      const et = (now - this.emote.t0) / 1000; if (et > EMOTE_SECONDS[this.emote.id] * (this.emote.id === "wave" ? 2 : 1) && this.emote.id !== "hug") this.emote = null;
-      else { const r = applyEmote(rig, this.emote.id, this.reduced ? 0 : et); lift = r.lift; pitch = r.pitch; yaw = r.yaw + (this.emote.id === "hug" ? Math.PI / 2 : 0); }
+      const et = (now - this.emote.t0) / 1000; { const r = applyEmote(rig, this.emote.id, this.reduced ? 0 : et); lift = r.lift; pitch = r.pitch; yaw = r.yaw + (this.emote.id === "hug" ? Math.PI / 2 : 0); }
+    }
+    this.sword.visible = this.emote?.id === "sword" && !this.classic;
+    if (this.sway && !this.reduced) this.v.playerWrapper.rotation.y = Math.sin(now / 2600) * 0.38;
+    {
     }
     if (!this.emote) { const r = applyMove(rig, this.move, t); lift = r.lift; pitch = r.pitch; flash = r.flash; }
     player.position.y = lift + (this.move === "swim" && !this.emote ? 2 : 0); player.rotation.x = pitch; player.rotation.y = yaw;
@@ -142,7 +159,7 @@ export class LockerScene {
     for (const [cat, slot] of Object.entries(this.slots)) {
       const o = slot.obj; if (!o) continue;
       const k = Math.min(1, (now - slot.t0) / 280); o.scale.setScalar(Math.max(0.001, easeOutBack(k)));
-      if (cat === "wings") for (const w of (o.userData.flap || [])) w.rotation.y = w.userData.side * (0.35 + wf[0] * Math.sin(t * wf[1]) + 0.1);
+      if (cat === "wings") { for (const w of (o.userData.flap || [])) w.rotation.y = w.userData.side * (0.35 + wf[0] * Math.sin(t * wf[1]) + 0.1); for (const c of (o.userData.chain || [])) c.rotation.z = c.userData.base + c.userData.side * Math.sin(t * wf[1] - c.userData.k * 1.6) * wf[0] * 0.55; }
       if (cat === "pets") {
         const pose = petPose(o.name === "" ? (slot.id!.slice(4) as PetKind) : "cube", this.move, t);
         o.position.set(pose.x, pose.y + lift * 0.3, pose.z); o.rotation.y = pose.ry; o.scale.multiplyScalar(pose.scale);

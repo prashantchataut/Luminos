@@ -1,14 +1,11 @@
 import Reveal from "./Reveal";
 import { Frame, SectionHead } from "./ui";
-import def from "../assets/theme-default.webp";
-import lunar from "../assets/theme-lunar.webp";
-import light from "../assets/theme-light.webp";
 
 // Skills applied (session 19): better-ui (equal-weight grouping, one caption per image), impeccable / taste-skill (no decorative filler).
 const themes = [
-  { name: "Default", img: def, note: "Graphite surfaces, green accent." },
-  { name: "Lunar", img: lunar, note: "Navy surfaces, blue accent." },
-  { name: "Light", img: light, note: "Light surfaces, the same layout." },
+  { name: "OneClient Cobalt", img: `${import.meta.env.BASE_URL}screenshots/themes-3.png`, note: "Carbon navy, cobalt accent." },
+  { name: "Minecraft Dark", img: `${import.meta.env.BASE_URL}screenshots/themes-minecraft-3.png`, note: "Slate surfaces, grass-green accent." },
+  { name: "Clean Light", img: `${import.meta.env.BASE_URL}screenshots/themes-light-3.png`, note: "Light surfaces, the same layout." },
 ];
 
 export default function Themes() {

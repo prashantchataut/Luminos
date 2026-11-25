@@ -31,7 +31,7 @@ export default function Themes({ q }: { q: string }) {
   const accent = (v: string) => { setHex(v); if (/^#[0-9a-f]{6}$/i.test(v)) document.documentElement.style.setProperty("--accent", v); };
   const apply = (id: "pvp" | "survival") => { Object.entries(PRESETS[id].set).forEach(([k, v]) => set(k as any, v as any)); setPre(id); };
   return (
-    <div className="px-6 pt-2 pb-6 max-w-[1100px]">
+    <div className="mx-auto pt-1 pb-6" style={{ maxWidth: 860 }}>
       <div className="flex gap-4 flex-wrap p-1" role="radiogroup" aria-label="Theme">
         {shown.map((t) => { const on = s.theme === t.id; return (
           <button key={t.id} role="radio" aria-checked={on} onClick={() => set("theme", t.id)} className="text-left" style={{ width: 180 }}>

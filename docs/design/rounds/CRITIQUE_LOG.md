@@ -1,28 +1,20 @@
-# Render, critique, fix: 3 rounds per screen (1280x800 @2x, Playwright + SwiftShader)
-Every capture passes the no-blank gate in `app/tools/rounds.mjs` (luminance sd >= 6 and >= 24 colour buckets). Files: `<screen>-<round>.png` in this folder. Screens: home, mods, hud-studio, cosmetics, themes, instances-accounts (+ extras home-host, mods-drawer). Critiques were written from looking at contact sheets (scaled down), so sub-pixel issues are not covered.
+# Critique log: 3 Playwright rounds at 1280x800 @2x
 
-## home
-- R1: Structure matches Image 2 (hero, resume strip, right rail). Gap below the strip; the bottom third looks unfinished.
-- R2: Strip cards stretched to fill the space, cover images became huge and cropped badly. Worse.
-- R3: Card image fixed at 116px, hero 52%. Calm and balanced. Remaining flaw: empty night sky on the hero's right half; the PvP/Survival toggle is small.
-- Rules: better-layout (grouping, one primary action), better-ui (concentric 16/12 radii), better-motion (launch bar morph only animates width/colour), accessibility (live region on the launch label).
-## mods
-- R1: 4 columns, solid bars. Disabled bars are low contrast against the card (intended, matches Image 3). Drawer overlaps the last column without a scrim.
-- R2/R3: unchanged structurally; the drawer keeps focus order and Escape closes it. Flaw left: no scrim behind the drawer, no enter animation under reduced motion.
-- Rules: audit-ai-design-slop (no icon-heading-text tiles), better-ui (exact 12px radius, 36px bar), interaction-design (toggle on bar, settings on body/right-click).
-## hud-studio
-- R1: Canvas floated in the middle with dead bands above and below.
-- R2: Moved to a column with a widget row under it. The canvas is still only ~0.55 scale because 1280px minus sidebar and 320px inspector leaves 708px. Honest limit of the window size.
-- R3: Stack is on one left edge with 5px gaps; selection chrome, size pill and toolbar are present. Flaw: mini-toolbar is tiny at this scale.
-- Rules: interaction-design (snap guides, drag feedback), accessibility (widgets are focusable buttons with size in the label).
-## cosmetics
-- R1: Pill bar overflowed; "Back items" and "Emotes" clipped and the Classic toggle collided with them.
-- R2: Counts moved to tooltips, toggle shortened to "Classic mode". All nine pills fit.
-- R3: Same. The white slab beside the figure is the default Cube pet (real locker state), not a bug. Flaw: the top toolbar of the locker is crowded at this width.
-- Rules: better-layout (no second sidebar), better-ui (card bar = accent when equipped).
-## themes
-- R1: Preview ring clipped under the header.
-- R2/R3: Padding added; four miniature layouts render in their own palettes, selected card has the 2px accent ring plus a soft halo. Flaw: lower half of the screen is empty (matches Image 7 but still empty).
-## instances-accounts
-- R1: Account modal printed its title twice.
-- R2/R3: Fixed. Ely.by tab shows the exact `-javaagent` argument and says plainly that browser sign-in is not wired. Flaw: the profile JSON panel behind it is cut off at the modal edge (dimmed).
+References (docs/design/references/): store.polyfrost.org, xyrios.com/minecraft/skins, polyfrost.org/projects/oneclient, OneConfig, Th0rgal/shard, ElyPrismLauncher, and the previous live site. Captured with Playwright (`app/tools/refs.mjs`). Skins on xyrios belong to their uploaders, so they were used as a quality bar only; Luminos' skins are original.
+
+Baseline (before round 1): flat 5-colour skins on a 55/45 stage with a second toolbar and a cramped inspector; Home had a right-hand player panel, "Ready" pill in every top bar and an OFFLINE badge; Preferences was a wall of cards, a JSON dump and a click-test pad.
+
+## Round 1 (first rebuild)
+- Home: matches the brief (300px hero, one launch bar, 3 Quickplay cards). Large empty area under the cards is acceptable (breathing room).
+- Cosmetics: **fail**. Card rows collapsed to ~25px (grid stretch ignores aspect-ratio); stage model cropped; pill bar clipped at 360px.
+- Settings: clean. Rows are uniform. Themes: old 56px rows.
+- HUD: backdrop small, floating in a dark void.
+## Round 2
+- Fixed stage camera and pill bar. Cosmetics still collapsed: grid needed fixed row height.
+- HUD backdrop now spans the stage width with a blurred fill above and below; Themes rows moved to the 62px row style.
+## Round 3 (final, copied to site/public/screenshots)
+- Cosmetics: Polyfrost-style cards (badge, star, centred 3D preview on a radial glow, 52px footer, blue when equipped). Skin previews enlarged; the Wings tab shows four articulated wings. Open critique: card previews are stills; wings are shown 3/4 from behind, so one side is foreshortened; the pet cube on the stage is large next to the skin.
+- Settings / Themes / Mods / HUD: consistent surface palette, no 1px card borders. Open critique: Mods icons are still line glyphs, not voxel art.
+
+## Site (round 1 = the old live site, round 2 = first rebuild with the new screenshots, round 3 = same build)
+Round 3 is identical to round 2: no further site changes were made after the first render. `live-site-v1.0.0.png` is the capture of the deployed site.

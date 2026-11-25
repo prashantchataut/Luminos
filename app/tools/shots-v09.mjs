@@ -19,10 +19,10 @@ for (const theme of ["default", "lunar", "light"]) {
 }
 await p.evaluate(() => localStorage.setItem("luminos.settings.v2", JSON.stringify({ theme: "default" })));
 // the five skins, each in the 3D view
-for (const id of ["luminos-default", "ember", "glasshouse", "nightshift", "paper"]) {
+for (const id of ["aether-knight", "cobalt-rogue", "sakura-ronin", "void-walker", "frost-warden"]) {
   await seed({ skin: id, equipped: EQ({}) }); await go("cosmetics", 1400); await shot(`skin-${id}`);
 }
-await seed({ skin: "luminos-default", equipped: EQ({ pets: "pet-cube" }) }); await go("cosmetics", 1200); await shot("library");
+await seed({ skin: "aether-knight", equipped: EQ({ pets: "pet-cube" }) }); await go("cosmetics", 1200); await shot("library");
 await p.getByRole("button", { name: /^Edit a copy/ }).click(); await shot("editor");
 await p.keyboard.press("Escape");
 // each category, studio and sunset scene
@@ -31,7 +31,7 @@ for (const [k, [label, eq]] of Object.entries(cats)) {
   await seed({ skin: "ember", equipped: EQ(eq) }); await go("cosmetics", 1200);
   await tab(label); await shot(`locker-${k}`);
 }
-await seed({ skin: "luminos-default", equipped: EQ({ pets: "pet-dragon", wings: "wing-shard", hats: "hat-crown", cloaks: null }) }); await go("cosmetics", 1200);
+await seed({ skin: "aether-knight", equipped: EQ({ pets: "pet-dragon", wings: "wing-shard", hats: "hat-crown", cloaks: null }) }); await go("cosmetics", 1200);
 await tab("Pets"); await p.getByRole("button", { name: "Sunset scene" }).click(); await shot("scene-sunset");
 for (const m of ["Walk", "Jump", "Swim", "Hurt"]) { await p.getByRole("button", { name: m, exact: true }).click(); await p.waitForTimeout(300); await shot(`scene-${m.toLowerCase()}`); }
 await p.getByRole("button", { name: "Studio" }).click(); await p.getByRole("button", { name: "Idle", exact: true }).click(); await shot("studio-default");
