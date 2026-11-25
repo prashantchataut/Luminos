@@ -41,8 +41,4 @@ export const PRESETS = {
   survival: { id: "survival", name: "Survival", icon: "leaf", line: "Keystrokes above the hotbar, cross crosshair, light fog kept, death markers on.", set: { keystrokes: "B", crosshair: "cross-gap", fogOverworld: true, fogNether: true, fogEnd: true, lowFire: false, lowShield: false, profile: "luminos-performance", hudFps: 60 } },
 } as const;
 
-export const OUTFITS_SEED = [
-  { id: "o1", name: "Duel night", skin: "luminos-default", cape: "luminos-moon", wings: false },
-  { id: "o2", name: "Builder day", skin: "foreman-flint", cape: "luminos-tide", wings: false },
-  { id: "o3", name: "Flight test", skin: "mochi", cape: "luminos-aurora", wings: true },
-];
+

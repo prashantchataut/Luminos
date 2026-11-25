@@ -5,7 +5,10 @@
 //! launches with an offline account (offline skin server on, exactly as the app does) and watches the
 //! log. Exit code 0 only when the Luminos Client printed `[luminos] smoke-ok` (it reached the title
 //! screen and exited cleanly) and Fabric reported no incompatibility.
-use luminos_core::{accounts::Account, config::Settings, download::Progress, instances, instances::Loader, launch, preset};
+use luminos_core::{
+    accounts::Account, config::Settings, download::Progress, instances, instances::Loader, launch,
+    preset,
+};
 use std::time::{Duration, Instant};
 
 const BAD: &[&str] = &[
@@ -32,7 +35,15 @@ fn main() {
     // LUMINOS_SMOKE_VARIANT narrows the preset so a failing run can be bisected in CI:
     //   full (default) | minimal (Fabric API only) | no-skin (without CustomSkinLoader) | no-render (without the renderer/culling mods)
     let variant = std::env::var("LUMINOS_SMOKE_VARIANT").unwrap_or_else(|_| "full".into());
-    let render_mods = ["sodium", "immediately", "culling", "optimizations", "lithium", "ferrite", "krypton"];
+    let render_mods = [
+        "sodium",
+        "immediately",
+        "culling",
+        "optimizations",
+        "lithium",
+        "ferrite",
+        "krypton",
+    ];
     let mods: Vec<&preset::PresetMod> = preset::LUMINOS_CLIENT
         .iter()
         .filter(|m| m.default_on)
@@ -52,7 +63,11 @@ fn main() {
     // LUMINOS_STARTUP_ONLY=1: stop as soon as the game is ready (title marker, or the last vanilla atlas for the baseline) and record timings.
     let startup_only = std::env::var("LUMINOS_STARTUP_ONLY").is_ok() || variant == "sodium-only";
     let report = preset::install(&inst, &mods, |i, t, n| eprintln!("install {i}/{t} {n}"));
-    println!("INSTALLED {} mods; skipped {}", report.ok.len(), report.skipped.len());
+    println!(
+        "INSTALLED {} mods; skipped {}",
+        report.ok.len(),
+        report.skipped.len()
+    );
     for (n, why) in &report.skipped {
         println!("DROPPED {n}: {why}");
     }
@@ -64,7 +79,10 @@ fn main() {
     let p = Progress::new();
     let prep = launch::prepare(&inst, &settings, &p).expect("prepare");
     let mr = &prep.mod_report;
-    println!("PRELAUNCH ok={} checked={} replaced={:?} dropped={:?} notes={:?}", mr.ok, mr.checked, mr.replaced, mr.dropped, mr.notes);
+    println!(
+        "PRELAUNCH ok={} checked={} replaced={:?} dropped={:?} notes={:?}",
+        mr.ok, mr.checked, mr.replaced, mr.dropped, mr.notes
+    );
     std::fs::write(out.join("mod-report.json"), serde_json::to_string_pretty(&serde_json::json!({
         "minecraft": version,
         "installed": report.ok, "dropped_at_install": report.skipped, "notes": report.notes,
@@ -72,7 +90,10 @@ fn main() {
     })).unwrap()).unwrap();
     // list final mods so the log shows exactly what Fabric was given
     if let Ok(rd) = std::fs::read_dir(inst.game_dir().join("mods")) {
-        let mut names: Vec<String> = rd.flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
+        let mut names: Vec<String> = rd
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect();
         names.sort();
         println!("MODS {}", names.join(", "));
     }
@@ -118,15 +139,22 @@ fn main() {
             // the game went quiet: ask the JVM for a thread dump (SIGQUIT) so the log shows where it is stuck
             let pid = h.child.lock().unwrap().id();
             println!("SILENT for 45 s - thread dump #{} of pid {pid}", dumps + 1);
-            let _ = std::process::Command::new("kill").arg("-QUIT").arg(pid.to_string()).status();
+            let _ = std::process::Command::new("kill")
+                .arg("-QUIT")
+                .arg(pid.to_string())
+                .status();
             dumps += 1;
             last_growth = Instant::now();
         }
         seen = lines.len();
         if startup_only {
             // baseline has no Luminos marker: give the game 8 s after the atlas line to reach the title, then count it as ready
-            if atlas_at.is_some() && ready_since.is_none() { ready_since = Some(Instant::now()); }
-            if (title && atlas_at.is_some()) || ready_since.map_or(false, |t| t.elapsed() > Duration::from_secs(8)) {
+            if atlas_at.is_some() && ready_since.is_none() {
+                ready_since = Some(Instant::now());
+            }
+            if (title && atlas_at.is_some())
+                || ready_since.map_or(false, |t| t.elapsed() > Duration::from_secs(8))
+            {
                 title = true;
                 ok = true;
                 break;

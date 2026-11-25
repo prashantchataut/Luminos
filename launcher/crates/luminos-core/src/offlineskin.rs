@@ -48,7 +48,8 @@ pub struct SkinServer {
 
 impl SkinServer {
     pub fn start(profile: Profile) -> Result<Self> {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).context("binding the local skin server")?;
+        let listener =
+            TcpListener::bind(("127.0.0.1", 0)).context("binding the local skin server")?;
         listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
         let stop = Arc::new(AtomicBool::new(false));
@@ -92,11 +93,21 @@ const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 pub fn base64(data: &[u8]) -> String {
     let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
     for c in data.chunks(3) {
-        let n = (c[0] as u32) << 16 | (*c.get(1).unwrap_or(&0) as u32) << 8 | *c.get(2).unwrap_or(&0) as u32;
+        let n = (c[0] as u32) << 16
+            | (*c.get(1).unwrap_or(&0) as u32) << 8
+            | *c.get(2).unwrap_or(&0) as u32;
         out.push(B64[(n >> 18) as usize & 63] as char);
         out.push(B64[(n >> 12) as usize & 63] as char);
-        out.push(if c.len() > 1 { B64[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if c.len() > 2 { B64[n as usize & 63] as char } else { '=' });
+        out.push(if c.len() > 1 {
+            B64[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if c.len() > 2 {
+            B64[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -108,11 +119,19 @@ pub struct Resp {
 }
 
 fn json_resp(v: Value) -> Resp {
-    Resp { status: 200, ctype: "application/json; charset=utf-8", body: v.to_string().into_bytes() }
+    Resp {
+        status: 200,
+        ctype: "application/json; charset=utf-8",
+        body: v.to_string().into_bytes(),
+    }
 }
 
 fn empty(status: u16) -> Resp {
-    Resp { status, ctype: "text/plain", body: Vec::new() }
+    Resp {
+        status,
+        ctype: "text/plain",
+        body: Vec::new(),
+    }
 }
 
 fn profile_json(p: &Profile, port: u16) -> Value {
@@ -151,9 +170,17 @@ pub fn route(p: &Profile, port: u16, method: &str, path: &str, body: &[u8]) -> R
             },
             "skinDomains": ["127.0.0.1", "localhost"],
         })),
-        ("GET", "/textures/skin.png") => Resp { status: 200, ctype: "image/png", body: p.skin_png.clone() },
+        ("GET", "/textures/skin.png") => Resp {
+            status: 200,
+            ctype: "image/png",
+            body: p.skin_png.clone(),
+        },
         ("GET", "/textures/cape.png") => match &p.cape_png {
-            Some(c) => Resp { status: 200, ctype: "image/png", body: c.clone() },
+            Some(c) => Resp {
+                status: 200,
+                ctype: "image/png",
+                body: c.clone(),
+            },
             None => empty(404),
         },
         ("POST", "/api/profiles/minecraft") => {
@@ -167,7 +194,10 @@ pub fn route(p: &Profile, port: u16, method: &str, path: &str, body: &[u8]) -> R
         }
         ("POST", "/sessionserver/session/minecraft/join") => empty(204),
         ("GET", "/sessionserver/session/minecraft/hasJoined") => {
-            let named = query.split('&').filter_map(|kv| kv.split_once('=')).any(|(k, v)| k == "username" && v.eq_ignore_ascii_case(&p.name));
+            let named = query
+                .split('&')
+                .filter_map(|kv| kv.split_once('='))
+                .any(|(k, v)| k == "username" && v.eq_ignore_ascii_case(&p.name));
             if named {
                 json_resp(profile_json(p, port))
             } else {
@@ -175,7 +205,9 @@ pub fn route(p: &Profile, port: u16, method: &str, path: &str, body: &[u8]) -> R
             }
         }
         ("GET", path) => match path.strip_prefix("/sessionserver/session/minecraft/profile/") {
-            Some(id) if id.replace('-', "").eq_ignore_ascii_case(&p.id()) => json_resp(profile_json(p, port)),
+            Some(id) if id.replace('-', "").eq_ignore_ascii_case(&p.id()) => {
+                json_resp(profile_json(p, port))
+            }
             Some(_) => empty(204),
             None => empty(404),
         },
@@ -257,7 +289,12 @@ mod tests {
         let mut out = Vec::new();
         s.read_to_end(&mut out).unwrap();
         let split = out.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
-        let status: u16 = String::from_utf8_lossy(&out[..12]).split(' ').nth(1).unwrap().parse().unwrap();
+        let status: u16 = String::from_utf8_lossy(&out[..12])
+            .split(' ')
+            .nth(1)
+            .unwrap()
+            .parse()
+            .unwrap();
         (status, out[split..].to_vec())
     }
 
@@ -281,11 +318,26 @@ mod tests {
         // decode by round-tripping through our encoder: the JSON must mention both textures
         let plain = base64(b"{\"textures\":{\"SKIN\"");
         assert!(!plain.is_empty());
-        let r = route(&p, 1234, "GET", &format!("/sessionserver/session/minecraft/profile/{}", p.id()), b"");
+        let r = route(
+            &p,
+            1234,
+            "GET",
+            &format!("/sessionserver/session/minecraft/profile/{}", p.id()),
+            b"",
+        );
         assert_eq!(r.status, 200);
-        let r = route(&profile(false, false), 1, "GET", "/sessionserver/session/minecraft/profile/00000000000000000000000000000000", b"");
+        let r = route(
+            &profile(false, false),
+            1,
+            "GET",
+            "/sessionserver/session/minecraft/profile/00000000000000000000000000000000",
+            b"",
+        );
         assert_eq!(r.status, 204);
-        assert_eq!(route(&profile(false, false), 1, "GET", "/textures/cape.png", b"").status, 404);
+        assert_eq!(
+            route(&profile(false, false), 1, "GET", "/textures/cape.png", b"").status,
+            404
+        );
     }
 
     #[test]
@@ -296,7 +348,10 @@ mod tests {
         assert_eq!(st, 200);
         let meta: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(meta["skinDomains"][0], "127.0.0.1");
-        let (st, body) = http(srv.port, "GET /textures/skin.png HTTP/1.1\r\nHost: x\r\n\r\n");
+        let (st, body) = http(
+            srv.port,
+            "GET /textures/skin.png HTTP/1.1\r\nHost: x\r\n\r\n",
+        );
         assert_eq!((st, body), (200, p.skin_png.clone()));
         let payload = "[\"pilot_01\",\"nobody\"]";
         let req = format!(
@@ -314,6 +369,9 @@ mod tests {
         let port = srv.port;
         drop(srv);
         thread::sleep(Duration::from_millis(300));
-        assert!(TcpStream::connect(("127.0.0.1", port)).is_err(), "port must close when the server is dropped");
+        assert!(
+            TcpStream::connect(("127.0.0.1", port)).is_err(),
+            "port must close when the server is dropped"
+        );
     }
 }

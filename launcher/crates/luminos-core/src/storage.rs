@@ -1,7 +1,10 @@
 //! What Luminos stores on disk, how much, and safe ways to give it back.
 use crate::paths;
 use anyhow::{bail, Result};
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Clone, Debug)]
 pub struct Area {
@@ -15,7 +18,9 @@ pub struct Area {
 
 /// Recursive size, never following symlinks (so a link cannot make us count or delete outside the folder).
 pub fn dir_size(p: &Path) -> u64 {
-    let Ok(md) = fs::symlink_metadata(p) else { return 0 };
+    let Ok(md) = fs::symlink_metadata(p) else {
+        return 0;
+    };
     if md.is_file() {
         return md.len();
     }
@@ -28,7 +33,13 @@ pub fn dir_size(p: &Path) -> u64 {
 }
 
 pub fn areas() -> Vec<Area> {
-    let mk = |name, detail, path: PathBuf, reclaimable| Area { name, detail, bytes: dir_size(&path), path, reclaimable };
+    let mk = |name, detail, path: PathBuf, reclaimable| Area {
+        name,
+        detail,
+        bytes: dir_size(&path),
+        path,
+        reclaimable,
+    };
     vec![
         mk("Instances", "Worlds, mods, screenshots and settings of each instance. Yours; never deleted by cleanup.", paths::instances_dir(), false),
         Area {
@@ -46,7 +57,11 @@ pub fn areas() -> Vec<Area> {
 
 /// The folders under the root that make up "Minecraft files" (see `paths.rs`).
 fn game_file_dirs() -> Vec<PathBuf> {
-    vec![paths::versions_dir(), paths::libraries_dir(), paths::assets_dir()]
+    vec![
+        paths::versions_dir(),
+        paths::libraries_dir(),
+        paths::assets_dir(),
+    ]
 }
 
 /// Remove the contents of `dir` (not `dir` itself) and return the bytes freed.
@@ -95,7 +110,11 @@ pub fn clear_runtimes() -> Result<u64> {
 
 /// Accounts, settings, skin library and playtime history. Instances and worlds are kept.
 pub fn reset_launcher_data() -> Result<()> {
-    for f in [paths::settings_file(), paths::accounts_file(), paths::playtime_file()] {
+    for f in [
+        paths::settings_file(),
+        paths::accounts_file(),
+        paths::playtime_file(),
+    ] {
         if f.exists() {
             fs::remove_file(f)?;
         }
@@ -108,7 +127,10 @@ pub fn reset_launcher_data() -> Result<()> {
 pub fn wipe_everything() -> Result<u64> {
     let root = paths::root();
     if root.parent().is_none() || root.components().count() < 3 {
-        bail!("refusing to wipe `{}`: it does not look like a Luminos data folder", root.display());
+        bail!(
+            "refusing to wipe `{}`: it does not look like a Luminos data folder",
+            root.display()
+        );
     }
     empty_dir(&root)
 }
@@ -121,7 +143,11 @@ pub fn human(bytes: u64) -> String {
         v /= 1024.0;
         i += 1;
     }
-    if i == 0 { format!("{bytes} B") } else { format!("{v:.1} {}", U[i]) }
+    if i == 0 {
+        format!("{bytes} B")
+    } else {
+        format!("{v:.1} {}", U[i])
+    }
 }
 
 #[cfg(test)]

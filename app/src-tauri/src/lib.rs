@@ -117,54 +117,83 @@ async fn ms_device_finish(device_code: String, expires_in: u64, interval: u64) -
         };
         let (access, refresh) = luminos_core::msauth::wait_for_approval(&id, &dc, &|| false).map_err(err)?;
         let session = luminos_core::msauth::minecraft_login(&access, &refresh).map_err(err)?;
-        // Keep the session so the skin can be applied to this Mojang account later (mojang_set_skin).
+        luminos_core::msauth::remember(&session).map_err(err)?;
+        // Keep the session: without this the player signs in and nothing changes.
+        let acc = Account {
+            username: session.username.clone(),
+            uuid: session.uuid.clone(),
+            kind: luminos_core::accounts::AccountKind::Microsoft,
+            skin_id: None,
+            auth_server: None,
+            access_token: Some(session.minecraft_token.clone()),
+            client_token: None,
+            cape_id: None,
+        };
         let mut store = AccountStore::load();
-        let mut acc = Account::offline(&session.username);
-        acc.uuid = session.uuid.clone();
-        acc.kind = AccountKind::Microsoft;
-        acc.skin_id = None;
-        acc.access_token = Some(session.minecraft_token.clone());
-        store.add(acc);
-        if let Some(a) = store.accounts.iter_mut().find(|a| a.username == session.username) {
-            a.access_token = Some(session.minecraft_token.clone());
+        if let Some(i) = store.accounts.iter().position(|a| a.username == acc.username) {
+            store.accounts[i] = acc;
+            store.active = i;
+        } else {
+            store.add(acc);
         }
         store.save();
-        Ok(json!({ "username": session.username, "uuid": session.uuid }))
+        let mut s = Settings::load();
+        s.setup_done = true;
+        s.save();
+        Ok(json!({ "username": session.username, "uuid": session.uuid, "expires_at": session.expires_at }))
     })
     .await
 }
 
-/// Copy a player's current skin by name. Mojang API only.
+/// Look a player up through Mojang only. Three outcomes: found, no such player, no skin set.
 #[tauri::command]
-async fn mojang_lookup(name: String) -> R<Value> {
+async fn mojang_skin_lookup(name: String) -> R<Value> {
+    use luminos_core::skinlookup::{lookup, Outcome};
     blocking(move || {
-        Ok(match luminos_core::mojang_skin::lookup(&name) {
-            Ok(luminos_core::mojang_skin::Found::NoUser) => json!({ "status": "nouser", "why": format!("No Minecraft account is named \u{201c}{name}\u{201d}.") }),
-            Ok(luminos_core::mojang_skin::Found::NoSkin(n)) => json!({ "status": "noskin", "why": format!("{n} has no custom skin. They use the default Steve or Alex.") }),
-            Ok(luminos_core::mojang_skin::Found::Skin { name, id, png, slim }) => json!({ "status": "found", "name": name, "id": id, "model": if slim { "slim" } else { "classic" }, "data": format!("data:image/png;base64,{}", b64(&png)) }),
-            Err(e) => json!({ "status": "error", "why": format!("Could not reach Mojang: {}", err(e)) }),
+        Ok(match lookup(name.trim()).map_err(err)? {
+            Outcome::NoSuchPlayer => json!({ "status": "no_such_player" }),
+            Outcome::NoSkin { name, uuid } => json!({ "status": "no_skin", "name": name, "uuid": uuid }),
+            Outcome::Found(f) => json!({ "status": "found", "name": f.name, "uuid": f.uuid, "slim": f.slim, "png": format!("data:image/png;base64,{}", b64(&f.png)) }),
         })
     })
     .await
 }
 
-/// Apply a skin (PNG data URL) to the signed-in Microsoft account.
+/// Set the signed-in Microsoft account's skin through Mojang, so the server serves it to everyone.
 #[tauri::command]
-async fn mojang_set_skin(png: String, slim: bool) -> R<()> {
+async fn mojang_skin_apply(png_b64: String, slim: bool) -> R<()> {
     blocking(move || {
         let store = AccountStore::load();
-        let acc = store.active().filter(|a| a.kind == AccountKind::Microsoft).ok_or("Sign in with Microsoft first. Offline accounts have no Mojang skin to change.".to_string())?;
-        let token = acc.access_token.clone().ok_or("The Microsoft sign-in has expired. Sign in again.".to_string())?;
-        let data = png.split_once(',').map(|x| x.1).ok_or("That skin is not a PNG data URL.".to_string())?;
-        let bytes = luminos_core::mojang_skin::b64_decode(data).map_err(err)?;
-        luminos_core::mojang_skin::set_skin(&token, &bytes, slim).map_err(err)
+        let acc = store.active().ok_or_else(|| "No account is signed in.".to_string())?;
+        if acc.kind != luminos_core::accounts::AccountKind::Microsoft {
+            return Err("Only a Microsoft account can change its skin on Mojang. Offline accounts have no Mojang skin.".to_string());
+        }
+        let token = acc.access_token.clone().ok_or_else(|| "Sign in again: the saved session has no token.".to_string())?;
+        let png = luminos_core::skinlookup::b64_decode(png_b64.rsplit(',').next().unwrap_or("")).map_err(err)?;
+        luminos_core::skinlookup::upload(&token, &png, slim).map_err(err)
     })
     .await
 }
 
 /// Persist the locker next to the other config so the client can read it after a restart.
+/// Export an instance as a .mrpack into the user's Documents/Luminos folder and return the path.
 #[tauri::command]
-async fn write_cosmetics(json: String) -> R<()> {
+async fn export_instance(id: String) -> R<String> {
+    blocking(move || {
+        let inst = instances::list().into_iter().find(|i| i.id == id).ok_or("That instance no longer exists")?;
+        let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir);
+        let dir = home.join("Documents").join("Luminos");
+        let file: String = inst.name.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' { c } else { '_' }).collect();
+        let dest = dir.join(format!("{file}.mrpack"));
+        luminos_core::mrpack::export(&inst, &dest).map_err(err)?;
+        Ok(dest.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Save the Locker (equipped items, skin) where the Luminos Client reads it, next to accounts.json.
+#[tauri::command]
+async fn locker_save(json: String) -> R<()> {
     blocking(move || {
         serde_json::from_str::<Value>(&json).map_err(err)?;
         let dir = luminos_core::paths::accounts_file().parent().map(|p| p.to_path_buf()).ok_or("no config directory".to_string())?;
@@ -407,10 +436,11 @@ pub fn run() {
             create_account,
             ms_device_begin,
             ms_device_finish,
-            mojang_lookup,
-            mojang_set_skin,
-            write_cosmetics,
+            locker_save,
+            export_instance,
             write_client_settings,
+            mojang_skin_lookup,
+            mojang_skin_apply,
             create_instance,
             launch_instance,
             sync_run,

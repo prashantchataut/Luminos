@@ -1,2 +1,0 @@
-{ "luminosTheme": 1, "id": "lunar", "name": "Lunar", "base": "dark",
-  "tokens": { "bg": "#090d19", "surface": "#0f1527", "surface2": "#171f38", "inset": "#070a14", "line": "#242d4a", "fg": "#e9eeff", "mute": "#a4afd2", "accent": "#7ba3ff", "accentInk": "#07102a", "ok": "#66d6a0", "warn": "#e5b84b", "bad": "#f27c88" } }

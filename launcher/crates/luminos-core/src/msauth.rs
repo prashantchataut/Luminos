@@ -6,7 +6,7 @@
 //! Minecraft services permission, then provide its id via the `LUMINOS_MS_CLIENT_ID` env var or `settings.ms_client_id`.
 //! Luminos intentionally does not ship someone else's client id.
 //!
-//! Status: 🟡 compiled and unit-tested for the pure parts; the network chain has not been exercised with a real account.
+//! Status: UNVERIFIED end to end. The pure parts are unit-tested and tokens are saved through `secrets`; the network chain needs an Azure client id (docs/MICROSOFT_AUTH.md) and has not been run with a real account.
 use crate::http;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,7 @@ pub struct Session {
     pub uuid: String,
     pub minecraft_token: String,
     pub expires_at: i64,
-    /// Kept so the session can be silently refreshed. TODO: move to the OS keychain.
+    /// Kept so the session can be silently refreshed. Stored only in the OS secure store (`remember`), never in a file.
     pub refresh_token: String,
 }
 
@@ -180,6 +180,24 @@ pub fn refresh_microsoft(client_id: &str, refresh_token: &str) -> Result<(String
 /// `XBL3.0 x=<uhs>;<xsts>` — the identity token Minecraft services expects.
 pub fn identity_token(uhs: &str, xsts: &str) -> String {
     format!("XBL3.0 x={uhs};{xsts}")
+}
+
+/// Keep the refresh token in the OS secure store so the next launch can sign in silently. Never written to a file.
+pub fn remember(session: &Session) -> Result<()> {
+    crate::secrets::put(
+        &crate::secrets::refresh_key(&session.uuid),
+        &session.refresh_token,
+    )
+}
+
+/// Silent sign-in from the stored refresh token. Fails plainly if there is none (the player signs in again).
+pub fn resume(client_id: &str, uuid: &str) -> Result<Session> {
+    let rt = crate::secrets::get(&crate::secrets::refresh_key(uuid))
+        .context("No saved Microsoft session. Sign in again.")?;
+    let (access, refresh) = refresh_microsoft(client_id, &rt)?;
+    let s = minecraft_login(&access, &refresh)?;
+    remember(&s)?;
+    Ok(s)
 }
 
 /// Step 3: exchange the Microsoft access token for a Minecraft session.

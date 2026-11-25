@@ -1,7 +1,6 @@
 {
  "generator": "tools/make_skin_library.py",
  "licence": "CC0-1.0",
- "skins": [],
  "capes": [
   {
    "id": "luminos-moon",

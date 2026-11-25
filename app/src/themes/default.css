@@ -1,0 +1,9 @@
+/* Default: neutral dark grey, one green accent, no texture. Loads first. */
+:root, :root[data-theme="default"] {
+  color-scheme: dark;
+  --bg: #17181b; --surface: #1f2024; --surface-2: #28292f; --hover: #2f3137;
+  --line: #3a3c43; --line-strong: #5a5d66;
+  --fg: #f3f4f6; --mute: #b5b9c2;
+  --accent: #4cc38a; --accent-fg: #07150e; --accent-soft: #1d3a2e;
+  --ok: #5fd39a; --warn: #f2c14e; --bad: #ff8a8a;
+}

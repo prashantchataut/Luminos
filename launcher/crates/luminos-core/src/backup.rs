@@ -185,6 +185,7 @@ mod tests {
 
     #[test]
     fn backup_restore_roundtrip() {
+        let _g = crate::paths::test_home_lock();
         let tmp = std::env::temp_dir().join(format!("luminos-bk-{}", std::process::id()));
         std::env::set_var("LUMINOS_HOME", &tmp);
         let inst = Instance {

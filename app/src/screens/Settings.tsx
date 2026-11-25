@@ -2,19 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Boot } from "../App";
 import { Badge, Icon, LRow, SearchBox, Slider, Switch } from "../kit";
 import { set, useSettings, type Settings } from "../store";
+import { setClassic, useLocker } from "../locker/catalog";
 import { ClickProbe, parseGpu, recommend, whyLow, type Facts } from "../perf";
 import { meta } from "../data/launcher";
 
-type Ctl = { t: "sw"; k: keyof Settings } | { t: "rng"; k: keyof Settings; min: number; max: number; step?: number; fmt?: (v: number) => string } | { t: "seg"; k: keyof Settings; o: [string, string][] };
+type Ctl = { t: "sw"; k: keyof Settings } | { t: "rng"; k: keyof Settings; min: number; max: number; step?: number; fmt?: (v: number) => string } | { t: "seg"; k: keyof Settings; o: [string, string][] } | { t: "classic" };
 type Row = { g: string; icon: string; name: string; desc: string; c: Ctl };
 const ROWS: Row[] = [
   { g: "General", icon: "play", name: "Close launcher on game start", desc: "Frees memory while you play; reopens when the game exits.", c: { t: "sw", k: "closeOnLaunch" } },
   { g: "General", icon: "download", name: "Check for updates", desc: "Looks for a new launcher or client release on start.", c: { t: "sw", k: "checkUpdates" } },
   { g: "General", icon: "puzzle", name: "Allow beta mods", desc: "Lets the solver pick beta builds when no stable one exists.", c: { t: "sw", k: "allowBeta" } },
   { g: "General", icon: "shirt", name: "Offline skin preview", desc: "Shows your chosen skin to you, in the launcher and in game.", c: { t: "sw", k: "offlineSkins" } },
-  { g: "Appearance", icon: "eye", name: "Theme", desc: "Clean, Lunar or Light. Changes colours only.", c: { t: "seg", k: "theme", o: [["clean", "Clean"], ["lunar", "Lunar"], ["light", "Light"]] } },
-  { g: "Appearance", icon: "box", name: "Classic client", desc: "Hides pets, wings and emotes for you. Others still see them.", c: { t: "sw", k: "classicClient" } },
-  { g: "Appearance", icon: "bolt", name: "Reduce motion", desc: "Removes springs and slides.", c: { t: "sw", k: "reduceMotion" } },
+  { g: "Appearance", icon: "eye", name: "Theme", desc: "Default, Lunar or Light. Colours only. Import and export from the Theme button in the top bar.", c: { t: "seg", k: "theme", o: [["default", "Default"], ["lunar", "Lunar"], ["light", "Light"]] } },
+  { g: "Appearance", icon: "bolt", name: "Reduce motion", desc: "Removes slides, pop-ins and pet animation.", c: { t: "sw", k: "reduceMotion" } },
+  { g: "Appearance", icon: "ghost", name: "Classic client", desc: "Hides pets, wings and emotes. Hats, masks and the rest stay.", c: { t: "classic" } },
   { g: "Appearance", icon: "layers", name: "Compact rows", desc: "32 px rows instead of 40 px.", c: { t: "sw", k: "compact" } },
   { g: "Performance", icon: "cpu", name: "Profile", desc: "Luminos Performance is the default; Sodium-only is the baseline.", c: { t: "seg", k: "profile", o: [["luminos-performance", "Luminos"], ["sodium-baseline", "Sodium only"], ["vanilla", "Vanilla"]] } },
   { g: "Performance", icon: "layers", name: "Throttle HUD and GUI", desc: "Draws the HUD at a lower fixed rate so the world gets the frames.", c: { t: "sw", k: "hudThrottle" } },
@@ -47,8 +48,8 @@ function Diagnostic({ boot }: { boot: Boot }) {
     <div className="grid grid-cols-2 gap-3">
       <div className="panel p-3">
         <div className="flex items-center justify-between mb-2"><div className="eyebrow">Why is my FPS low?</div><select aria-label="Test with another GPU" className="field !h-6 !w-auto !pl-2 t1" value={sim} onChange={(e) => setSim(e.target.value)}>{SIM.map(([v, l]) => <option key={l} value={v} style={{ color: "#000" }}>{l}</option>)}</select></div>
-        <div className="grid grid-cols-4 gap-2 mb-2.5">{[["Renderer", f.gpu.name.replace(/ANGLE \(|\)|Direct3D11|vs_5_0|ps_5_0/g, "").split(",").slice(-1)[0].trim().slice(0, 24)], ["RAM", f.ramGb ? `≥${f.ramGb} GB` : "n/a"], ["Mods", String(f.mods)], ["Frame", `${f.frameMs.toFixed(1)} ms`]].map(([k, v]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "color-mix(in srgb, var(--inset) 40%, transparent)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t2 font-semibold num truncate" title={v}>{v}</div></div>)}</div>
-        <div className="rounded-lg p-2.5" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 35%, transparent)" }}>
+        <div className="grid grid-cols-4 gap-2 mb-2.5">{[["Renderer", f.gpu.name.replace(/ANGLE \(|\)|Direct3D11|vs_5_0|ps_5_0/g, "").split(",").slice(-1)[0].trim().slice(0, 24)], ["RAM", f.ramGb ? `≥${f.ramGb} GB` : "n/a"], ["Mods", String(f.mods)], ["Frame", `${f.frameMs.toFixed(1)} ms`]].map(([k, v]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "var(--bg)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t2 font-semibold num truncate" title={v}>{v}</div></div>)}</div>
+        <div className="rounded-lg p-2.5" style={{ background: "rgba(143,180,255,.1)", border: "1px solid rgba(143,180,255,.35)" }}>
           <div className="flex items-center gap-1.5 mb-0.5"><Badge tone={tip.severity === "high" ? "bad" : tip.severity === "med" ? "warn" : "ok"}>{tip.severity === "high" ? "Fix first" : tip.severity === "med" ? "Worth trying" : "Minor"}</Badge><span className="t2 font-semibold">{tip.title}</span></div>
           <div className="t2">{tip.change}</div><div className="t1 mute mt-0.5">{tip.because}</div>
         </div>
@@ -73,10 +74,10 @@ function ClickTest() {
   useEffect(() => { let raf = 0, last = 0, peak = 0; const f = (t: number) => { const tick = t - last >= 50; if (tick) last = t; probe.current.frame(s.inputSampling, tick); peak = Math.max(peak, probe.current.rawCps); setV({ raw: probe.current.rawCps, cps: probe.current.cps, lat: probe.current.avgLatencyMs, peak }); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf); }, [s.inputSampling]);
   return (
     <div className="panel p-3 flex gap-3 items-stretch">
-      <button onMouseDown={() => probe.current.down()} aria-label="Click test pad" className="lift rounded-xl grid place-items-center t2 font-semibold" style={{ width: 200, border: "1px dashed color-mix(in srgb, var(--color-accent) 50%, transparent)", background: "color-mix(in srgb, var(--color-accent) 8%, transparent)" }}><span><Icon n="mouse" s={20} className="mx-auto mb-1" />Click here fast</span></button>
+      <button onMouseDown={() => probe.current.down()} aria-label="Click test pad" className="lift rounded-xl grid place-items-center t2 font-semibold" style={{ width: 200, border: "1px dashed rgba(143,180,255,.5)", background: "rgba(143,180,255,.08)" }}><span><Icon n="mouse" s={20} className="mx-auto mb-1" />Click here fast</span></button>
       <div className="flex-1">
         <div className="eyebrow mb-1.5">Click test · input sampling {s.inputSampling ? "on" : "off"}</div>
-        <div className="grid grid-cols-4 gap-2">{[["Raw input", v.raw + "/s"], ["Processed CPS", v.cps + "/s"], ["Added delay", v.lat.toFixed(1) + " ms"], ["Peak raw", v.peak + "/s"]].map(([k, x]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "color-mix(in srgb, var(--inset) 40%, transparent)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t3 font-semibold num">{x}</div></div>)}</div>
+        <div className="grid grid-cols-4 gap-2">{[["Raw input", v.raw + "/s"], ["Processed CPS", v.cps + "/s"], ["Added delay", v.lat.toFixed(1) + " ms"], ["Peak raw", v.peak + "/s"]].map(([k, x]) => <div key={k} className="rounded-lg p-1.5" style={{ background: "var(--bg)", border: "1px solid var(--color-line)" }}><div className="t1 mute">{k}</div><div className="t3 font-semibold num">{x}</div></div>)}</div>
         <div className="t1 mute mt-1.5">Off: clicks wait for the next 20 TPS tick (up to 50 ms). On: they are read on the very next frame. Toggle above and compare the delay.</div>
       </div>
     </div>
@@ -98,19 +99,19 @@ function Profiler() {
 }
 
 export default function SettingsPage({ boot }: { boot: Boot }) {
-  const s = useSettings(); const [q, setQ] = useState(""); const [g, setG] = useState(new URLSearchParams(location.search).get("g") || "General");
+  const s = useSettings(); const locker = useLocker(); const [q, setQ] = useState(""); const [g, setG] = useState(new URLSearchParams(location.search).get("g") || "General");
   const ql = q.trim().toLowerCase();
   const match = (r: Row) => !ql || (r.name + r.desc + r.g).toLowerCase().includes(ql);
   const groups = ql ? GROUPS.filter((x) => ROWS.some((r) => r.g === x && match(r)) || (ql.length > 2 && x === "Performance" && ("fps diagnostic renderer click test vulkan").includes(ql))) : [g];
-  const control = (r: Row) => { const c = r.c; const v = s[c.k] as any;
+  const control = (r: Row) => { const c = r.c; if (c.t === "classic") return <Switch label={r.name} on={locker.classic} onChange={setClassic} />; const v = s[c.k] as any;
     if (c.t === "sw") return <Switch label={r.name} on={!!v} onChange={(x) => set(c.k as any, x as any)} />;
     if (c.t === "rng") return <Slider label={r.name} value={v} min={c.min} max={c.max} step={c.step} fmt={c.fmt} onChange={(x) => set(c.k as any, x as any)} />;
-    return <div className="inline-flex rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-line)" }}>{c.o.map(([k, l]) => <button key={k} aria-pressed={v === k} onClick={() => set(c.k as any, k as any)} className="px-2.5 h-7 t1 font-semibold" style={{ background: v === k ? "color-mix(in srgb, var(--color-accent) 22%, transparent)" : "transparent", color: v === k ? "#fff" : "var(--color-mute)" }}>{l}</button>)}</div>; };
+    return <div className="inline-flex rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-line)" }}>{c.o.map(([k, l]) => <button key={k} aria-pressed={v === k} onClick={() => set(c.k as any, k as any)} className="px-2.5 h-7 t1 font-semibold" style={{ background: v === k ? "rgba(143,180,255,.22)" : "transparent", color: v === k ? "#fff" : "var(--color-mute)" }}>{l}</button>)}</div>; };
   return (
     <div className="max-w-[1180px] grid gap-4" style={{ gridTemplateColumns: "190px minmax(0,1fr)" }}>
       <div className="flex flex-col gap-1">
         <SearchBox value={q} onChange={setQ} placeholder="Search settings" />
-        <div className="mt-1.5 flex flex-col gap-0.5">{GROUPS.filter((x) => x !== "Developer" || s.devProfiler || true).map((x) => <button key={x} onClick={() => { setG(x); setQ(""); }} aria-current={!ql && g === x} className="lrow !min-h-[32px] text-left" style={!ql && g === x ? { background: "color-mix(in srgb, var(--color-accent) 16%, transparent)", borderColor: "color-mix(in srgb, var(--color-accent) 40%, transparent)" } : undefined}><Icon n={GIC[x]} s={14} /><span className="t2 font-medium">{x}</span></button>)}</div>
+        <div className="mt-1.5 flex flex-col gap-0.5">{GROUPS.filter((x) => x !== "Developer" || s.devProfiler || true).map((x) => <button key={x} onClick={() => { setG(x); setQ(""); }} aria-current={!ql && g === x} className="lrow !min-h-[32px] text-left" style={!ql && g === x ? { background: "var(--accent-soft)", borderColor: "var(--accent)" } : undefined}><Icon n={GIC[x]} s={14} /><span className="t2 font-medium">{x}</span></button>)}</div>
       </div>
       <div className="flex flex-col gap-3 min-w-0">
         {groups.map((gr) => (

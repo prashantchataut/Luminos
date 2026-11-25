@@ -447,7 +447,7 @@ pub fn orb(p: &egui::Painter, c: egui::Pos2, diameter: f32, n: usize, angle: f32
     }
 }
 
-/// Round avatar showing a Minecraft face from a skin texture, or a generated placeholder.
+/// Round avatar showing a Minecraft face from a skin texture, or a generated stand-in.
 pub fn face(ui: &Ui, rect: Rect, tex: Option<&egui::TextureHandle>, name: &str) {
     let p = ui.painter();
     p.rect_filled(

@@ -1,2 +1,0 @@
-{ "luminosTheme": 1, "id": "light", "name": "Light", "base": "light",
-  "tokens": { "bg": "#f1f2f4", "surface": "#ffffff", "surface2": "#e9ebee", "inset": "#e3e5e9", "line": "#c5cad2", "fg": "#14161a", "mute": "#464c55", "accent": "#1d4ed8", "accentInk": "#ffffff", "ok": "#0b6b3a", "warn": "#7a4e00", "bad": "#b0231a" } }

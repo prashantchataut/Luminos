@@ -61,9 +61,16 @@ mod tests {
     fn format_reasons_are_specific() {
         assert!(check_format("Steve_01").is_ok());
         assert!(check_format("ab").unwrap_err().contains("Too short"));
-        assert!(check_format("a".repeat(17).as_str()).unwrap_err().contains("Too long"));
-        assert!(check_format("bad name").unwrap_err().contains("Only letters"));
+        assert!(check_format("a".repeat(17).as_str())
+            .unwrap_err()
+            .contains("Too long"));
+        assert!(check_format("bad name")
+            .unwrap_err()
+            .contains("Only letters"));
         assert!(check_format("zoë_x").unwrap_err().contains("Only letters"));
-        assert_eq!(lookup("x!").unwrap(), NameStatus::Invalid("Too short. Minecraft names need at least 3 characters."));
+        assert_eq!(
+            lookup("x!").unwrap(),
+            NameStatus::Invalid("Too short. Minecraft names need at least 3 characters.")
+        );
     }
 }

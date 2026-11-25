@@ -10,7 +10,12 @@ const UPLOAD: &str = "https://api.minecraftservices.com/minecraft/profile/skins"
 pub enum Found {
     NoUser,
     NoSkin(String),
-    Skin { name: String, id: String, png: Vec<u8>, slim: bool },
+    Skin {
+        name: String,
+        id: String,
+        png: Vec<u8>,
+        slim: bool,
+    },
 }
 
 pub fn b64_decode(s: &str) -> Result<Vec<u8>> {
@@ -45,7 +50,9 @@ pub fn parse_textures(profile: &Value) -> Result<Option<(String, bool)>> {
     let raw = b64_decode(prop["value"].as_str().context("textures value")?)?;
     let tex: Value = serde_json::from_slice(&raw).context("textures json")?;
     let skin = &tex["textures"]["SKIN"];
-    Ok(skin["url"].as_str().map(|u| (u.to_string(), skin["metadata"]["model"] == "slim")))
+    Ok(skin["url"]
+        .as_str()
+        .map(|u| (u.to_string(), skin["metadata"]["model"] == "slim")))
 }
 
 pub fn lookup(name: &str) -> Result<Found> {
@@ -54,18 +61,31 @@ pub fn lookup(name: &str) -> Result<Found> {
         Err(e) if format!("{e:#}").contains("404") => return Ok(Found::NoUser),
         Err(e) => return Err(e),
     };
-    let (id, exact) = (p["id"].as_str().context("id")?.to_string(), p["name"].as_str().unwrap_or(name).to_string());
+    let (id, exact) = (
+        p["id"].as_str().context("id")?.to_string(),
+        p["name"].as_str().unwrap_or(name).to_string(),
+    );
     let prof: Value = http::get_json(&format!("{SESSION}{id}"))?;
     match parse_textures(&prof)? {
         None => Ok(Found::NoSkin(exact)),
-        Some((url, slim)) => Ok(Found::Skin { name: exact, id, png: http::get_bytes(&url)?, slim }),
+        Some((url, slim)) => Ok(Found::Skin {
+            name: exact,
+            id,
+            png: http::get_bytes(&url)?,
+            slim,
+        }),
     }
 }
 
 pub fn multipart(png: &[u8], slim: bool, boundary: &str) -> Vec<u8> {
     let mut b = Vec::new();
     let variant = if slim { "slim" } else { "classic" };
-    b.extend(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"variant\"\r\n\r\n{variant}\r\n").bytes());
+    b.extend(
+        format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"variant\"\r\n\r\n{variant}\r\n"
+        )
+        .bytes(),
+    );
     b.extend(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"skin.png\"\r\nContent-Type: image/png\r\n\r\n").bytes());
     b.extend(png);
     b.extend(format!("\r\n--{boundary}--\r\n").bytes());
@@ -80,7 +100,10 @@ pub fn set_skin(token: &str, png: &[u8], slim: bool) -> Result<()> {
     let resp = http::agent()
         .post(UPLOAD)
         .header("Authorization", &format!("Bearer {token}"))
-        .header("Content-Type", &format!("multipart/form-data; boundary={boundary}"))
+        .header(
+            "Content-Type",
+            &format!("multipart/form-data; boundary={boundary}"),
+        )
         .config()
         .http_status_as_error(false)
         .build()
@@ -108,7 +131,13 @@ mod tests {
         // {"textures":{"SKIN":{"url":"https://textures.minecraft.net/texture/abc","metadata":{"model":"slim"}}}}
         let v = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2FiYyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19";
         let p = json!({"properties":[{"name":"textures","value":v}]});
-        assert_eq!(parse_textures(&p).unwrap(), Some(("https://textures.minecraft.net/texture/abc".to_string(), true)));
+        assert_eq!(
+            parse_textures(&p).unwrap(),
+            Some((
+                "https://textures.minecraft.net/texture/abc".to_string(),
+                true
+            ))
+        );
     }
 
     #[test]
@@ -122,6 +151,10 @@ mod tests {
     fn multipart_has_variant_file_and_closing_boundary() {
         let b = String::from_utf8_lossy(&multipart(b"PNGDATA", true, "XX")).to_string();
         assert!(b.contains("name=\"variant\"\r\n\r\nslim"));
-        assert!(b.contains("filename=\"skin.png\"") && b.contains("PNGDATA") && b.ends_with("--XX--\r\n"));
+        assert!(
+            b.contains("filename=\"skin.png\"")
+                && b.contains("PNGDATA")
+                && b.ends_with("--XX--\r\n")
+        );
     }
 }

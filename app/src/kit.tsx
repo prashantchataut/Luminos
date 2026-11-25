@@ -4,6 +4,11 @@ export { Icon, Cover } from "./ui";
 
 // Extra glyphs for the 0.9 screens (same 24px / 1.6 stroke family as ui.tsx).
 Object.assign(P, {
+  paw: "M8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 12c3 0 5 2.5 5 5 0 2-2 2.5-5 2.5S7 19 7 17c0-2.500 2-5 5-5z",
+  crown: "M4 18l-1-10 5 4 4-7 4 7 5-4-1 10zM4 18h16", mask: "M4 8c3-2 13-2 16 0v4c0 4-3 7-8 7s-8-3-8-7zM8 12h2M14 12h2", band: "M4 10h16v5H4zM18 15l2 5M16 15l1 5",
+  cloak: "M9 4h6l4 15H5zM9 4c0 3 6 3 6 0", pack: "M7 8a5 5 0 0 1 10 0v12H7zM7 13h10M10 16h4", emote: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM9 10v1M15 10v1M8.500 14.500c2 2 5 2 7 0",
+  undo: "M9 7L4 12l5 5M4 12h10a6 6 0 0 1 6 6", redo: "M15 7l5 5-5 5M20 12H10a6 6 0 0 0-6 6", brush: "M5 19c3 0 4-1 4-3l9-9-3-3-9 9c-2 0-1 6-1 6zM14 7l3 3", eraser: "M4 16l9-9 6 6-5 5H8zM10 10l6 6M8 20h12",
+  bucket: "M6 11l6-6 7 7-6 6zM5 11l7 7M20 16c1 1.500 1 3-1 3s-2-1.500-1-3z", pipette: "M5 19l1-4 8-8 3 3-8 8zM14 7l2-2 3 3-2 2", flag: "M6 20V4M6 5h11l-2 4 2 4H6", info: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 11v5M12 8v.01",
   star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z",
   copy: "M9 9h10v11H9zM5 15V4h10", edit: "M4 20l1-4L16 5l3 3L8 19zM14 7l3 3", trash: "M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13",
   box: "M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8", cpu: "M7 7h10v10H7zM4 10h3M4 14h3M17 10h3M17 14h3M10 4v3M14 4v3M10 17v3M14 17v3",
@@ -31,7 +36,7 @@ export function Badge({ tone = "mute", children }: { tone?: "ok" | "warn" | "bad
 export function LRow({ icon, name, desc, children, onClick }: { icon: string; name: string; desc: string; children?: ReactNode; onClick?: () => void }) {
   return (
     <div className="lrow" onClick={onClick} data-row={name}>
-      <span className="grid place-items-center w-6 h-6 rounded-md shrink-0" style={{ background: "color-mix(in srgb, var(--color-fg) 10%, transparent)" }}><Icon n={icon} s={14} /></span>
+      <span className="grid place-items-center w-6 h-6 rounded-md shrink-0" style={{ background: "var(--surface-2)" }}><Icon n={icon} s={14} /></span>
       <span className="min-w-0 flex-1 leading-[15px]"><span className="block t2 font-medium truncate">{name}</span><span className="block t1 mute truncate leading-[13px]">{desc}</span></span>
       {children}
     </div>
@@ -45,7 +50,7 @@ export function SearchBox({ value, onChange, placeholder, autoFocus, inputRef }:
 }
 export function Modal({ onClose, children, w = 520, title }: { onClose: () => void; children: ReactNode; w?: number; title: string }) {
   useEffect(() => { const f = (e: KeyboardEvent) => e.key === "Escape" && onClose(); addEventListener("keydown", f); return () => removeEventListener("keydown", f); }, [onClose]);
-  return <div className="fixed inset-0 z-50 grid place-items-center" style={{ background: "color-mix(in srgb, var(--inset) 55%, transparent)" }} onMouseDown={onClose}><div role="dialog" aria-label={title} className="panel rise p-4" style={{ width: w, maxWidth: "92vw" }} onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-3"><div className="t3 font-semibold">{title}</div><button className="ibtn" aria-label="Close" onClick={onClose}><Icon n="x" s={14} /></button></div>{children}</div></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center" style={{ background: "rgba(0,0,0,.5)" }} onMouseDown={onClose}><div role="dialog" aria-label={title} className="panel rise p-4" style={{ width: w, maxWidth: "92vw" }} onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-3"><div className="t3 font-semibold">{title}</div><button className="ibtn" aria-label="Close" onClick={onClose}><Icon n="x" s={14} /></button></div>{children}</div></div>;
 }
 export const fmtTime = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.max(1, Math.floor(s / 60))}m`);
 export const fmtNum = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}k` : String(n));
