@@ -1,23 +1,26 @@
-# STATUS (session 19, continuing PR #18)
+# STATUS (session 19b, PR #19 on top of merged #18)
 
-**VERIFIED** = a command was run and its output read. **UNVERIFIED** = built, not exercised where it matters. **NOT BUILT** = does not exist.
+**VERIFIED** = a command ran and its output was read. **UNVERIFIED** = built, not exercised where it matters. **NOT BUILT** = does not exist. **DEFERRED** = left out on purpose, reason given.
 
 | Area | State | Evidence / reason |
 |---|---|---|
-| Skills from ui-skills.com | **VERIFIED** (CLI run) | `docs/design/skills-proof/*`, 13 skills in `.agents/skills/ui-skills-registry/`. **Only improve-ui was read in full**; the rest are fetched, not studied (`docs/SKILLS_SESSION19.md`). |
-| improve-ui audit | **Partial** | `docs/design/AUDIT.md`: live panel, Instances, Settings. Home, Library, Cosmetics **not audited**. |
-| Teardown with rea | **VERIFIED** for XMCL (rea run, evidence gz); Pandora/Prism read with `rg`; **Hotwire: source deliberately not read** (licence forbids clients) | `docs/research/REFERENCES_TEARDOWN.md` (undo correction recorded). |
-| Live apply | **VERIFIED on 1.21.11 at the title screen** for Luminos modules and resource packs, real stages; **third-party mods queue by design (NOT BUILT: unloading them)**; 26.3 jar compiles, **not run**; pause with a world open **UNVERIFIED** | `docs/LIVE_SWAP.md`, `docs/research/agent-e2e/`. The brief's "HUD/QoL mods toggle live" is **not met for third-party mods**. |
-| Pending queue + Undo | **VERIFIED** (Rust tests; UI planner tests); UI undo seen in browser demo only | `pending.rs`, `livepanel.test.mjs` |
-| Tauri commands | **VERIFIED compiles on Linux** (`cargo check`), 25 UI-used commands checked by `tools/bindings.test.mjs`; **never run inside a Tauri window**; Windows compile: CI job `rust (windows-latest)` (see PR checks) | `app/src-tauri/src/engine.rs` |
-| Store (real Modrinth) | **VERIFIED in browser** (real results, categories, hide installed, captured); the Rust path is compiled, not run | `store-*.png` |
-| Dedup reflink + saved number | Fallback (hard link) **VERIFIED** by tests on ext4; **reflink success UNVERIFIED** (no ReFS); number shown on cards (browser capture uses demo figures) | `dedup.rs` |
-| Cross-instance sharing + conflicts | Engine **VERIFIED** (3 tests); dialog captured with demo data; Tauri path compiled | `shares.rs`, `settings-conflict-dialog.png` |
-| P2P client, bridge, Worker | Bridge **VERIFIED** (loopback test); client compiled; **Worker and two-machine run UNVERIFIED** | `docs/P2P.md` has the manual test |
-| Discord presence | Runner wired to launch events, **compiled, not run against Discord; no application registered (owner) so it sends nothing** | `docs/DISCORD.md` one-line change |
-| Quick Play | Parser (#18) + `quickplay_shortcut` command; **no UI button: NOT BUILT** | |
-| Sandbox | **NOT BUILT, by decision** | `docs/SECURITY.md` |
+| PR #18 | **VERIFIED merged** (`ce4f6da`, before this session started) | It was already merged when this session began; its body described an earlier state. Not redone. |
+| Tauri crate compiles on Windows and Linux (and macOS) | **VERIFIED** in CI (`tauri.yml`, jobs `rust (windows-latest)`, `rust (ubuntu-latest)`, `rust (macos-latest)`) | green on main after #18 and on this PR |
+| Engine wired through Tauri commands (dedup, deps, redact, quickplay, discord) + typed TS bindings | **VERIFIED compiles; command names checked by `app/tools/bindings.test.mjs`**. **Never run inside a Tauri window.** Quick Play has **no UI button (NOT BUILT)** | `app/src-tauri/src/engine.rs` |
+| "This branch has not been deployed" check | **EXPLAINED**: the `github-pages` environment only accepts `main`, so a PR branch can never deploy. `pages.yml` builds the site on PRs and deploys + verifies on main (comment at the top of the file). | `.github/workflows/pages.yml` |
+| `smoke.yml` | **FIXED**: it was invalid YAML (unquoted `: ` in a step name), produced zero jobs and had never run on main, so #18's "agent e2e in CI" had not executed there. It now parses and runs; `scripts/release-check.sh` lints every workflow file. | commit on this PR |
+| Live apply (Luminos modules, resource packs) | **VERIFIED on 1.21.11 at the title screen**; **third-party mods queue by design (DEFERRED: unloading them)**; 26.3 jar compiles, **not run**; pause with a world open **UNVERIFIED** | `docs/LIVE_SWAP.md`, `docs/research/agent-e2e/` |
+| P2P, reflinks, cross-instance saves UI, live apply of third-party mods | **DEFERRED** by decision (they did not block the release; each needs a second machine, a filesystem we do not have, or a research-licence decision). Engine parts keep their tests. | `docs/P2P.md`, `docs/LIVE_SWAP.md` |
+| Discord presence | Compiled; **sends nothing until the owner registers an application** | `docs/DISCORD.md` |
 | Microsoft sign-in | **UNVERIFIED** (needs the owner's Azure app) | `docs/MICROSOFT_AUTH.md` |
-| Captures | 15 in `docs/launcher-shots/session19/`; contact sheets viewed: panel states, review, progress, store, three themes, instances, settings, dialog. Home/Library/Cosmetics shots were taken but **not looked at** | `tools/shots-s19.mjs` (per-step timeouts) |
-| Release v1.0.0-rc1, release pipeline run, client jars, site deploy | **NOT DONE** | see START_HERE |
-| Windows / real desktop / ARM | Not run | |
+| Sandbox | **NOT BUILT, by decision** | `docs/SECURITY.md` |
+| Android APK | **VERIFIED built by CI** (`android` job in `release.yml` and `android.yml`), debug-signed, ABIs arm64-v8a + x86_64, min Android 8.0. **VERIFIED installs, opens and drives onboarding, home, library, skins, settings on an Android 11 x86_64 emulator, job fails on crash/ANR**. Screenshots in `docs/android-shots/`. **Never run on a real device. arm64 never run.** | `docs/ANDROID.md` |
+| Minecraft on Android | **NOT BUILT**: no GL layer, no window/input layer. Labelled everywhere as a launcher preview. No GL code was written this session (reason in ANDROID.md). | `docs/ANDROID.md` |
+| Skills (ui-skills.com CLI) | **VERIFIED run**: categories, four category lists, full catalog; 15 skills fetched; 12 opened (rules read), `12-principles-of-animation` unavailable from the CLI. Reference files linked from SKILL.md files were not fetched. | `docs/SKILLS_SESSION19.md` |
+| improve-ui audits | Launcher: **no supported findings** by the skill's proof gate, two low-confidence candidates, `app/src` not traced. Site: 2 findings fixed. | `docs/design/AUDIT.md`, `docs/design/SITE_AUDIT.md` |
+| Site rebuild | Built from the release manifest, new captures, themes, Android section with matrix, metadata, a11y fixes. **Live URL screenshot and Lighthouse: recorded in `docs/live-site/` only if the post-deploy job ran (see START_HERE).** | `site/` |
+| Captures | Session-19 launcher captures: Home, Library, Cosmetics, Live panel (two states), three themes were **looked at this session**. Android: five screens looked at. | `docs/launcher-shots/session19/`, `docs/android-shots/` |
+| Release pipeline `release.yml` | The PR run (no tag) built Windows installer, Android, both client jars. **The tagged run, publish, attestation, update-check: see START_HERE for the result (updated after the tag).** | |
+| Windows real desktop / ARM64 | **Not run** (runner only) | `docs/REAL_DESKTOP_CHECKLIST.md` |
+| Code signing | **NOT DONE**: Windows build unsigned, APK debug-signed | `docs/SIGNING.md` |
+| Stub grep | clean (`scripts/release-check.sh`) | |
