@@ -1,5 +1,5 @@
 {
-  "published": false,
+  "published": true,
   "tag": "v1.0.0-rc1",
   "version": "1.0.0-rc1",
   "prerelease": true,
@@ -7,23 +7,44 @@
   "windows": {
     "name": "Luminos-Setup.exe",
     "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-Setup.exe",
-    "sha256": null,
-    "portable": { "name": "Luminos-Portable.zip", "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-Portable.zip", "sha256": null },
+    "sha256": "25ff4b017b3752cdd93c00f4c4bc3f4440a5acb6346c18fcef3ffbb009fc4a32",
+    "portable": {
+      "name": "Luminos-Portable.zip",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-Portable.zip",
+      "sha256": "91dbf9a2b9c7d53431677b061879ace014eeaf91c96adfc773acc86062b33f32"
+    },
     "signed": false
   },
   "android": {
     "name": "Luminos-1.0.0-rc1.apk",
     "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/Luminos-1.0.0-rc1.apk",
-    "sha256": null,
+    "sha256": "2302cfb685f51db01f74f5b3e40b5507d3b588b1206425bb470a8475f3c57fe6",
     "status": "launcher-preview",
     "label": "Android launcher preview: installs and manages instances; Minecraft does not launch yet.",
     "minecraftLaunch": false,
     "minAndroid": "8.0 (API 26)",
-    "abis": ["arm64-v8a", "x86_64"],
+    "abis": [
+      "arm64-v8a",
+      "x86_64"
+    ],
     "abiNote": "x86_64 verified on an emulator only; arm64-v8a never run on a phone. Only AndroidX native code is inside the APK; Java is downloaded on the device.",
     "signing": "debug key (no release keystore exists)",
     "realDeviceTested": false
   },
-  "jars": [],
-  "checksums": { "name": "SHA256SUMS.txt", "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/SHA256SUMS.txt" }
+  "jars": [
+    {
+      "name": "luminos-client-0.5.0-mc1.21.11.jar",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/luminos-client-0.5.0-mc1.21.11.jar",
+      "sha256": "7877b06f32e868b45df156837554e99aeef44e9b7466fcb712a6d4b8635c9b59"
+    },
+    {
+      "name": "luminos-client-0.5.0-mc26.3.jar",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/luminos-client-0.5.0-mc26.3.jar",
+      "sha256": "76d28dfe52d5bccfe98e366d98fbedc73b9a56f5001b3a24a46214081b29fbc4"
+    }
+  ],
+  "checksums": {
+    "name": "SHA256SUMS.txt",
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v1.0.0-rc1/SHA256SUMS.txt"
+  }
 }

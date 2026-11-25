@@ -1,0 +1,9 @@
+PackageIdentifier: PrashantChataut.Luminos
+PackageVersion: 1.0.0-rc1
+PackageLocale: en-US
+Publisher: Prashant Chataut
+PackageName: Luminos
+ShortDescription: A fast Minecraft Java launcher with its own performance client.
+License: Proprietary
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
