@@ -1,0 +1,11 @@
+{
+ "url": "https://prashantchataut.github.io/Luminos/",
+ "fetchTime": "2026-11-25T12:58:43.499Z",
+ "lighthouse": "13.6.0",
+ "scores": {
+  "performance": 72,
+  "accessibility": 100,
+  "best-practices": 100,
+  "seo": 100
+ }
+}

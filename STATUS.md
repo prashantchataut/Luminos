@@ -1,4 +1,4 @@
-# STATUS (session 19b, PR #19 on top of merged #18)
+# STATUS (session 19b: #19 merged, v1.0.0-rc1 tagged and published)
 
 **VERIFIED** = a command ran and its output was read. **UNVERIFIED** = built, not exercised where it matters. **NOT BUILT** = does not exist. **DEFERRED** = left out on purpose, reason given.
 

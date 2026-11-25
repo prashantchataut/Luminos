@@ -1,6 +1,8 @@
 # START HERE (session 19b)
 Read `STATUS.md` (per-item VERIFIED / UNVERIFIED / NOT BUILT), then `docs/SESSIONS.md` (one line per merged PR), then `docs/ANDROID.md` for the Android truth.
 
+Result: **`v1.0.0-rc1` is published** (pre-release) with installer, portable zip, APK, jars, SHA256SUMS.txt and attestations; the live site links that exact tag and passed `verify-live`. Updater verified through `update-check.yml`; the tagged run's own update-check job is red (API rate limit, fixed afterwards). Lighthouse: perf 72, a11y 100, best-practices 100, SEO 100.
+
 State: #18 is merged; PR #19 adds the Android job and APK to the release pipeline, the site rebuild and the fixes above. The release is a **pre-release candidate**: `v1.0.0-rc1`, Windows unsigned, APK debug-signed and emulator-only.
 
 Run `scripts/release-check.sh --ci` before any release; it is the single gate (workflow lint, stub grep, changelog EN+ES, site manifest, Android honesty line, tests, every required CI check).
