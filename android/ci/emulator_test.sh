@@ -35,7 +35,7 @@ python3 - "$OUT" <<'PY' || true
 import re,sys
 x=open(sys.argv[1]+"/home-ui.xml",encoding="utf8").read()
 t=[m for m in re.findall(r'text="([^"]*)"',x) if m]
-msg=[m for m in t if "engine stage 3" in m or "not in this build" in m]
+msg=[m for m in t if "engine stage 3" in m or "not in this build" in m or "OpenGL" in m or "title screen" in m]
 open(sys.argv[1]+"/launch-message.txt","w").write("\n".join(msg) if msg else "NOT FOUND; texts on screen: "+" | ".join(t[:40]))
 print("launch message:",msg or "not found")
 PY

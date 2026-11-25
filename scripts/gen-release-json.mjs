@@ -21,7 +21,7 @@ const manifest = {
     status: "launcher-preview",
     label: "Android launcher preview: installs and manages instances; Minecraft does not launch yet.",
     minecraftLaunch: false, minAndroid: "8.0 (API 26)", abis: ["arm64-v8a", "x86_64"],
-    abiNote: "x86_64 verified on an emulator only; arm64-v8a never run on a phone.",
+    abiNote: "x86_64 verified on an emulator only; arm64-v8a never run on a phone. Only AndroidX native code is inside the APK; Java is downloaded on the device.",
     signing: "debug key (no release keystore exists)", realDeviceTested: false,
   },
   jars: Object.keys(sums).filter((n) => /^luminos-client-.*\.jar$/.test(n)).map(asset),

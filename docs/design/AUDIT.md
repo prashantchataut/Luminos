@@ -14,6 +14,8 @@ Skill: `ibelick/improve-ui` (read in full). Product source was not modified by t
 | --- | --- | --- | --- | --- | --- |
 | 1 | In the Cosmetics capture the last control in the right column, "Apply to Mojang account", is cut off by the viewport edge; its caption "Desktop app only" is clipped. | `screen-cosmetics.png` (rendered). Contract: the same screen's own copy depends on that control being readable. Runtime: **not traced**: it is unknown whether the column scrolls in the real window. | Re-capture at a taller viewport or make the column scroll; nothing to change until the runtime is traced. | Cosmetics | **Low (fails the Runtime proof, kept as a candidate, not a finding)** |
 
+| 2 | Android onboarding: the body paragraph ("Java Edition on your phone. Offline accounts, Modrinth mods...") is set directly over bright cloud pixels and reads at low contrast. | `docs/android-shots/01-onboarding-welcome.png` (rendered). Contract and runtime not traced (Compose sources not read this session). | Place the paragraph on the opaque surface the other screens use. | Android onboarding | **Low (fails Contract and Runtime proofs; candidate)** |
+
 **No supported findings were found** by the skill's proof gate. Candidate 1 is listed so the next session can trace it.
 
 ## Improve first

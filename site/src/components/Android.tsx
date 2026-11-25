@@ -116,7 +116,7 @@ export default function Android({ state }: { state: ReleaseState }) {
             <ul className="m-0 flex list-none gap-4 overflow-x-auto p-0 pb-2" aria-label="Screenshots from the Android emulator run">
               {shots.map(([p, src]) => (
                 <li key={p} className="shrink-0">
-                  <img src={src} alt={altFor(p)} width={270} height={585} loading="lazy" decoding="async" className="h-auto w-[200px] rounded-2xl border border-line md:w-[230px]" />
+                  <img src={src} alt={altFor(p)} width={460} height={994} loading="lazy" decoding="async" className="h-auto w-[200px] rounded-2xl border border-line md:w-[230px]" />
                 </li>
               ))}
             </ul>

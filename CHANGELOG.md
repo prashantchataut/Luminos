@@ -37,7 +37,7 @@ Release candidate. Not stable: builds are unsigned and nothing has been run on a
 - Release manifest `site/src/lib/release.json` generated from SHA256SUMS.txt, so site links name the exact tag.
 
 **Android (launcher preview)**
-Android launcher preview: installs and manages instances; Minecraft does not launch yet. `Luminos-<version>.apk`, Android 8.0+, no native libraries (Java runtimes downloaded for arm64-v8a and x86_64), **signed with a debug key**, run only on an Android 11 x86_64 emulator in CI, never on a real device. Works: offline account, instances, Java runtime download and boot, Mojang file download with checks, Modrinth browsing, 3D skins, settings. Does not work: starting Minecraft (no OpenGL or window layer), Microsoft sign-in. Details: docs/ANDROID.md.
+Android launcher preview: installs and manages instances; Minecraft does not launch yet. `Luminos-<version>.apk`, Android 8.0+, arm64-v8a and x86_64 only (Java runtimes are downloaded on the device), **signed with a debug key**, run only on an Android 11 x86_64 emulator in CI, never on a real device. Works: offline account, instances, Java runtime download and boot, Mojang file download with checks, Modrinth browsing, 3D skins, settings. Does not work: starting Minecraft (no OpenGL or window layer), Microsoft sign-in. Details: docs/ANDROID.md.
 
 **Deferred on purpose:** live apply for third-party mods, P2P two-machine test, reflink verification, cross-instance saves in the UI, Android GL/window layer.
 
@@ -76,7 +76,7 @@ Versión candidata. No es estable: las compilaciones no están firmadas y nada s
 - Manifiesto `site/src/lib/release.json` generado desde SHA256SUMS.txt: los enlaces del sitio apuntan a la etiqueta exacta.
 
 **Android (versión previa del launcher)**
-Versión previa del launcher para Android: instala y gestiona instancias; Minecraft todavía no se inicia. `Luminos-<versión>.apk`, Android 8.0+, sin bibliotecas nativas (se descargan runtimes de Java para arm64-v8a y x86_64), **firmado con una clave de depuración**, probado solo en un emulador Android 11 x86_64 en CI, nunca en un dispositivo real. Funciona: cuenta sin conexión, instancias, descarga y arranque de Java, descarga de archivos de Mojang con verificación, exploración de Modrinth, skins en 3D, ajustes. No funciona: iniciar Minecraft (no hay capa OpenGL ni de ventana) ni el inicio de sesión de Microsoft. Detalles: docs/ANDROID.md.
+Versión previa del launcher para Android: instala y gestiona instancias; Minecraft todavía no se inicia. `Luminos-<versión>.apk`, Android 8.0+, solo arm64-v8a y x86_64 (los runtimes de Java se descargan en el dispositivo), **firmado con una clave de depuración**, probado solo en un emulador Android 11 x86_64 en CI, nunca en un dispositivo real. Funciona: cuenta sin conexión, instancias, descarga y arranque de Java, descarga de archivos de Mojang con verificación, exploración de Modrinth, skins en 3D, ajustes. No funciona: iniciar Minecraft (no hay capa OpenGL ni de ventana) ni el inicio de sesión de Microsoft. Detalles: docs/ANDROID.md.
 
 **Aplazado a propósito:** aplicación en vivo de mods de terceros, prueba P2P entre dos equipos, verificación de reflink, guardados entre instancias en la interfaz, capa GL/ventana de Android.
 
