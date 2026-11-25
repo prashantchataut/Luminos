@@ -50,7 +50,7 @@ fn pct_encode(s: &str) -> String {
     o
 }
 
-fn valid_host(addr: &str) -> bool {
+pub(crate) fn valid_host(addr: &str) -> bool {
     let (host, port) = crate::servers::split_address(addr);
     !host.is_empty()
         && host.len() <= 253

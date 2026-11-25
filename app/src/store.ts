@@ -10,12 +10,14 @@ export type Settings = {
   inputSampling: boolean; hudFps: number; hudThrottle: boolean; startupCache: boolean; devProfiler: boolean;
   memoryMb: number; allowBeta: boolean; offlineSkins: boolean; checkUpdates: boolean; closeOnLaunch: boolean; compliance: boolean;
   keystrokes: "A" | "B"; crosshair: string; fogOverworld: boolean; fogNether: boolean; fogEnd: boolean; lowFire: boolean; lowShield: boolean;
+  presenceOn: boolean; presenceName: boolean; presenceServer: boolean;
 };
 export const DEFAULTS: Settings = {
   theme: "default", reduceMotion: false, compact: true,
   profile: "luminos-performance", renderer: "sodium", inputSampling: true, hudFps: 30, hudThrottle: true, startupCache: true, devProfiler: false,
   memoryMb: 4096, allowBeta: false, offlineSkins: true, checkUpdates: true, closeOnLaunch: false, compliance: false,
   keystrokes: "A", crosshair: "dot-ring", fogOverworld: false, fogNether: true, fogEnd: false, lowFire: true, lowShield: true,
+  presenceOn: true, presenceName: true, presenceServer: false,
 };
 const KEY = "luminos.settings.v2";
 let state: Settings = { ...DEFAULTS };

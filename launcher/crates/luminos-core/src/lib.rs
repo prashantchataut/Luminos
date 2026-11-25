@@ -2,10 +2,17 @@
 //! The headless engine behind Luminos Launcher. No UI code lives here, so the same crate can power
 //! a CLI, tests, or any other front-end.
 pub mod accounts;
+pub mod agent;
 pub mod backup;
 pub mod config;
 pub mod content;
+pub mod livemod;
+pub mod p2p;
+pub mod pending;
+pub mod shares;
 pub mod crash;
+pub mod dedup;
+pub mod deps;
 pub mod download;
 pub mod http;
 pub mod instances;
@@ -21,7 +28,10 @@ pub mod netaudit;
 pub mod news;
 pub mod paths;
 pub mod playtime;
+pub mod presence;
 pub mod preset;
+pub mod quickplay;
+pub mod redact;
 pub mod secrets;
 pub mod servers;
 pub mod skinlookup;

@@ -1,0 +1,40 @@
+// Tests for the live panel planner, the metadata cache and the presence mirror. Run: node tools/livepanel.test.mjs (Node 22+, TS stripped by esbuild via vite's dependency).
+import { build } from "esbuild"; import { tmpdir } from "node:os"; import { join } from "node:path"; import { pathToFileURL } from "node:url"; import { readFileSync, mkdirSync } from "node:fs"; import assert from "node:assert/strict";
+const T = join(tmpdir(), "lp-test"); mkdirSync(T, { recursive: true });
+for (const f of ["plan", "cache"]) await build({ entryPoints: [`src/livepanel/${f}.ts`], outfile: join(T, `${f}.mjs`), format: "esm", bundle: true, logLevel: "error" });
+await build({ entryPoints: ["src/presence.ts"], outfile: join(T, "presence.mjs"), format: "esm", bundle: true, logLevel: "error" });
+const P = await import(pathToFileURL(join(T, "plan.mjs")).href), C = await import(pathToFileURL(join(T, "cache.mjs")).href), R = await import(pathToFileURL(join(T, "presence.mjs")).href);
+let n = 0; const t = async (name, fn) => { await fn(); n++; console.log("ok  ", name); };
+const M = (id, on, requires = []) => ({ id, slug: id, name: id.toUpperCase(), version: "1", enabled: on, requires, blurb: "" });
+const mods = () => [M("sodium", true), M("iris", true, ["sodium"]), M("sodium-extra", true, ["sodium"]), M("lithium", true), M("xaero", true), M("cloth", false), M("menu", true, ["cloth"]), M("ghostmod", false, ["ghostlib"])];
+
+await t("keep-on mods can never be switched, with a reason", () => { const p = P.planSwitch(mods(), { sodium: false, lithium: false }); assert.equal(p.changes.length, 0); assert.equal(p.blocked.length, 2); assert.match(p.blocked[0].reason, /renderer/); });
+await t("turning off a mod turns off what needs it, and says so", () => { const ms = [M("a", true), M("b", true, ["a"]), M("c", true, ["b"]), M("d", true)]; const p = P.planSwitch(ms, { a: false }); assert.deepEqual(p.changes.map((c) => [c.id, c.to, c.why]), [["a", false, "requested"], ["b", false, "needed-by"], ["c", false, "needed-by"]]); });
+await t("disabling something a pinned mod needs is refused", () => { const ms = mods().map((m) => (m.id === "lithium" ? { ...m, requires: ["xaero"] } : m)); const p = P.planSwitch(ms, { xaero: false }); assert.equal(p.changes.length, 0); assert.match(p.blocked[0].reason, /cannot be turned off/); });
+await t("enabling pulls in disabled requirements and lists ones that must be downloaded", () => { const p = P.planSwitch(mods(), { ghostmod: true }); assert.deepEqual(p.download, ["ghostlib"]); const q = P.planSwitch([M("a", false, ["b"]), M("b", false)], { a: true }); assert.deepEqual(q.changes.map((c) => c.id), ["a", "b"]); assert.equal(q.changes[1].why, "needs"); });
+await t("max five at once", () => { assert.equal(P.planSwitch(mods(), { a: true, b: true, c: true, d: true, e: true, f: true }).tooMany, true); assert.equal(P.planSwitch(mods(), { xaero: false }).tooMany, false); });
+await t("without the in-game agent every change is queued for the next launch (no pretending)", () => { assert.ok(P.planSwitch(mods(), { xaero: false }).changes.every((c) => c.mode === "next-launch")); });
+await t("with live apply on, renderer mods are still queued and others are live", () => { const p = P.planSwitch(mods(), { iris: false, xaero: false }, true); assert.equal(p.changes.find((c) => c.id === "iris").mode, "next-launch"); assert.equal(p.changes.find((c) => c.id === "xaero").mode, "live"); });
+await t("cycles do not hang", () => { const ms = [M("x", true, ["y"]), M("y", true, ["x"])]; assert.deepEqual(P.disableClosure(ms, "x"), ["y"]); });
+await t("undo restores the exact previous set, one step at a time", () => { let ms = mods(), h = { stack: [] }; const before = JSON.stringify(ms); let r = P.applyPlan(ms, P.planSwitch(ms, { xaero: false }), h); r = P.applyPlan(r.mods, P.planSwitch(r.mods, { cloth: true }), r.history); assert.equal(r.history.stack.length, 2); const u1 = P.undo(r.mods, r.history); assert.equal(u1.mods.find((m) => m.id === "cloth").enabled, false); assert.equal(u1.reverted, 1); const u2 = P.undo(u1.mods, u1.history); assert.equal(JSON.stringify(u2.mods), before); assert.equal(P.undo(u2.mods, u2.history).reverted, 0); });
+await t("missing() reports absent and switched-off requirements", () => { const m = P.missing([M("a", true, ["b", "c"]), M("b", false)]); assert.deepEqual(m.map((x) => [x.needs, x.installed]), [["B", true], ["c", false]]); });
+
+await t("cache round-trips and is actually smaller than the JSON", async () => { const entries = Array.from({ length: 300 }, (_, i) => ({ id: "p" + i, title: "Project number " + i, kind: "mod", updated: "2026-01-01T00:00:00Z", summary: "A fairly typical one line description of a mod that repeats " + (i % 7) })); const s = await C.pack({ at: 1, entries }); assert.ok(s.length < JSON.stringify(entries).length / 3, `${s.length} vs ${JSON.stringify(entries).length}`); assert.deepEqual((await C.unpack(s)).entries, entries); assert.equal(await C.unpack("not base64 gzip"), null); });
+await t("only changed or new projects are re-checked", () => { const cached = [{ id: "a", updated: "1", title: "", kind: "" }, { id: "b", updated: "1", title: "", kind: "" }]; assert.deepEqual(C.changed(cached, [{ id: "a", updated: "1" }, { id: "b", updated: "2" }, { id: "c", updated: "1" }]), ["b", "c"]); });
+await t("cache load/save uses per-instance keys", async () => { const m = new Map(); const st = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) }; await C.save("inst1", "mod", { at: 1, entries: [] }, st); assert.ok(await C.load("inst1", "mod", st)); assert.equal(await C.load("inst2", "mod", st), null); });
+
+const golden = JSON.parse(readFileSync("../docs/fixtures/presence-golden.json", "utf8"));
+for (const c of golden.cases) await t(`presence golden: ${c.name}`, () => assert.deepEqual(R.buildPresence(c.input), c.expected));
+console.log(`${n} passed`);
+
+await t("a row is live only when its own row says so (agent-applied rows live, third-party mods queued)", () => {
+  const rows = [{ ...M("fps", true), live: true }, { ...M("appleskin", true), live: false }, { ...M("zoomify", true) }];
+  const p = P.planSwitch(rows, { fps: false, appleskin: false, zoomify: false });
+  const mode = Object.fromEntries(p.changes.map((c) => [c.id, c.mode]));
+  assert.deepEqual(mode, { fps: "live", appleskin: "next-launch", zoomify: "next-launch" });
+});
+await t("a live row never turns a queued dependency live", () => {
+  const rows = [{ ...M("a", true), live: true }, { ...M("b", true, ["a"]), live: false }];
+  const p = P.planSwitch(rows, { a: false });
+  assert.equal(p.changes.find((c) => c.id === "b").mode, "next-launch");
+});

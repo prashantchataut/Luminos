@@ -11,9 +11,10 @@ import Cosmetics from "./screens/Cosmetics";
 import Servers from "./screens/Servers";
 import ClientPage from "./screens/Client";
 import Settings from "./screens/Settings";
+import LivePanel from "./screens/LivePanel";
 import Onboarding from "./screens/Onboarding";
 
-const TABS: [string, string, string][] = [["home", "Home", "home"], ["instances", "Instances", "layers"], ["library", "Library", "puzzle"], ["cosmetics", "Cosmetics", "shirt"], ["servers", "Servers", "globe"], ["client", "Client", "sliders"]];
+const TABS: [string, string, string][] = [["home", "Home", "home"], ["instances", "Instances", "layers"], ["library", "Library", "puzzle"], ["cosmetics", "Cosmetics", "shirt"], ["servers", "Servers", "globe"], ["client", "Client", "sliders"], ["livepanel", "Live mods", "bolt"]];
 function useHash() {
   const [h, setH] = useState(location.hash.slice(2) || "home");
   useEffect(() => { const f = () => setH(location.hash.slice(2) || "home"); addEventListener("hashchange", f); return () => removeEventListener("hashchange", f); }, []);
@@ -74,7 +75,7 @@ export default function App() {
         </nav>
         <div className="flex-1 min-w-0 flex flex-col">
           <header className="h-[44px] shrink-0 flex items-center gap-3 px-5">
-            <div className="t3 font-semibold capitalize">{page === "client" ? "Client" : page}</div>
+            <div className="t3 font-semibold capitalize">{page === "client" ? "Client" : page === "livepanel" ? "Live mods" : page}</div>
             <div className="flex-1" />
             <span className="badge ok"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-ok)]" />Engine ready</span>
             <div className="relative" data-themepop>
@@ -94,6 +95,7 @@ export default function App() {
               {page === "cosmetics" && <Cosmetics boot={boot} />}
               {page === "servers" && <Servers />}
               {page === "client" && <ClientPage />}
+              {page === "livepanel" && <LivePanel />}
               {page === "settings" && <Settings boot={boot} />}
             </div>
           </main>

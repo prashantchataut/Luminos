@@ -5,6 +5,9 @@ import { set, useSettings, type Settings } from "../store";
 import { setClassic, useLocker } from "../locker/catalog";
 import { ClickProbe, parseGpu, recommend, whyLow, type Facts } from "../perf";
 import { meta } from "../data/launcher";
+import PresenceCard from "./PresenceCard";
+import SharesCard from "./SharesCard";
+import P2PCard from "./P2PCard";
 
 type Ctl = { t: "sw"; k: keyof Settings } | { t: "rng"; k: keyof Settings; min: number; max: number; step?: number; fmt?: (v: number) => string } | { t: "seg"; k: keyof Settings; o: [string, string][] } | { t: "classic" };
 type Row = { g: string; icon: string; name: string; desc: string; c: Ctl };
@@ -123,6 +126,7 @@ export default function SettingsPage({ boot }: { boot: Boot }) {
                 <LRow icon="user" name={`${boot.account.username || "Player"} · ${boot.account.kind || "Offline"}`} desc="The profile used to launch. Sign in with Microsoft for online servers."><a className="btn" href="#/onboarding/2">Manage</a></LRow>
                 <LRow icon="lock" name="Microsoft device-code sign-in" desc="Approve at microsoft.com/link; no password is typed into Luminos."><a className="btn btn-primary" href="#/onboarding/2">Sign in</a></LRow></>}
             </div>
+            {gr === "General" && !ql && <div className="mt-3 flex flex-col gap-3"><PresenceCard /><SharesCard /><P2PCard /></div>}
             {gr === "Performance" && !ql && <div className="flex flex-col gap-3 mt-3"><Diagnostic boot={boot} /><ClickTest /></div>}
             {gr === "Developer" && s.devProfiler && <div className="mt-3"><Profiler /></div>}
           </div>
