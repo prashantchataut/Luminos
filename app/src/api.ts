@@ -1,4 +1,5 @@
 import MR from "./modrinth-meta.json";
+import { safeInvoke } from "./lib/tauri-bridge";
 // One call layer: real Tauri commands in the app, seeded believable data in a plain browser (screenshots, dev).
 export const isTauri = typeof window !== "undefined" && !!(window as any).__TAURI_INTERNALS__;
 
@@ -62,15 +63,14 @@ function norm(i: any): Inst {
 }
 
 export async function bootstrap() {
-  if (isTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const b: any = await invoke("bootstrap");
+  const b: any = isTauri ? await safeInvoke("bootstrap", {}, null) : null;
+  if (b) {
     return { version: b.version, setupDone: b.settings.setup_done, settings: b.settings, account: b.account, instances: (b.instances as any[]).map(norm) };
   }
   return { version: SEED.version, setupDone: true, settings: { memory_mb: 4096, allow_beta_mods: false, offline_skins: true, check_updates: true, reduce_motion: false }, account: SEED.account, instances: SEED.instances };
 }
 export async function call<T = any>(cmd: string, args: any = {}): Promise<T> {
-  if (isTauri) { const { invoke } = await import("@tauri-apps/api/core"); return invoke<T>(cmd, args); }
+  if (isTauri) return safeInvoke<T>(cmd, args, null as T);
   await wait(380);
   if (cmd === "name_check") {
     const n: string = args.name;

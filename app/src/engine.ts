@@ -2,6 +2,7 @@
  *  In the desktop app every call is real. In a plain browser (screenshots, `vite dev`) the live-panel calls run against a clearly
  *  labelled demo agent (`demo: true`), and the store talks to the real Modrinth API directly. */
 import { isTauri } from "./api";
+import { safeInvoke } from "./lib/tauri-bridge";
 
 export type Verdict = { kind: string; disposition: "live" | "queued"; live_candidate: boolean; keep_on: boolean; registry_content: boolean; mixins: boolean; client_only: boolean; reasons: string[] };
 export type ModRow = { id: string; file: string; name: string; version: string; enabled: boolean; requires: string[]; verdict: Verdict; pending: boolean | null };
@@ -23,8 +24,7 @@ export type PresenceStatus = { state: "no-app-id" | "idle" | "connecting" | "wai
 export type Disagreement = { item: string; kind: "options" | "keybind" | "config" | "save"; sides: { instance: string; name: string; value: string; modified: number }[] };
 
 async function invoke<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { invoke: i } = await import("@tauri-apps/api/core");
-  return i<T>(cmd, args);
+  return safeInvoke<T>(cmd, args, undefined as T);
 }
 
 // ---- demo agent (browser only): same shapes as the real thing, labelled, never used inside the desktop app --------------------------

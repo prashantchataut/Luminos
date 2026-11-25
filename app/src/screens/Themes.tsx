@@ -1,56 +1,65 @@
 import { useState } from "react";
-import { Icon, Switch } from "../kit";
-import { PRESETS } from "../data/launcher";
-import { exportTheme, parseTheme, THEMES } from "../theme";
-import { saveCustomTheme, set, useSettings } from "../store";
+import Page from "../components/Page";
+import { Icon } from "../components/Icon";
+import { PageHeader, Pills, Row, Switch } from "../components/ui";
+import { contrast, parseTheme, readTokens, THEMES, type ThemeId } from "../theme";
+import { loadCustomTheme, saveCustomTheme, set, useSettings } from "../store";
+import { applyPreset, PRESETS, useClient, type Preset } from "../state/client";
 
-// Miniature of the real layout (sidebar, title, pill, 3-column grid) in each theme's own colours. Layout is identical across themes.
-const PAL: Record<string, { bg: string; side: string; card: string; bar: string; fg: string; accent: string }> = {
-  default: { bg: "#0b0d12", side: "#0f1218", card: "#151922", bar: "#1c212d", fg: "#e8ecf4", accent: "#2b4bff" },
-  neutral: { bg: "#0d0d0f", side: "#111114", card: "#17171b", bar: "#1f1f24", fg: "#f2f2f4", accent: "#3f5cff" },
-  minecraft: { bg: "#111315", side: "#15181a", card: "#1b1e21", bar: "#25292d", fg: "#f1f4f2", accent: "#6cc24a" },
-  light: { bg: "#f4f6fa", side: "#ebeef4", card: "#ffffff", bar: "#e1e5ed", fg: "#12151c", accent: "#2b4bff" },
+// Preview palettes mirror themes/*.css (colours only), so a card shows exactly what the theme will look like.
+const PREVIEW: Record<string, { bg: string; side: string; surface: string; accent: string; fg: string }> = {
+  default: { bg: "#0b0d12", side: "#0f1218", surface: "#141821", accent: "#2b4bff", fg: "#e8ecf4" },
+  neutral: { bg: "#0d0d0f", side: "#111114", surface: "#17171b", accent: "#3f5cff", fg: "#e8e8ee" },
+  minecraft: { bg: "#111315", side: "#15181a", surface: "#1b1e21", accent: "#6cc24a", fg: "#e6ebe4" },
+  light: { bg: "#f4f6fa", side: "#ebeef4", surface: "#ffffff", accent: "#2b4bff", fg: "#161a22" },
 };
-function Mini({ id }: { id: string }) {
-  const p = PAL[id], edge = id === "minecraft" ? "#3b4148" : id === "light" ? "#e1e5ed" : "none";
+const SWATCHES = ["#2B4BFF", "#7C5CFF", "#00A3FF", "#12B886", "#F59F00", "#F0506E"];
+
+function mix(a: string, b: string, t: number) {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return "#" + x.map((v, i) => Math.round(v * t + y[i] * (1 - t)).toString(16).padStart(2, "0")).join("");
+}
+
+function Preview({ id, name, note, active, onPick }: { id: string; name: string; note: string; active: boolean; onPick: () => void }) {
+  const p = PREVIEW[id];
   return (
-    <svg viewBox="0 0 180 106" width="100%" height="100%" role="img" aria-label={`${id} preview`}>
-      <rect width="180" height="106" fill={p.bg} /><rect width="46" height="106" fill={p.side} />
-      <rect x="8" y="9" width="26" height="5" rx="2" fill={p.accent} />
-      {[0, 1, 2, 3].map((i) => <rect key={i} x="8" y={24 + i * 12} width="30" height="7" rx="3" fill={i === 0 ? p.accent : p.bar} />)}
-      <rect x="56" y="9" width="40" height="6" rx="2" fill={p.fg} /><rect x="146" y="8" width="26" height="8" rx="3" fill={p.bar} />
-      {[0, 1, 2].map((r) => [0, 1, 2].map((c) => <g key={`${r}${c}`}><rect x={56 + c * 41} y={26 + r * 25} width="37" height="21" rx="4" fill={p.card} stroke={edge} /><rect x={56 + c * 41} y={26 + r * 25 + 15} width="37" height="6" rx="0" fill={(r + c) % 3 === 2 ? p.bar : p.accent} /></g>))}
-    </svg>
+    <button onClick={onPick} aria-pressed={active} aria-label={`${name} theme`} className="text-left rounded-[14px] p-1.5 t press" style={{ background: "var(--surface)", boxShadow: active ? "0 0 0 2px var(--accent)" : "none" }}>
+      <div className="h-[104px] rounded-[10px] overflow-hidden flex" style={{ background: p.bg }}>
+        <div className="w-[34px] p-1.5 space-y-1" style={{ background: p.side }}><div className="h-1.5 rounded-full" style={{ background: p.accent }} />{[0, 1, 2, 3].map((i) => <div key={i} className="h-1 rounded-full" style={{ background: p.fg, opacity: 0.18 }} />)}</div>
+        <div className="flex-1 p-2.5 space-y-2"><div className="h-2 w-1/2 rounded-full" style={{ background: p.fg, opacity: 0.8 }} /><div className="grid grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <div key={i} className="h-9 rounded-md" style={{ background: p.surface }} />)}</div><div className="h-5 w-16 rounded-md" style={{ background: p.accent }} /></div>
+      </div>
+      <div className="px-2.5 py-2.5 flex items-center justify-between gap-2"><span className="min-w-0"><span className="block text-[13px] font-medium truncate">{name}</span><span className="block text-[11.5px] truncate mute">{note}</span></span>{active && <Icon n="check" s={15} w={2.4} className="text-[var(--accent-text)] shrink-0" />}</div>
+    </button>
   );
 }
-export default function Themes({ q }: { q: string }) {
-  const s = useSettings(), [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null), [hex, setHex] = useState("#2b4bff"), [pre, setPre] = useState<string | null>(null);
-  const shown = THEMES.filter((t) => !q || (t.name + t.note).toLowerCase().includes(q.toLowerCase()));
-  const exp = () => { const cur = THEMES.find((x) => x.id === s.theme)?.name || "Custom"; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([exportTheme(cur)], { type: "application/json" })); a.download = `luminos-theme-${cur.toLowerCase().replace(/\s+/g, "-")}.json`; a.click(); setMsg({ ok: true, t: "Saved the theme file." }); };
-  const imp = async (f?: File | null) => { if (!f) return; const r = parseTheme(await f.text()); if ("error" in r) { setMsg({ ok: false, t: r.error }); return; } saveCustomTheme(r.theme); set("theme", "custom"); setMsg({ ok: true, t: `Applied “${r.theme.name}”.` }); };
-  const accent = (v: string) => { setHex(v); if (/^#[0-9a-f]{6}$/i.test(v)) document.documentElement.style.setProperty("--accent", v); };
-  const apply = (id: "pvp" | "survival") => { Object.entries(PRESETS[id].set).forEach(([k, v]) => set(k as any, v as any)); setPre(id); };
+
+export default function Themes() {
+  const s = useSettings(), c = useClient();
+  const [err, setErr] = useState<string | null>(null);
+  const accent = (hex: string) => {
+    const t = { ...readTokens() };
+    t.accent = hex.toLowerCase(); t["accent-fg"] = contrast(hex, "#ffffff") >= 4.5 ? "#ffffff" : "#0b0d12"; t["accent-soft"] = mix(hex, t.bg, 0.28);
+    const r = parseTheme(JSON.stringify({ luminosTheme: 1, name: "Custom", tokens: t }));
+    if (r.ok === false) return setErr(r.error);
+    setErr(null); saveCustomTheme(r.theme); set("theme", "custom");
+  };
+  const cur = s.theme === "custom" ? (loadCustomTheme()?.tokens.accent ?? "#2b4bff") : readTokens().accent || "#2b4bff";
   return (
-    <div className="mx-auto pt-1 pb-6" style={{ maxWidth: 860 }}>
-      <div className="flex gap-4 flex-wrap p-1" role="radiogroup" aria-label="Theme">
-        {shown.map((t) => { const on = s.theme === t.id; return (
-          <button key={t.id} role="radio" aria-checked={on} onClick={() => set("theme", t.id)} className="text-left" style={{ width: 180 }}>
-            <span className="block overflow-hidden rounded-[10px]" style={{ height: 106, outline: on ? "2px solid var(--accent)" : "none", outlineOffset: 2, boxShadow: on ? "0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent)" : "none" }}><Mini id={t.id} /></span>
-            <span className="flex items-center gap-1.5 t2 font-semibold mt-2.5">{t.name}{on && <Icon n="check" s={13} />}</span><span className="t1 mute">{t.note}</span>
-          </button>); })}
-        {!shown.length && <div className="t2 mute">No theme matches “{q}”.</div>}
+    <Page>
+      <PageHeader title="Themes" sub="Appearance and accent. Changes apply instantly." />
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        {THEMES.map((t) => <Preview key={t.id} id={t.id} name={t.name} note={t.note} active={s.theme === t.id} onPick={() => { setErr(null); set("theme", t.id as ThemeId); }} />)}
       </div>
-      <div className="grid gap-2 mt-8">
-        <div className="setrow"><Icon n="roller" s={20} /><div className="flex-1"><div className="t3 font-semibold">Accent Color</div><div className="t2 mute">The accent color of the Luminos Interface</div></div>
-          <label className="btn btn-primary num cursor-pointer" style={{ background: /^#[0-9a-f]{6}$/i.test(hex) ? hex : undefined }}><Icon n="roller" s={13} />{hex.toUpperCase()}<input type="color" value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#2b4bff"} onChange={(e) => accent(e.target.value)} className="sr-only" aria-label="Accent colour" /></label>
-          <button className="btn" onClick={() => { document.documentElement.style.removeProperty("--accent"); setHex("#2b4bff"); }}>Reset</button></div>
-        <div className="setrow"><Icon n="sparkles" s={20} /><div className="flex-1"><div className="t3 font-semibold">Animations</div><div className="t2 mute">Smooth, clean transitions in the Luminos Interface</div></div><span className="t1 mute w-5">{s.reduceMotion ? "Off" : "On"}</span><Switch on={!s.reduceMotion} onChange={(v) => set("reduceMotion", !v)} label="Animations" /></div>
-        <div className="setrow"><Icon n="swords" s={20} /><div className="flex-1"><div className="t3 font-semibold">Gameplay Profile Preset</div><div className="t2 mute">One-click bundle for keystrokes, crosshair, fog and low fire</div></div>
-          <div className="seg" role="group" aria-label="Gameplay profile preset">{(["pvp", "survival"] as const).map((id) => <button key={id} aria-pressed={pre === id || (!pre && ((id === "pvp" && s.keystrokes === "A") || (id === "survival" && s.keystrokes === "B")))} onClick={() => apply(id)}>{id === "pvp" ? "PvP Competitive" : "Survival Plus"}</button>)}</div></div>
-        <div className="setrow"><Icon n="download" s={20} /><div className="flex-1"><div className="t3 font-semibold">Theme file</div><div className="t2 mute">Colours only. Text must reach 4.5:1 or the file is refused.</div></div>
-          <button className="btn" onClick={exp}><Icon n="download" s={13} />Export</button><label className="btn cursor-pointer"><Icon n="upload" s={13} />Import<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => { imp(e.target.files?.[0]); e.target.value = ""; }} /></label></div>
-        {msg && <div role="status" className="t2 px-2" style={{ color: msg.ok ? "var(--ok)" : "var(--bad)" }}>{msg.t}</div>}
+      <div className="max-w-[920px] space-y-3">
+        <Row title="Accent Color" desc={err ?? "Buttons, toggles and selection."}>
+          <div className="flex items-center gap-2">{SWATCHES.map((h) => <button key={h} aria-label={`Accent ${h}`} aria-pressed={cur.toLowerCase() === h.toLowerCase()} onClick={() => accent(h)} className="w-6 h-6 rounded-full t press" style={{ background: h, boxShadow: cur.toLowerCase() === h.toLowerCase() ? "0 0 0 2px var(--surface), 0 0 0 4px var(--fg)" : "none" }} />)}</div>
+          <input type="color" aria-label="Custom accent" value={cur.length === 7 ? cur : "#2b4bff"} onChange={(e) => accent(e.target.value)} />
+          <span className="mono text-[12px] h-[30px] px-3 rounded-full grid place-items-center uppercase" style={{ background: "var(--surface-2)" }}>{cur}</span>
+        </Row>
+        <Row title="Interface Animations" desc="Subtle fades and slides. Off removes all motion."><Switch on={!s.reduceMotion} onChange={(v) => set("reduceMotion", !v)} label="Interface animations" /></Row>
+        <Row title="Gameplay Profile Preset" desc={PRESETS[c.prefs.preset].blurb}><Pills value={c.prefs.preset} onChange={applyPreset} items={(Object.keys(PRESETS) as Preset[]).map((p) => ({ id: p, label: p }))} /></Row>
       </div>
-    </div>
+    </Page>
   );
 }

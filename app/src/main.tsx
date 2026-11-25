@@ -1,15 +1,14 @@
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
-import { isTauri } from "./api";
+import ErrorBoundary from "./lib/ErrorBoundary";
 import { startPresenceLink } from "./presenceLink";
 
-createRoot(document.getElementById("root")!).render(<App />);
-startPresenceLink();
+// Last line of defence: a stray rejected promise must never take the window down.
+addEventListener("unhandledrejection", (e) => { e.preventDefault(); console.warn("[luminos] unhandled rejection:", e.reason); });
 
-// Tell the shell the first frame is on screen (used by CI to measure cold start).
-if (isTauri) {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    import("@tauri-apps/api/core").then(({ invoke }) => invoke("app_ready")).catch(() => {});
-  }));
-}
+createRoot(document.getElementById("root")!).render(
+  <StrictMode><ErrorBoundary label="Luminos"><App /></ErrorBoundary></StrictMode>,
+);
+try { startPresenceLink(); } catch (e) { console.warn("[luminos] presence link unavailable:", e); }

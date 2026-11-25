@@ -1,101 +1,76 @@
-import { useEffect, useMemo, useState } from "react";
-import { CATS, Cat, MODS, Mod, Setting } from "../data/mods";
-import { Icon, Slider, Switch } from "../kit";
-import { ModIcon } from "../modicons";
-import { setVal, tweaked, toggleFav, toggleMod, useMods, valOf } from "../modstore";
+import { memo, useCallback, useMemo, useState } from "react";
+import Page from "../components/Page";
+import { Icon } from "../components/Icon";
+import { Drawer, Field, PageHeader, Pills, SearchBox, Select, Slider, Switch } from "../components/ui";
+import { CATEGORIES, MODULES, modById, type CatId, type Module, type Setting } from "../data/modules";
+import { cfgOf, resetModule, setCfg, toggleFav, toggleMod, useClient } from "../state/client";
 
-const SWATCH = ["#ffffff", "#2b4bff", "#4ade9a", "#f2c14e", "#ff7a8a", "#a78bfa"];
-
-export function KeyRecorder({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
-  const [rec, setRec] = useState(false);
-  useEffect(() => {
-    if (!rec) return;
-    const f = (e: KeyboardEvent) => { e.preventDefault(); e.stopPropagation(); setRec(false); if (e.key !== "Escape") onChange(e.key === " " ? "Space" : e.key.length === 1 ? e.key.toUpperCase() : e.key); };
-    addEventListener("keydown", f, true); return () => removeEventListener("keydown", f, true);
-  }, [rec, onChange]);
-  return <button className="btn !h-7 min-w-[84px] num" aria-label={label} onClick={() => setRec(true)}>{rec ? "Press a key…" : value || "Unbound"}</button>;
-}
-
-function Control({ m, s }: { m: Mod; s: Setting }) {
-  const st = useMods(), v = valOf(st, m.id, s.k, s.def);
-  if (s.t === "toggle") return <Switch on={!!v} onChange={(x) => setVal(m.id, s.k, x)} label={s.label} />;
-  if (s.t === "slider") return <Slider label={s.label} value={Number(v)} min={s.min} max={s.max} step={s.step} onChange={(x) => setVal(m.id, s.k, x)} fmt={(x) => `${x}${s.unit || ""}`} />;
-  if (s.t === "color") return <div className="flex items-center gap-1.5">{SWATCH.map((c) => <button key={c} aria-label={`${s.label} ${c}`} aria-pressed={v === c} onClick={() => setVal(m.id, s.k, c)} className="w-5 h-5 rounded-md" style={{ background: c, outline: v === c ? "2px solid var(--accent-text)" : "1px solid var(--line-strong)", outlineOffset: 1 }} />)}</div>;
-  if (s.t === "key") return <KeyRecorder label={s.label} value={String(v)} onChange={(x) => setVal(m.id, s.k, x)} />;
-  return <div className="seg" role="group" aria-label={s.label}>{s.options.map((o) => <button key={o} aria-pressed={v === o} onClick={() => setVal(m.id, s.k, o)}>{o}</button>)}</div>;
-}
-
-function Drawer({ m, onClose, onToggle }: { m: Mod; onClose: () => void; onToggle: () => void }) {
-  const st = useMods(), on = st.on[m.id];
-  useEffect(() => { const f = (e: KeyboardEvent) => e.key === "Escape" && onClose(); addEventListener("keydown", f); return () => removeEventListener("keydown", f); }, [onClose]);
-  const rows: Setting[] = [...m.settings, { k: "toggleKey", t: "key", label: "Toggle keybind", def: "" }];
+const Card = memo(function Card({ m, on, onOpen }: { m: Module; on: boolean; onOpen: (id: string) => void }) {
   return (
-    <aside className="drawer slidein absolute right-0 top-0 bottom-0 w-[340px] z-20 flex flex-col" aria-label={`${m.name} settings`} style={{ boxShadow: "-12px 0 24px rgba(0,0,0,.28)" }}>
-      <div className="flex items-center gap-3 p-4">
-        <span className="grid place-items-center w-11 h-11 rounded-[10px] panel-2"><ModIcon id={m.id} size={28} /></span>
-        <div className="min-w-0 flex-1"><div className="t3 font-semibold truncate">{m.name}</div><div className="t1 mute">{m.src === "luminos" ? "Luminos module" : "From Modrinth"}</div></div>
-        <button className="ibtn" aria-label="Close settings" onClick={onClose}><Icon n="x" s={16} /></button>
-      </div>
-      <div className="px-4 t2 mute leading-snug">{m.blurb}</div>
-      <div className="px-4 pt-3"><button className={`btn w-full ${on ? "" : "btn-primary"}`} onClick={onToggle}>{on ? "Turn off" : "Turn on"}</button></div>
-      <div className="eyebrow px-4 pt-5 pb-1.5">Settings</div>
-      <div className="flex-1 overflow-y-auto px-2 pb-4">
-        {rows.map((s) => <div key={s.k} className="lrow !min-h-[44px] !px-2"><span className="flex-1 t2">{s.label}</span><Control m={m} s={s} /></div>)}
-        {!m.settings.length && <div className="px-2 pt-2 t1 mute leading-snug">This mod has no options of its own. It runs with the values the profile sets.</div>}
-      </div>
-    </aside>
+    <div className="card h-[160px] rounded-[12px] overflow-hidden flex flex-col justify-between">
+      <button className="relative h-[118px] w-full grid place-items-center group" onClick={() => onOpen(m.id)} aria-label={`${m.name} settings`}>
+        <span className="absolute top-3.5 right-3.5 w-[6px] h-[6px] rounded-full" style={{ background: "var(--accent)", opacity: on ? 1 : 0.35 }} />
+        <span className="t group-hover:scale-105" style={{ color: on ? "var(--fg)" : "var(--mute)" }}><Icon n={m.icon} s={40} w={1.75} /></span>
+      </button>
+      <button onClick={() => toggleMod(m.id)} aria-pressed={on} title={`${m.name}: ${on ? "enabled" : "disabled"}. ${m.blurb}`} className="h-[42px] w-full flex items-center justify-center gap-2 text-[13px] font-semibold t press px-3"
+        style={{ background: on ? "var(--accent)" : "var(--surface-2)", color: on ? "var(--accent-fg)" : "var(--mute)" }}>
+        {on && <Icon n="check" s={14} w={2.4} />}<span className="truncate">{m.name}</span>
+      </button>
+    </div>
+  );
+});
+
+function SettingControl({ id, st }: { id: string; st: Setting }) {
+  const c = useClient();
+  const v = cfgOf(c, id, st) as unknown;
+  const set = (x: unknown) => setCfg(id, st.k, x);
+  return (
+    <Field label={st.label}>
+      {st.t === "toggle" && <Switch on={v as boolean} onChange={set} label={st.label} />}
+      {st.t === "color" && <input type="color" aria-label={st.label} value={v as string} onChange={(e) => set(e.target.value.toUpperCase())} />}
+      {st.t === "select" && <Select value={v as string} options={st.options} onChange={set} label={st.label} />}
+      {st.t === "slider" && <div className="flex items-center gap-3"><Slider value={v as number} min={st.min} max={st.max} step={st.step} onChange={set} label={st.label} w={130} /><span className="mono text-[11.5px] w-[64px] text-right mute num">{String(v)}{st.unit ?? ""}</span></div>}
+    </Field>
   );
 }
 
-export default function Mods({ q, setQ }: { q: string; setQ: (v: string) => void }) {
-  const st = useMods();
-  const [cat, setCat] = useState<Cat | "all">("all"), [view, setView] = useState<"grid" | "compact">("grid");
-  const [open, setOpen] = useState<string | null>(null);
-  const [diff, setDiff] = useState<{ name: string; to: boolean; off: string[]; on: string[] } | null>(null);
-  const list = useMemo(() => MODS.filter((m) => (cat === "all" || (cat === "favorites" ? st.fav.includes(m.id) : m.cats.includes(cat))) && (!q || (m.name + m.blurb).toLowerCase().includes(q.toLowerCase()))), [cat, q, st.fav]);
-  const toggle = (m: Mod) => { const to = !st.on[m.id], d = toggleMod(m.id, to); setDiff(d.off.length || d.on.length ? { name: m.name, to, off: d.off.map((x) => x.name), on: d.on.map((x) => x.name) } : null); };
-  const enabled = MODS.filter((m) => st.on[m.id]).length;
-  const cur = MODS.find((m) => m.id === open) || null;
+function ModuleDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const c = useClient();
+  const m = modById(id);
+  const fav = c.favs.includes(id);
   return (
-    <div className="relative min-h-full">
-      <div className="flex items-center gap-2 px-6 pb-3">
-        <div className="flex gap-2 overflow-x-auto flex-1 min-w-0 py-0.5" role="tablist" aria-label="Mod categories">
-          {CATS.map((c) => <button key={c.id} role="tab" aria-selected={cat === c.id} data-on={cat === c.id} className="pill" onClick={() => setCat(c.id)}>{c.icon && <Icon n={c.icon} s={14} />}{c.label}</button>)}
-        </div>
-        <div className="seg shrink-0" role="group" aria-label="View"><button aria-pressed={view === "grid"} onClick={() => setView("grid")}>Grid</button><button aria-pressed={view === "compact"} onClick={() => setView("compact")}>Compact</button></div>
+    <Drawer title={m.name} icon={m.icon} onClose={onClose}>
+      <p className="m-0 text-[13px] leading-relaxed mute">{m.blurb}</p>
+      <div className="rounded-[12px] p-4 space-y-4" style={{ background: "var(--surface)" }}>
+        <Field label="Enabled"><Switch on={!!c.on[id]} onChange={(v) => toggleMod(id, v)} label={`Enable ${m.name}`} /></Field>
+        <Field label="Favorite"><button className="grid place-items-center w-8 h-8 rounded-lg t" aria-pressed={fav} aria-label={fav ? "Remove from favorites" : "Add to favorites"} onClick={() => toggleFav(id)} style={{ color: fav ? "var(--warn)" : "var(--mute)" }}><Icon n="star" s={18} fill={fav} /></button></Field>
       </div>
-      {diff && <div role="status" className="mx-6 mb-3 panel flex items-center gap-3 px-4 py-2.5 rise" style={{ background: "var(--accent-soft)" }}>
-        <Icon n="info" s={16} /><div className="flex-1 t2 leading-snug"><b>What changed.</b> {diff.to ? `Turning on ${diff.name} also turned on ${diff.on.join(", ")}, because it needs ${diff.on.length > 1 ? "them" : "it"}.` : `Turning off ${diff.name} also turned off ${diff.off.join(", ")}, because ${diff.off.length > 1 ? "they need" : "it needs"} ${diff.name}.`}</div>
-        <button className="btn" onClick={() => { const m = MODS.find((x) => x.name === diff.name)!; toggleMod(m.id, !diff.to); setDiff(null); }}>Undo</button>
-        <button className="ibtn" aria-label="Dismiss" onClick={() => setDiff(null)}><Icon n="x" s={14} /></button>
-      </div>}
-      {view === "grid" ? (
-        <div className="grid grid-cols-4 gap-3 px-6 pb-6 stagger" role="list">
-          {list.map((m) => (
-            <div key={m.id} role="listitem" className="mod" data-on={!!st.on[m.id]} onContextMenu={(e) => { e.preventDefault(); setOpen(m.id); }}>
-              <button className="mod-icon" aria-label={`${m.name} settings`} onClick={() => setOpen(m.id)}><ModIcon id={m.id} /></button>
-              {tweaked(st, m.id) && <span className="mod-dot" title="Custom settings" />}
-              <button className="mod-bar" aria-pressed={!!st.on[m.id]} aria-label={`${m.name}: ${st.on[m.id] ? "on" : "off"}`} onClick={() => toggle(m)}>{m.name}</button>
-            </div>
-          ))}
+      {m.settings.length > 0 && <div className="rounded-[12px] p-4 space-y-4" style={{ background: "var(--surface)" }}>{m.settings.map((st) => <SettingControl key={st.k} id={id} st={st} />)}</div>}
+      <button className="btn-quiet w-full" onClick={() => resetModule(id)}><Icon n="reset" s={14} />Reset {m.name}</button>
+    </Drawer>
+  );
+}
+
+export default function Mods() {
+  const c = useClient();
+  const [q, setQ] = useState(""), [cat, setCat] = useState<CatId | "all" | "favorites">("all"), [open, setOpen] = useState<string | null>(null);
+  const onOpen = useCallback((id: string) => setOpen(id), []);
+  const list = useMemo(() => MODULES.filter((m) => (cat === "all" || (cat === "favorites" ? c.favs.includes(m.id) : m.cat === cat)) && (!q || m.name.toLowerCase().includes(q.toLowerCase()) || m.blurb.toLowerCase().includes(q.toLowerCase()))), [q, cat, c.favs]);
+  const enabled = MODULES.filter((m) => c.on[m.id]).length;
+  return (
+    <Page>
+      <PageHeader title="Mods" sub={`${enabled} of ${MODULES.length} client modules enabled. Performance mods are built in and always on.`} right={<SearchBox value={q} onChange={setQ} placeholder={`Search ${MODULES.length} client modules...`} />} />
+      <div className="mb-7"><Pills value={cat} onChange={setCat} items={CATEGORIES} /></div>
+      {list.length === 0 ? (
+        <div className="rounded-[14px] py-16 text-center" style={{ background: "var(--surface)" }}>
+          <div className="text-[15px] font-semibold">{cat === "favorites" && !q ? "No favorites yet" : "No modules match"}</div>
+          <p className="m-0 mt-1 mute text-[13px]">{cat === "favorites" && !q ? "Open a module and tap the star to pin it here." : "Try a different word or category."}</p>
+          <button className="btn-quiet mt-5" onClick={() => { setQ(""); setCat("all"); }}>Show all modules</button>
         </div>
       ) : (
-        <div className="px-6 pb-6 flex flex-col gap-0.5">
-          {list.map((m) => (
-            <div key={m.id} className="lrow !min-h-[32px] !h-8" onContextMenu={(e) => { e.preventDefault(); setOpen(m.id); }}>
-              <span className="w-5 grid place-items-center"><ModIcon id={m.id} size={20} /></span>
-              <button className="t2 font-medium w-[200px] text-left truncate" onClick={() => setOpen(m.id)}>{m.name}</button>
-              <span className="t1 mute flex-1 truncate">{m.blurb}</span>
-              <button className="chip" onClick={() => toggleFav(m.id)} aria-label={`Favourite ${m.name}`} data-on={st.fav.includes(m.id)}><Icon n="star" s={11} /></button>
-              <span className="badge">{m.src === "luminos" ? "Luminos" : "Modrinth"}</span>
-              <Switch on={!!st.on[m.id]} onChange={() => toggle(m)} label={m.name} />
-            </div>
-          ))}
-        </div>
+        <div className="grid grid-cols-4 gap-5">{list.map((m) => <Card key={m.id} m={m} on={!!c.on[m.id]} onOpen={onOpen} />)}</div>
       )}
-      {!list.length && <div className="px-6 t2 mute">{cat === "favorites" ? "Nothing starred yet. Open a mod and star it from the compact view." : `No mod matches “${q}”.`} <button className="underline" onClick={() => { setQ(""); setCat("all"); }}>Clear filters</button></div>}
-      <div className="px-6 pb-6 t1 mute num">{enabled} of {MODS.length} on · saved to disk on every change</div>
-      {cur && <Drawer m={cur} onClose={() => setOpen(null)} onToggle={() => toggle(cur)} />}
-    </div>
+      {open && <ModuleDrawer id={open} onClose={() => setOpen(null)} />}
+    </Page>
   );
 }

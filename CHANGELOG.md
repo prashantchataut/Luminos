@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0
+
+### English
+Complete from-scratch redesign of the launcher UI. Not yet run on a real Windows desktop by the author (see docs/REAL_DESKTOP_CHECKLIST.md).
+
+- **Window:** opens at 1280×800 (minimum 1100×720, centred, native frame) so nothing clips.
+- **Speed and stability:** exactly one WebGL context (the Cosmetics pedestal), capped at 45 fps, paused when hidden or a dialog is open, fully released on leaving; grid cards use cached 2D art. Every IPC call goes through `safeInvoke` (4 s timeout, fallback value) and the whole app sits in a recovery error boundary.
+- **Mods:** 34 built-in client modules (Waypoints, Minimap, Fullbright, Freelook, Zoom, ToggleSprint, Keystrokes and more) with a settings drawer. The bundled performance stack is no longer listed as mods.
+- **Rewritten screens:** Home, Mods, Keybinds (key recorder, Hold/Toggle), Preferences, Cosmetics, HUD Studio (drag, 5 px snap, arrow-key nudge), Themes, Profiles, Accounts.
+
+### Español
+Rediseño completo de la interfaz del lanzador, desde cero. El autor aún no lo ha probado en un escritorio Windows real (ver docs/REAL_DESKTOP_CHECKLIST.md).
+
+- **Ventana:** se abre a 1280×800 (mínimo 1100×720, centrada, marco nativo) para que nada se recorte.
+- **Rendimiento y estabilidad:** un único contexto WebGL (el pedestal de Cosméticos), limitado a 45 fps, en pausa si la ventana está oculta o hay un diálogo abierto; las tarjetas usan arte 2D en caché. Toda llamada IPC pasa por `safeInvoke` (límite de 4 s, valor de respaldo) y la app está dentro de un límite de errores con recuperación.
+- **Mods:** 34 módulos de cliente integrados, con panel de ajustes. La pila de rendimiento incluida ya no aparece como mods.
+- **Pantallas reescritas:** Inicio, Mods, Atajos, Preferencias, Cosméticos, Editor de HUD, Temas, Perfiles, Cuentas.
+
 ## 1.0.0
 
 ### English

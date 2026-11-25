@@ -50,7 +50,7 @@ export class LockerScene {
   private pets = new THREE.Group();
   private mini: PlayerObject; private partner: PlayerObject;
   private deco = new THREE.Group(); private water: THREE.Mesh;
-  private raf = 0; private t0 = performance.now();
+  private raf = 0; private t0 = performance.now(); private last = 0; paused = false; fps = 45;
   move: Move = "idle"; emote: { id: EmoteId; t0: number } | null = null; classic = false; reduced = false; mode: Mode = "studio";
   private trail: THREE.Vector3[] = [];
   private sword = new THREE.Group(); sway = true; transparent = false;
@@ -72,11 +72,24 @@ export class LockerScene {
     this.partner = new PlayerObject(); this.partner.visible = false; this.partner.position.set(11, 0, 2); this.partner.rotation.y = -Math.PI / 2; this.v.playerWrapper.add(this.partner);
     this.water = new THREE.Mesh(new THREE.BoxGeometry(70, 26, 70), new THREE.MeshLambertMaterial({ color: 0x3b7fd0, transparent: true, opacity: 0.28 })); this.water.position.y = -11; this.water.visible = false; this.deco.add(this.water);
     this.setMode("studio");
-    const loop = () => { this.frame(); this.raf = requestAnimationFrame(loop); };
+    // ONE capped loop. skinview3d's own unthrottled draw loop is switched off; we render by hand at <= 45 fps,
+    // and not at all while the window is hidden or a modal has paused the stage.
+    this.v.renderPaused = true;
+    const loop = (t: number) => {
+      this.raf = requestAnimationFrame(loop);
+      if (document.hidden || this.paused || t - this.last < 1000 / this.fps - 1) return;
+      this.last = t; this.frame(); this.v.render();
+    };
     this.raf = requestAnimationFrame(loop);
   }
   resize(w: number, h: number) { this.v.setSize(w, h); }
-  dispose() { cancelAnimationFrame(this.raf); this.v.dispose(); }
+  dispose() {
+    cancelAnimationFrame(this.raf);
+    this.paused = true;
+    const gl = this.v.renderer;
+    this.v.dispose();
+    try { gl.dispose(); gl.forceContextLoss(); } catch { /* already gone */ }
+  }
 
   async setSkin(src: string, slim: boolean) {
     await this.v.loadSkin(src, { model: slim ? "slim" : "default" });

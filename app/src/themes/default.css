@@ -1,9 +1,9 @@
 /* OneClient Cobalt (default): flat carbon-navy surfaces, one electric cobalt accent. Colours only. */
 :root, :root[data-theme="default"] {
   color-scheme: dark;
-  --bg: #0b0d12; --side: #0f1218; --surface: #151922; --surface-2: #1c212d; --hover: #1b202c;
+  --bg: #0b0d12; --side: #0f1218; --surface: #141821; --surface-2: #1b202c; --hover: #191e2a;
   --line: #1a1e27; --line-strong: #3a4254;
-  --fg: #e8ecf4; --mute: #8892a5;
+  --fg: #f1f5f9; --mute: #8a94a6;
   --accent: #2b4bff; --accent-fg: #ffffff; --accent-soft: #18226e;
   --ok: #4ade9a; --warn: #f2c14e; --bad: #ff7a8a;
 }
