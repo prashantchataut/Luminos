@@ -1,72 +1,64 @@
-# Reference teardown: Pandora, Hotwire, XMCL, Prism
+# Reference teardown: Pandora, Prism, XMCL, Hotwire (session 18, redone with rea)
 
-Session 18. Method and limits are stated per reference so nobody reads more into this than was done.
+A build guide, not an essay. Every row says what was read and how.
 
-| Reference | Licence | What I actually read | What I did NOT do |
+## Method and limits
+
+| Reference | Licence | How it was studied | Limits |
 |---|---|---|---|
-| Pandora Launcher | MIT | Cloned `Moulberry/PandoraLauncher` (shallow). Read `README.md`, `crates/backend/src/{duplicate,fs,syncing,shortcut,quickplay_presets,launch/mod}.rs` and grepped for keyring / redaction / sandbox. | Did not build or run it. |
-| Prism Launcher | GPL-3 | Cloned `PrismLauncher/PrismLauncher` (shallow). Grepped `launcher/` for quick play, dependency maps, URL scheme, re-auth. Behaviour only. | Copied no code (Luminos is proprietary, `AGENTS.md` rule 7). Did not build it. |
-| Hotwire | Modified Polyform Strict (source-available) | Modrinth API project record and description, the public `dearIrene/hotwire-public` link. | Did not decompile the jar and did not read its source. Its licence forbids reuse; everything below is **observed behaviour from its own public description**. How it swaps classes is unknown to me. |
-| XMCL | MIT (launcher), Electron | `xmcl.app` home page, `xmcl.app/en/guide/p2p`, public release notes describing the signalling backend. | Did not read or run the source. Bedrock integration is mentioned on the home page as "experimental"; not examined. |
+| Pandora Launcher | MIT | Shallow clone of `Moulberry/PandoraLauncher`, source read with `rg`: `crates/backend/src/{syncing,duplicate,fs}.rs`. | Not built or run. `rea` is a binary / JavaScript analyzer; Pandora is Rust source, so reading the source was the right tool. |
+| Prism Launcher | GPL-3 | Shallow clone, source read with `rg`: `launcher/minecraft/mod/*`, `MinecraftInstance.cpp`. **Behaviour only; no code copied** (`AGENTS.md` rule 7). | Not built or run. |
+| XMCL | MIT | Shallow clone of `Voxelum/x-minecraft-launcher`. **`rea` was run**: `npx rea-agents@latest analyze-javascript-application xmcl-runtime/peer --json` (exit 0, 9 files; evidence kept in `docs/research/rea/xmcl-peer.json.gz`; provider `rea-javascript-application`, confidence `derived`; rea itself notes that static imports and endpoints do not prove runtime execution). Then read `packages/multiplayer-core/lib/*` and `xmcl-runtime/peer/*`. | Static analysis only. XMCL was not run. I did not read the `LocalNetwork` implementations; the LAN bridge below comes from its interfaces and call sites. |
+| Hotwire | PolyForm Strict **plus a "Clients" clause** | Modrinth / README front matter (public text) only. | See below. I **do not and will not read, run `rea` on, or reuse** its source. |
 
-The `rea` skills are vendored but I did **not** open or run them this session. The teardown used git clone + grep + the Modrinth API + public docs. It is not a decompiler run, and no closed binary was decompiled.
+### Hotwire: why this entry is behaviour-only, and a correction to my own process
 
-Legend for the last column: **BUILD** = port the idea, **BEAT** = build and do it better, **SKIP** = not worth it for Luminos, with a reason.
+`dearIrene/hotwire-public` is a public repository, and the brief said to use `rea` on it if public. Its `LICENSE.md` says clients "may not ... study, decompile or reverse engineer it to make their own", and defines a client as any product that "gives players its own modified Minecraft client or client launcher with its own features". **Luminos is that** (a launcher plus its own Fabric client mod). The clause also bars clients from using, bundling, copying or integrating it, so there is no Hotwire API integration either. Public is not the same as permitted.
 
-## Pandora (MIT, Rust + gpui)
+Process note: before I read the licence I had read the repository's README explainer and listed its file tree. That was a mistake. I stopped there and opened no source file. Nothing in the Luminos design is derived from it: the Luminos agent does **no** class redefinition, no mixin re-application and no bytecode work (`docs/LIVE_SWAP.md`).
 
-| Feature | What it does | How it works (read in source) | Luminos today | Decision |
-|---|---|---|---|---|
-| Cross-instance sync | Options, saves, etc. shared between instances; per-item enable/disable | `syncing.rs`: shared folder in the launcher dir; each instance's entry becomes a **symlink (Unix) or junction (Windows, `junction` crate)** to it. `options.txt` is merged key by key (`create_combined_options_txt`). `get_sync_state`, `enable_all`, `disable_all` per target name. | `core/src/sync.rs` already syncs keybinds, `options.txt` (per key), mod configs, `servers.dat` with a 3-way hash decision and a conflicts folder. **Saves are not synced.** No UI conflict dialog. | **BEAT**: keep copy+3-way (safer than links), add saves as an opt-in link target and a conflict dialog. |
-| Mod dedup | Same jar stored once | `duplicate.rs`: SHA-1 content library (`create_content_library_path(dir, hash, ext)`), found by hash, `.disabled` suffix handled. Reflink via vendored `reflink-copy`, hard-link fallback. | None. `storage.rs` only measures and clears folders. | **BUILD**: hash store + hardlink now; reflink only where the OS allows (see `docs/STORAGE.md`). Show the saving. |
-| Keyring credentials | Tokens in the OS credential store | `crates/auth/src/secret.rs` (oo7 on Linux, platform stores elsewhere) | Done in #17 (`core/src/secrets.rs`, keyring crate; Windows round trip green in CI). | Done. |
-| Live log, auto redaction | Uncapped log pane; sensitive strings removed before upload | `log_reader::replace()` is applied before the mclo.gs upload; `reqwest_client` redacts `key=` query strings from errors. Redaction runs on the *upload/export* path. | Nothing. Launch output is not scrubbed. | **BEAT**: scrub on every write *and* copy, not only upload; always on. |
-| Direct Modrinth / CurseForge | No metadata server | `reqwest_client`, per-platform modules | Modrinth direct (`modrinth.rs`); no CurseForge (needs an API key). | Keep. CurseForge **SKIP** (key + terms). |
-| Sandbox | Mods can't harm the system | `launch/mod.rs` ~L2242: `if configuration.sandbox`, requires **`bwrap` and `xdg-dbus-proxy`** (Linux only), else spawn error. | None. | **Windows has no equivalent that keeps mods working.** See decision below. |
-| Desktop shortcuts | `.lnk` / `.desktop` per instance/world | `shortcut.rs`: `mslnk::ShellLink` on Windows with an args string; `.desktop` on Linux | None | **BUILD** (Quick Play shortcuts). |
+What is recorded about Hotwire is what its public front matter says: it live-toggles Fabric mods, blacklists the renderer and core mods (Sodium, Lithium, FerriteCore, C2ME, ModernFix, Fabric API and others), shows a prompt before switching, and **does have undo for pending tasks and rollback**. **Correction to #18:** undo is not a new idea; Hotwire has it. Luminos' undo is a one-press revert of the last switch for both live and queued items, built on Luminos' own state.
 
-## Prism (GPL-3, C++/Qt): study only
+## What each reference does (read, not guessed)
 
-| Feature | What it does | How it works | Luminos today | Decision |
-|---|---|---|---|---|
-| Dependency tracking | Mods page shows what needs what; warns before disabling | `ModFolderModel` keeps `m_requires` / `m_requiredBy` maps built from each jar's own metadata; `Mod::requiredByCount()` drives the UI | Install pulls *required* deps (`content.rs` ~L272). No graph, no guard on disable. | **BEAT**: graph from Modrinth dependency data **plus** the installed set; refuse to disable a mod an enabled mod needs; list missing ones. |
-| Quick Play | Launch straight into a world or server | `MinecraftInstance.cpp` ~L780: appends `--quickPlayMultiplayer host:port` or `--quickPlaySingleplayer <world>` when the version profile has trait `feature:is_quick_play_*` | Servers only (`launch.rs` `supports_quick_play`). No worlds, no shortcut files. | **BUILD**: add worlds + `.lnk` shortcuts. |
-| 3D skin preview | Rotating skin | Qt/OpenGL | Done (skinview3d); see `tools/skin3d-check.mjs`. | Done. |
-| Auto re-auth | Refreshes expired accounts | `MSAStep`, `MSADeviceCodeStep`, refresh token in `AccountData` | `msauth.rs` has refresh; launch does not prompt when refresh fails. | **BUILD** (the prompt). The network chain stays UNVERIFIED (`docs/MICROSOFT_AUTH.md`). |
-| Resource/shader pack updates | Update checks for packs | `ResourceUpdateDialog` | Mods only | Later. |
-| URL-protocol import | `prismlauncher://` handler | `program_info/*.desktop` registers the scheme | `luminos://join` parser exists (`joinlink.rs`); no OS registration or modpack scheme | Later. |
+### Pandora (MIT)
+| Topic | Finding | Luminos before | Decision |
+|---|---|---|---|
+| Which files sync | Folders (saves and so on) are **shared by symlink (Unix) or junction (Windows)** (`syncing.rs` uses `junction::create/get_target/delete`). `options.txt` is **merged key by key**: `create_combined_options_txt` reads every syncing instance's file, sorts by `max(created, modified)`, and the **newest file wins each key**. `resourcePacks` and `incompatibleResourcePacks` are dropped for every instance except the current one. | `core/src/sync.rs`: option keys, keybinds, configs, `servers.dat`, 3-way hash decision, conflicts folder. Saves not synced. | **BEAT**: keep copy plus 3-way (no link fragility), add saves as opt-in. |
+| Conflicts | **None.** Silent last-writer-wins by file time. No prompt, no record. | Conflicts recorded, no UI. | **BEAT**: a resolve dialog per item (keep this / keep other / keep both). |
+| Reflink | `fs.rs::fastcopy(from, to, reflink, hard_link)`: try `reflink_copy::reflink`, on error fall back to `std::fs::hard_link`, then plain copy. `duplicate.rs` finds same-hash files (content library keyed by hash, `.disabled` handled) and reflinks them. | Hard links plus ledger (`dedup.rs`). | **ADOPT**: reflink, then hard link, then keep. |
 
-## Hotwire (observed behaviour only, Fabric-only, 1.21.9 and 26.x)
+### Prism (GPL-3, behaviour only)
+| Topic | Finding | Luminos before | Decision |
+|---|---|---|---|
+| Dependency page | `ModFolderModel` keeps `m_requires` and `m_requiredBy` (`QHash<id, QSet<Mod*>>`) and exposes `requiresList(id)` and `requiredByList(id)`; each `Mod` caches `requiredByCount()` and `requiresCount()` for the table. `GetModDependenciesTask` fetches missing deps from the platform filtered by Minecraft version and loader, skips locally installed ones (`isLocalyInstalled`, `maybeInstalled`) and records "required by" names for the confirmation list. | `deps.rs` graph, `livepanel/plan.ts` | **Have it. BEAT**: the diff is mandatory before any switch and lists every extra mod that changes. |
+| Quick Play | `MinecraftInstance.cpp` ~L780: `--quickPlayMultiplayer host:port` or `--quickPlaySingleplayer <world>`, gated on version traits. | `quickplay.rs` (#18) | Done; UI button this PR. |
 
-| Feature | What it does | How it works | Luminos today | Decision |
-|---|---|---|---|---|
-| Live mod toggle | Switch up to five mods while the game runs; deps follow automatically | **Unknown to me** (closed behaviour; its page says it ships a dev mode where "on the JetBrains Runtime everything goes in, even new methods and fields", i.e. it relies on JVM class redefinition). | No in-game code at all. | **Panel + planner BUILD; live apply NOT BUILT.** See "Decisions" below. |
-| In-game store | Mods, shaders, resource packs, data packs from Modrinth | Modrinth API from inside the game | Launcher has a Modrinth browser (`modrinth.rs`) | **BUILD** the store in the panel (launcher side). |
-| Metadata cache | Per-instance compressed cache | Not documented | `app/src/modrinth-meta.json` static only | **BUILD** (gzip JSON per instance, ETag/ `date_modified` re-check). |
-| "Hide installed", stacked notifications, pause while open | Quality-of-life | Not documented | none | **BUILD** |
-| Keep-on list | ModernFix/C2ME stay on | Not documented beyond the claim | none | **BUILD** (we choose the list ourselves). |
-| Pending tasks + undo | Anything that must wait is queued, and "you can undo all of it" (its page) | Not documented | none | **BUILD**. *Correction to the brief: Hotwire does have undo for pending tasks and build rollback in dev mode; ours is not a new idea, only a clearer one-click revert of the last switch.* |
+### XMCL (MIT): P2P protocol
+| Topic | Finding (rea + source) | Luminos | Decision |
+|---|---|---|---|
+| Transport | **WebRTC data channels.** XMCL hosts the `RTCPeerConnection` in a hidden browser context and drives it over `MessagePort` with a typed protocol (`BrowserRtcProtocol.ts`: `create`, `create-offer`, `create-answer`, `set-local/remote-description`, `add-ice-candidate`, `get-stats`, `create-data-channel`; events `state`, `ice-candidate`, `data-channel`). Each channel is bridged to a port (`bridgeDataChannel`). | Tauri's webview is a browser, so `RTCPeerConnection` is native. | **BUILD** (`app/src/p2p/`). |
+| NAT and relay | ICE servers come from a credential with a TTL, refreshed at about 90% of it (`updateIceServers`). A shared TURN server is prepended when configured (`sharedTurnServer`). After connecting, the selected candidate pair is read from stats and the session is labelled direct or relay (`selectedCandidate.ts`, `multiplayer.ts` ~L209). | None. | **BUILD**: STUN by default, TURN only if configured, show direct/relay. |
+| LAN emulation | The host announces a LAN world with `peer.sendLan(port, motd)`. `LocalNetwork` is `connect(port) -> LocalSocket` and `LocalServer {port, motd}`: the host dials the real local port, the guest opens a local listening port. | None. | **BUILD** (`core/src/p2p.rs`: guest listens on 127.0.0.1, host dials the LAN port). The LAN-announce UDP packet is **not** emitted; the guest uses *Direct Connection* to `localhost:<port>`. |
+| Signalling | Cloudflare Workers, one Durable Object per room; since 0.66.1 hosting needs an account. | Minimal Worker, `p2p-signal/`. | **BUILD**; verification status in `docs/P2P.md`. |
 
-## XMCL (MIT, Electron)
+## Adopt / beat / skip, ranked by user impact
 
-| Feature | What it does | How it works | Luminos today | Decision |
-|---|---|---|---|---|
-| P2P hosting | Host a singleplayer world; friends join with a room code/link, no port forwarding | WebRTC data channels (DTLS), STUN hole-punching, host-star topology; the world appears under **LAN Worlds** in the guest's multiplayer menu. Signalling: **Cloudflare Workers + one Durable Object per room**, DPoP-signed sessions; since 0.66.1 hosting requires a free account for spam/DoS control and relay access. | `luminos://join?server=` only (public servers). | **BUILD client; backend UNVERIFIED** (see `docs/P2P.md`). |
-| Concurrent chunked downloads, socket reuse | Speed | HTTP range + keep-alive | `download.rs` exists; not measured against it | Measure before claiming. |
-| Link-based resource dedup | Hard/symbolic links for mods | links into instances | See Pandora | **BUILD** once. |
-| Multi-account hub, Bedrock | Many account types; experimental Bedrock | n/a | Offline + Microsoft | **SKIP** (Bedrock is off-brief). |
+1. **ADOPT** Prism's dependency graph and the guard on disable (built in #18; now fed real mods).
+2. **BEAT** Pandora's silent sync with an explicit conflict dialog and saves as opt-in.
+3. **ADOPT** reflink, then hard link, then keep, and **show the saving** on the instance card.
+4. **ADOPT** XMCL's WebRTC data channel, STUN, host-star topology and the direct/relay label.
+5. **ADOPT the product idea** of live toggle with an honest queued split; **SKIP the mechanism** (class redefinition). It is closed to clients by Hotwire's licence and untestable here. Luminos goes live for what it owns (its own modules) and for packs; third-party mods queue.
+6. **SKIP** a Windows sandbox (unchanged, `docs/SECURITY.md`), CurseForge (key and terms), Bedrock.
 
-## Decisions that need saying out loud
+## Gap table
 
-* **Sandbox.** Pandora's sandbox is Linux-only (`bwrap`). On Windows the realistic options are a Job Object (limits processes, memory, UI handles) or an AppContainer (denies file/network by default). Job Objects do not stop a mod reading your files or using the network, so calling it a "sandbox" would be false. AppContainer breaks mods that read `%APPDATA%`, write outside the instance, or open sockets, which is most of them, and needs per-launch ACL setup that I cannot test here. **Decision: not built.** The UI shows "Mod sandbox: not available on Windows without breaking mods" and `STATUS.md` says the same. Nothing in the sandbox family is built: no Job Object, no AppContainer. What protects the user today is narrower and real: tokens live in the OS keyring (#17) and every log line is redacted (this PR).
-* **Live hot-swap.** Real hotswap needs in-game code (class redefinition and Mixin handling) in the Java client plus the in-game rendering hooks #17 said were missing. That is out of scope this session and cannot be verified without a game window. The panel's *planner* (what changes, dependencies, keep-on list, undo, queue-for-next-launch) is built and tested; "apply live" is **not built**, so the UI says "Applies on next launch" for every switch.
-
-## What Luminos should adopt, ranked by user impact
-
-1. **Dependency graph + guard on disable** (Prism). Breaks fewer instances than anything else here; cheap; verifiable.
-2. **Log redaction, always on** (Pandora). Stops users leaking tokens when they paste logs for help; small and testable.
-3. **Dedup with the saving shown** (Pandora/XMCL). Disk space is a top launcher complaint; the number makes it visible.
-4. **Quick Play for worlds + shortcuts** (Prism/Pandora). One-click into the thing you actually play.
-5. **Discord presence that says Luminos** (own brief). Free reach; payload is unit-testable.
-6. **P2P hosting** (XMCL). Highest wow, highest cost and abuse risk; ship the client, run the backend only with account-gated limits.
-7. **Live mod panel** (Hotwire). The planner and store are useful alone; the live-apply part is a research project.
+| Capability | Leader | Luminos before | Luminos after this PR |
+|---|---|---|---|
+| Dependency graph | Prism | engine, panel fed sample data | real instance mods via Tauri command |
+| Log redaction | Pandora (upload only) | always on | same |
+| Dedup and the number | Pandora | hard links, no number | reflink, then hard link, with "saved N" on each instance card |
+| Sync | Pandora | no saves, no UI | saves opt-in plus conflict dialog |
+| Live toggle | Hotwire (closed to clients) | none | modules and packs live; third-party mods queue |
+| P2P hosting | XMCL | none | client and bridge built; signalling backend status in `docs/P2P.md` |
+| Quick Play | Prism | parser only | shortcut button |

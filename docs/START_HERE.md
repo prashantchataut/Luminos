@@ -1,5 +1,4 @@
-# START HERE (session 18)
+# START HERE (session 19)
+Read `STATUS.md` first. This PR (#18) now has the live panel on real data, the in-game agent, Tauri wiring, real store, reflink dedup, sharing, P2P client and the Discord runner, **but the release, the pipeline run and the site update were not done**.
 
-Read `STATUS.md` first: it is the honest list of what runs and what does not. #17 is merged (its 3D preview concern was not reproducible; see STATUS). `docs/SESSIONS.md` has one line per PR.
-
-Next, in order: merge session 18, wire the engine pieces (redaction is wired; dedup, deps, quick play, re-auth, presence are not) through Tauri commands, build the in-game agent, then cut v1.0.0-rc1 from merged main and run `release.yml` for the first time. Security: the owner pasted a GitHub PAT in chat in two sessions. Revoke it.
+Next, in order: (1) check the `rust (windows-latest)` and `rust (ubuntu-latest)` jobs on the PR and fix the first red one; (2) run `scripts/release-check.sh --ci`; (3) merge #18; (4) tag `v1.0.0-rc1` from merged main and watch `release.yml`; (5) deploy the site with the session-19 captures; (6) owner: revoke the pasted PAT, register the Discord app (`docs/DISCORD.md`), deploy `p2p-signal/`, decide the radius contract (`docs/design/AUDIT.md`).

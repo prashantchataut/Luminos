@@ -145,6 +145,11 @@ impl<S: Read + Write> Client<S> {
 }
 
 #[cfg(unix)]
+pub type Stream = std::os::unix::net::UnixStream;
+#[cfg(windows)]
+pub type Stream = std::fs::File;
+
+#[cfg(unix)]
 pub fn connect() -> Result<std::os::unix::net::UnixStream> {
     let base = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"]
         .iter()

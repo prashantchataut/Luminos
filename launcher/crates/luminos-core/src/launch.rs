@@ -319,6 +319,12 @@ pub fn build_command_ext(
         cmd.arg(a);
     }
 
+    if std::env::var_os("LUMINOS_NO_AGENT").is_none() {
+        if let Some(h) = crate::agent::global() {
+            cmd.args(h.jvm_args()); // the in-game agent connects back over loopback (docs/LIVE_SWAP.md)
+        }
+    }
+
     if account.kind.uses_injector() {
         // authlib-injector must come before -cp/-jar so it can instrument authlib.
         if let Some(a) =

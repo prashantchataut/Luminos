@@ -102,7 +102,21 @@ fn main() {
     // Skip it (and vsync, which stalls presents on a virtual display) the way a returning player's options.txt would.
     let opts = inst.game_dir().join("options.txt");
     let _ = std::fs::write(&opts, "onboardAccessibility:false\nenableVsync:false\nmaxFps:30\nguiScale:2\noverrideWidth:1920\noverrideHeight:1080\nskipMultiplayerWarning:true\ntutorialStep:none\njoinedFirstServer:true\nnarrator:0\n");
-    std::env::set_var("LUMINOS_SMOKE", "1");
+    // LUMINOS_AGENT_E2E=1: instead of the scripted tour, hold the game at the title screen and drive the real in-game agent
+    // over the real loopback link (module toggle, resource pack reload, pause refusal). See `agent_checks`.
+    let e2e = std::env::var_os("LUMINOS_AGENT_E2E").is_some();
+    let hub = luminos_core::agent::global().expect("agent hub");
+    if e2e {
+        let packs = inst.game_dir().join("resourcepacks");
+        let _ = std::fs::create_dir_all(&packs);
+        let mut z = zip::ZipWriter::new(std::fs::File::create(packs.join("agent-test.zip")).expect("pack zip"));
+        z.start_file("pack.mcmeta", zip::write::SimpleFileOptions::default()).expect("pack.mcmeta");
+        std::io::Write::write_all(&mut z, br#"{"pack":{"pack_format":75,"description":"Luminos agent test pack"}}"#).expect("write");
+        z.finish().expect("finish pack");
+    } else {
+        std::env::set_var("LUMINOS_SMOKE", "1");
+    }
+    let mut agent_result = serde_json::Value::Null;
     let h = launch::spawn(&inst, &settings, &Account::offline("LuminosCI"), &prep).expect("spawn");
     let started = Instant::now();
     let mut seen = 0usize;
@@ -147,6 +161,11 @@ fn main() {
             last_growth = Instant::now();
         }
         seen = lines.len();
+        if e2e && title {
+            agent_result = agent_checks(hub);
+            ok = agent_result["pass"].as_bool().unwrap_or(false);
+            break;
+        }
         if startup_only {
             // baseline has no Luminos marker: give the game 8 s after the atlas line to reach the title, then count it as ready
             if atlas_at.is_some() && ready_since.is_none() {
@@ -174,11 +193,71 @@ fn main() {
         "minecraft": version, "variant": variant, "title_screen": title, "clean_exit_marker": ok, "incompatibilities": bad, "pass": pass,
         "seconds": started.elapsed().as_secs(),
         "mods": mods.len(),
-        "gui_atlas_seconds": atlas_at, "title_marker_seconds": title_at,
+        "gui_atlas_seconds": atlas_at, "title_marker_seconds": title_at, "agent": agent_result,
         "note": "seconds are measured from process spawn by the harness (500 ms polling); gui_atlas_seconds is the same vanilla log line in every variant",
     })).unwrap()).unwrap();
     println!("RESULT minecraft={version} title_screen={title} smoke_ok={ok} incompatibilities={} pass={pass}", bad.len());
     if !pass {
         std::process::exit(1);
     }
+}
+
+fn wait_for(secs: u64, f: impl Fn() -> bool) -> bool {
+    let t = Instant::now();
+    while t.elapsed() < Duration::from_secs(secs) {
+        if f() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    false
+}
+
+/// Sends `cmd`, waits for the agent's `done`, and returns (done event, the progress stages in the order they arrived).
+fn run_cmd(hub: &luminos_core::agent::Hub, cmd: serde_json::Value, secs: u64) -> (Option<serde_json::Value>, Vec<String>) {
+    let op = hub.send(cmd).expect("send");
+    let got = wait_for(secs, || hub.events_since(0).0.iter().any(|e| e["t"] == "done" && e["op"] == op));
+    let ev = hub.events_since(0).0;
+    let stages = ev.iter().filter(|e| e["t"] == "progress" && e["op"] == op).filter_map(|e| e["stage"].as_str().map(String::from)).collect();
+    (got.then(|| ev.into_iter().find(|e| e["t"] == "done" && e["op"] == op)).flatten(), stages)
+}
+
+fn flag(hub: &luminos_core::agent::Hub, list: &str, id: &str) -> Option<bool> {
+    let (done, _) = run_cmd(hub, serde_json::json!({"t": "snapshot"}), 20);
+    done?;
+    hub.hello()?[list].as_array()?.iter().find(|m| m["id"] == id)?["enabled"].as_bool()
+}
+
+fn agent_checks(hub: &luminos_core::agent::Hub) -> serde_json::Value {
+    use serde_json::json;
+    if !wait_for(60, || hub.connected() && hub.hello().is_some()) {
+        return json!({"pass": false, "error": "the agent never connected"});
+    }
+    let hello = hub.hello().unwrap_or_default();
+    let before = flag(hub, "modules", "fps");
+    let (off, off_stages) = run_cmd(hub, json!({"t": "toggle_module", "id": "fps", "on": false}), 30);
+    let after_off = flag(hub, "modules", "fps");
+    let (on, _) = run_cmd(hub, json!({"t": "toggle_module", "id": "fps", "on": true}), 30);
+    let after_on = flag(hub, "modules", "fps");
+    let (bad, _) = run_cmd(hub, json!({"t": "toggle_module", "id": "no-such-module", "on": true}), 30);
+    let pack_before = flag(hub, "packs", "file/agent-test.zip");
+    let (pack_on, pack_stages) = run_cmd(hub, json!({"t": "set_pack", "id": "file/agent-test.zip", "on": true}), 120);
+    let pack_after_on = flag(hub, "packs", "file/agent-test.zip");
+    let (pack_off, _) = run_cmd(hub, json!({"t": "set_pack", "id": "file/agent-test.zip", "on": false}), 120);
+    let pack_after_off = flag(hub, "packs", "file/agent-test.zip");
+    let (pause, _) = run_cmd(hub, json!({"t": "pause", "on": true}), 30);
+    let ok = |d: &Option<serde_json::Value>| d.as_ref().is_some_and(|d| d["ok"] == true);
+    let checks = json!({
+        "module_off_applied": ok(&off) && before == Some(true) && after_off == Some(false),
+        "module_on_restored": ok(&on) && after_on == Some(true),
+        "unknown_module_refused": bad.as_ref().is_some_and(|d| d["ok"] == false),
+        "module_stages_in_order": off_stages == ["received", "applying", "applied"],
+        "pack_enabled_via_reload": ok(&pack_on) && pack_before == Some(false) && pack_after_on == Some(true),
+        "pack_stages_include_real_reload": pack_stages == ["received", "applying", "reloading", "applied"],
+        "pack_disabled_via_reload": ok(&pack_off) && pack_after_off == Some(false),
+        "pause_refused_without_a_world": pause.as_ref().is_some_and(|d| d["ok"] == false && d["detail"].as_str().unwrap_or("").contains("no world")),
+    });
+    let pass = checks.as_object().is_some_and(|c| c.values().all(|v| v == true));
+    json!({"pass": pass, "checks": checks, "minecraft": hello["mc"], "mods_seen": hello["mods"].as_array().map(|m| m.len()), "module_stages": off_stages, "pack_stages": pack_stages,
+           "NOT_TESTED_HERE": "pause with a world open (needs a loaded singleplayer world)"})
 }

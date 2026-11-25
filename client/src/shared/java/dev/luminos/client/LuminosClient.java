@@ -42,6 +42,7 @@ public final class LuminosClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		StartupProbe.initialised();
 		Config.load();
+		Agent.start();   // no-op unless the launcher started the game with -Dluminos.agent
 		KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("luminos", "main"));
 		panelKey = bind("key.luminos.panel", InputConstants.KEY_RCONTROL, cat);   // Wurst convention: Right Ctrl = menu
 		searchKey = bind("key.luminos.search", InputConstants.KEY_RSHIFT, cat);   // Right Shift = jump to search

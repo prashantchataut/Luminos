@@ -45,6 +45,11 @@ pub struct SearchQuery {
 }
 
 pub fn search(q: &SearchQuery) -> Result<SearchResult> {
+    search_facets(q, &[])
+}
+
+/// Like [`search`], with extra Modrinth categories that must all match (the store's category chips).
+pub fn search_facets(q: &SearchQuery, categories: &[String]) -> Result<SearchResult> {
     let mut facets: Vec<Vec<String>> = vec![vec![format!("project_type:{}", q.project_type)]];
     if let Some(l) = &q.loader {
         if q.project_type == "mod" || q.project_type == "modpack" {
@@ -53,6 +58,9 @@ pub fn search(q: &SearchQuery) -> Result<SearchResult> {
     }
     if let Some(v) = &q.game_version {
         facets.push(vec![format!("versions:{v}")]);
+    }
+    for c in categories.iter().filter(|c| c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-')) {
+        facets.push(vec![format!("categories:{c}")]);
     }
     let query = vec![
         ("query", q.text.clone()),

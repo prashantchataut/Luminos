@@ -26,3 +26,15 @@ await t("cache load/save uses per-instance keys", async () => { const m = new Ma
 const golden = JSON.parse(readFileSync("../docs/fixtures/presence-golden.json", "utf8"));
 for (const c of golden.cases) await t(`presence golden: ${c.name}`, () => assert.deepEqual(R.buildPresence(c.input), c.expected));
 console.log(`${n} passed`);
+
+await t("a row is live only when its own row says so (agent-applied rows live, third-party mods queued)", () => {
+  const rows = [{ ...M("fps", true), live: true }, { ...M("appleskin", true), live: false }, { ...M("zoomify", true) }];
+  const p = P.planSwitch(rows, { fps: false, appleskin: false, zoomify: false });
+  const mode = Object.fromEntries(p.changes.map((c) => [c.id, c.mode]));
+  assert.deepEqual(mode, { fps: "live", appleskin: "next-launch", zoomify: "next-launch" });
+});
+await t("a live row never turns a queued dependency live", () => {
+  const rows = [{ ...M("a", true), live: true }, { ...M("b", true, ["a"]), live: false }];
+  const p = P.planSwitch(rows, { a: false });
+  assert.equal(p.changes.find((c) => c.id === "b").mode, "next-launch");
+});

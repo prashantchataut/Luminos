@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Boot } from "../App";
 import type { Inst } from "../api";
-import { call } from "../api";
+import { call, isTauri } from "../api";
+import { engine, fmtBytes } from "../engine";
 import { Badge, Chip, Cover, Icon, fmtTime } from "../kit";
 
 const LOADER_ICON: Record<string, string> = { Fabric: "/mods/fabric-api.png" };
@@ -11,6 +12,10 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
   const [f, setF] = useState("All");
   const [note, setNote] = useState("");
   const [playing, setPlaying] = useState<string | null>(null);
+  const [saved, setSaved] = useState<{ total_saved: number; per_instance: Record<string, number> } | null>(null); const [freeing, setFreeing] = useState(false);
+  useEffect(() => { engine.dedupStatus().then(setSaved).catch(() => {}); }, []);
+  const free = async () => { setFreeing(true); try { const r = await engine.dedupRun(); setSaved(r); toast(r.report.newly_linked ? `Shared ${r.report.newly_linked} duplicate file${r.report.newly_linked === 1 ? "" : "s"} (${r.report.reflinked} reflinked, ${r.report.hardlinked} hard-linked)` : "No new duplicates found"); } catch (e) { toast(String(e)); } finally { setFreeing(false); } };
+  const play = (i: Inst) => { if (playing === i.id) return setPlaying(null); setPlaying(i.id); if (isTauri) call("launch_instance", { id: i.id }).catch((e) => { setPlaying(null); toast(String(e)); }); };
   const shown = list.filter((i) => f === "All" || i.loader === f || (f === "Modded" && i.loader !== "Vanilla"));
   const toast = (m: string) => { setNote(m); setTimeout(() => setNote(""), 3200); };
   const clone = (i: Inst) => { setList((l) => [...l, { ...i, id: i.id + "-copy" + l.length, name: i.name + " (copy)", playtime: 0, last: "Never" }]); toast(`Cloned ${i.name} ${i.mc}. Worlds and mods were copied.`); };
@@ -21,6 +26,8 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
         {["All", "Fabric", "Vanilla"].map((x) => <Chip key={x} on={f === x} onClick={() => setF(x)}>{x}<span className="num mute">{x === "All" ? list.length : list.filter((i) => i.loader === x).length}</span></Chip>)}
         <div className="flex-1" />
         {note && <span className="t1 mute rise" role="status">{note}</span>}
+        {saved && <span className="t1 mute" title="Identical mod and pack files are stored once and shared between instances">Saved <b className="num">{fmtBytes(saved.total_saved)}</b> by sharing files</span>}
+        <button className="btn" onClick={free} disabled={freeing}>{freeing ? "Checking…" : "Free up space"}</button>
         <button className="btn btn-primary" onClick={() => go("onboarding/4")}><Icon n="plus" s={14} />New instance</button>
       </div>
       <div className="grid gap-3 stagger" style={{ gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
@@ -29,7 +36,7 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
             <div className="relative h-[104px]">
               <Cover version={i.mc} />
               <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--inset) 78%, transparent))" }} />
-              <div className="absolute left-2.5 bottom-2 flex items-center gap-1.5"><Badge tone="accent">{i.mc}</Badge><Badge>{i.loader}</Badge>{i.mods ? <Badge>{i.mods} mods</Badge> : null}</div>
+              <div className="absolute left-2.5 bottom-2 flex items-center gap-1.5"><Badge tone="accent">{i.mc}</Badge><Badge>{i.loader}</Badge>{i.mods ? <Badge>{i.mods} mods</Badge> : null}{saved?.per_instance[i.id] ? <Badge tone="ok">Saved {fmtBytes(saved.per_instance[i.id])}</Badge> : null}</div>
               {playing === i.id && <div className="absolute right-2.5 top-2"><Badge tone="ok">Running</Badge></div>}
             </div>
             <div className="p-2.5">
@@ -38,7 +45,7 @@ export default function Instances({ boot, go }: { boot: Boot; go: (r: string) =>
                 <div className="min-w-0 flex-1"><div className="t2 font-semibold truncate">{i.name}</div><div className="t1 mute truncate"><Icon n="clock" s={10} className="inline -mt-0.5 mr-1" />{fmtTime(i.playtime)} · {i.last} · Java {i.java}</div></div>
               </div>
               <div className="flex items-center gap-1 mt-2">
-                <button className="btn btn-primary !h-7 flex-1" onClick={() => setPlaying(playing === i.id ? null : i.id)}><Icon n={playing === i.id ? "stop" : "play"} s={12} />{playing === i.id ? "Stop" : "Play"}</button>
+                <button className="btn btn-primary !h-7 flex-1" onClick={() => play(i)}><Icon n={playing === i.id ? "stop" : "play"} s={12} />{playing === i.id ? "Stop" : "Play"}</button>
                 <button className="ibtn" title="Edit" aria-label={`Edit ${i.name}`} onClick={() => go("library")}><Icon n="edit" s={14} /></button>
                 <button className="ibtn" title="Clone" aria-label={`Clone ${i.name}`} onClick={() => clone(i)}><Icon n="copy" s={14} /></button>
                 <button className="ibtn" title="Export" aria-label={`Export ${i.name}`} onClick={() => exportIt(i)}><Icon n="upload" s={14} /></button>

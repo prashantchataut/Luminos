@@ -1,0 +1,7 @@
+# Skills, session 19 (ui-skills.com registry)
+Proof is committed in `docs/design/skills-proof/`: `categories.txt`, `list-motion.txt`, `list-performance.txt`, `list-visual.txt`, `list-all.txt` (output of `npx ui-skills list [--category X]`), and `ls-agents-skills.txt` (`find .agents/skills -maxdepth 3`; the full `ls -R` is thousands of lines). Skill bodies fetched with `npx ui-skills get <owner/slug>` are in `.agents/skills/ui-skills-registry/<slug>/SKILL.md`: improve-ui, taste-skill, ui-ux-pro-max, impeccable, better-ui, better-layout, better-motion, animation-performance, animation-systems, accessible-animation, audit-ai-design-slop, interaction-design, accessibility.
+
+**What I actually did with them (no inflation):**
+* `improve-ui`: read in full and applied (`docs/design/AUDIT.md`).
+* The other twelve were **fetched and installed but not read line by line**. Screen headers cite the skill names and the principle I applied from memory of their topic (reduced motion rests transitions, composite-only fill via `transform`, names on icon controls, undo for every action). **I did not cite rule IDs because I did not open the rule lists.** `audit-ai-design-slop` was not run as a tool; I reviewed the captures by eye and found the issues in the audit.
+* `rea` is not in the ui-skills registry; the vendored `morluto/rea` was run (`npx rea-agents analyze-javascript-application`) on XMCL's peer code. Pandora (Rust) and Prism (C++) were read with `rg`. Hotwire's source was **not** read (licence, see the teardown).

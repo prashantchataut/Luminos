@@ -1,6 +1,7 @@
 /** Live mod panel planner. Pure functions: what a switch would change, before anything is touched.
  *  Same dependency rules as the engine's `core/src/deps.rs` (closures are cycle-safe). */
-export type Mod = { id: string; slug: string; name: string; version: string; enabled: boolean; requires: string[]; blurb: string };
+/** `live`: the in-game agent can apply this row right now (module/pack with a connected game). Absent = fall back to `liveApply`. */
+export type Mod = { id: string; slug: string; name: string; version: string; enabled: boolean; requires: string[]; blurb: string; live?: boolean };
 export type Change = { id: string; name: string; to: boolean; why: "requested" | "needs" | "needed-by"; mode: "live" | "next-launch" };
 export type Blocked = { id: string; name: string; reason: string };
 export type Plan = { changes: Change[]; blocked: Blocked[]; download: string[]; tooMany: boolean };
@@ -43,11 +44,11 @@ export function enableClosure(mods: Mod[], id: string): { on: string[]; absent: 
   return { on: [...on].sort(), absent: [...absent].sort() };
 }
 
-/** `requests`: the mods the user flipped (id -> wanted state). `liveApply` is false until the in-game agent exists. */
+/** `requests`: the mods the user flipped (id -> wanted state). A change is "live" only when its row says `live`; nothing else can claim it. */
 export function planSwitch(mods: Mod[], requests: Record<string, boolean>, liveApply = false): Plan {
   const m = byId(mods); const plan: Plan = { changes: [], blocked: [], download: [], tooMany: Object.keys(requests).length > MAX_LIVE };
   const seen = new Map<string, Change>();
-  const mode = (x: Mod): Change["mode"] => (liveApply && !QUEUE_ONLY[x.slug] ? "live" : "next-launch");
+  const mode = (x: Mod): Change["mode"] => ((x.live ?? (liveApply && !QUEUE_ONLY[x.slug])) ? "live" : "next-launch");
   const add = (x: Mod, to: boolean, why: Change["why"]) => { if (x.enabled !== to && !seen.has(x.id)) { const c = { id: x.id, name: x.name, to, why, mode: mode(x) }; seen.set(x.id, c); plan.changes.push(c); } };
   for (const [id, to] of Object.entries(requests)) {
     const x = m.get(id); if (!x) continue;

@@ -1,0 +1,40 @@
+{
+  "agent": {
+    "NOT_TESTED_HERE": "pause with a world open (needs a loaded singleplayer world)",
+    "checks": {
+      "module_off_applied": true,
+      "module_on_restored": true,
+      "module_stages_in_order": true,
+      "pack_disabled_via_reload": true,
+      "pack_enabled_via_reload": true,
+      "pack_stages_include_real_reload": true,
+      "pause_refused_without_a_world": true,
+      "unknown_module_refused": true
+    },
+    "minecraft": "1.21.11",
+    "mods_seen": 28,
+    "module_stages": [
+      "received",
+      "applying",
+      "applied"
+    ],
+    "pack_stages": [
+      "received",
+      "applying",
+      "reloading",
+      "applied"
+    ],
+    "pass": true
+  },
+  "clean_exit_marker": true,
+  "gui_atlas_seconds": 23.512145939,
+  "incompatibilities": [],
+  "minecraft": "1.21.11",
+  "mods": 27,
+  "note": "seconds are measured from process spawn by the harness (500 ms polling); gui_atlas_seconds is the same vanilla log line in every variant",
+  "pass": true,
+  "seconds": 32,
+  "title_marker_seconds": 24.012388253,
+  "title_screen": true,
+  "variant": "full"
+}

@@ -8,6 +8,8 @@ use luminos_core::{
     instances::{self, Loader},
     launch, modrinth, namecheck, playtime, preset, servers, storage, update,
 };
+mod discord;
+mod engine;
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -244,7 +246,7 @@ async fn create_instance(name: String, mc: String, with_preset: bool) -> R<Value
 
 /// Starts the game on its own thread and streams `launch` events: preparing -> launching -> running -> exited.
 #[tauri::command]
-async fn launch_instance(app: AppHandle, id: String) -> R<()> {
+async fn launch_instance(app: AppHandle, id: String, quick: Option<String>) -> R<()> {
     let inst = instances::list().into_iter().find(|i| i.id == id).ok_or("That instance no longer exists")?;
     std::thread::spawn(move || {
         let emit = |v: Value| {
@@ -263,6 +265,12 @@ async fn launch_instance(app: AppHandle, id: String) -> R<()> {
                 }
             });
         }
+        // Queued switches ("applies next launch") are applied now, before the game starts.
+        match luminos_core::pending::apply_all(&inst.game_dir()) {
+            Ok(log) if !log.is_empty() => emit(json!({ "id": inst.id, "phase": "pending-applied", "log": log })),
+            Err(e) => return emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
+            _ => {}
+        }
         let prep = launch::prepare(&inst, &settings, &progress);
         stop.store(true, Ordering::Relaxed);
         let prep = match prep {
@@ -270,10 +278,31 @@ async fn launch_instance(app: AppHandle, id: String) -> R<()> {
             Err(e) => return emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
         };
         emit(json!({ "id": inst.id, "phase": "launching", "mods": serde_json::to_value(&prep.mod_report).unwrap_or(Value::Null) }));
-        match launch::spawn(&inst, &settings, &account, &prep) {
+        match launch::spawn_ext(&inst, &settings, &account, &prep, quick.as_deref()) {
             Ok(h) => {
                 emit(json!({ "id": inst.id, "phase": "running" }));
+                // Keep Discord's state in step with the game: ask the in-game agent for its world/server every few seconds.
+                let watching = Arc::new(AtomicBool::new(true));
+                {
+                    let w = watching.clone();
+                    std::thread::spawn(move || {
+                        discord::set_world("menus", None);
+                        while w.load(Ordering::Relaxed) {
+                            std::thread::sleep(std::time::Duration::from_secs(5));
+                            if let Some(hub) = luminos_core::agent::global().filter(|h| h.connected()) {
+                                let _ = hub.send(json!({ "t": "snapshot" }));
+                                if let Some(hello) = hub.hello() {
+                                    let world = hello["world"].as_str().unwrap_or("menus").to_string();
+                                    let server = hello["server"].as_str().filter(|s| !s.is_empty()).map(String::from);
+                                    discord::set_world(&world, server);
+                                }
+                            }
+                        }
+                        discord::clear_world();
+                    });
+                }
                 let code = launch::wait_and_record(&h);
+                watching.store(false, Ordering::Relaxed);
                 // Push whatever the player changed in this session (keybinds, HUD layout, servers) to the shared store.
                 let synced = if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
                     luminos_core::sync::Syncer::new(Default::default()).reconcile(&inst.id, &inst.game_dir()).ok()
@@ -428,6 +457,10 @@ fn app_ready() {
 pub fn run() {
     let _ = STARTED.set(std::time::Instant::now());
     tauri::Builder::default()
+        .setup(|_| {
+            discord::start();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             app_ready,
             bootstrap,
@@ -454,7 +487,31 @@ pub fn run() {
             playtime_stats,
             storage_areas,
             clear_cache,
-            check_update
+            check_update,
+            engine::live_snapshot,
+            engine::live_apply,
+            engine::live_cancel_batch,
+            engine::live_events,
+            engine::live_pause,
+            engine::store_search,
+            engine::store_install,
+            engine::store_installed,
+            engine::dedup_status,
+            engine::dedup_run,
+            engine::deps_check,
+            engine::redact_scrub,
+            engine::quickplay_parse,
+            engine::quickplay_shortcut,
+            engine::presence_update,
+            engine::presence_status,
+            engine::presence_preview,
+            engine::shares_scan,
+            engine::shares_resolve,
+            engine::p2p_room_code,
+            engine::p2p_guest_listen,
+            engine::p2p_host_dial,
+            engine::p2p_write,
+            engine::p2p_close
         ])
         .run(tauri::generate_context!())
         .expect("error while running Luminos");

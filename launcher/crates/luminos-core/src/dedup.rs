@@ -4,9 +4,10 @@
 //!   same data (a hard link), so nothing is copied and nothing is lost if linking fails.
 //! * A ledger (`<store>/ledger.json`) records which instance files were replaced and how many bytes that saved, so the
 //!   "saved N" figure shown in the UI is measured, not guessed, and survives restarts.
-//! * Hard links work on NTFS and on every Unix file system, on one volume only. Files on another volume are skipped and
-//!   counted. **Reflinks (ReFS Dev Drive block cloning) are NOT built**: they cannot be tested without Windows + ReFS, and
-//!   hard links already give the saving. Jars are never edited in place, which is the only case where reflinks are safer.
+//! * Order of attempts (same as Pandora's `fastcopy`): **reflink** (ReFS / Dev Drive block cloning on Windows, Btrfs / XFS on
+//!   Linux, APFS on macOS; independent files that share blocks), then **hard link** (NTFS and every Unix file system, one
+//!   volume only), else the file is left alone and counted. Reflink success is **UNVERIFIED on ReFS** (no Windows here); the
+//!   fallback to hard links is tested.
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -28,6 +29,8 @@ pub struct Report {
     pub scanned: usize,
     pub newly_linked: usize,
     pub skipped_other_volume: usize,
+    pub reflinked: usize,
+    pub hardlinked: usize,
     pub bytes_saved_now: u64,
     /// Total saved by every link still in place (from the ledger).
     pub bytes_saved_total: u64,
@@ -54,6 +57,41 @@ pub fn sha256_file(p: &Path) -> Result<String> {
         h.update(&buf[..n]);
     }
     Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Method {
+    Reflink,
+    HardLink,
+}
+
+/// Make `dst` (which must not exist) share `src`'s data: reflink first, hard link second. `None` = neither is possible here.
+pub fn link_or_clone(src: &Path, dst: &Path) -> Option<Method> {
+    if std::env::var_os("LUMINOS_NO_REFLINK").is_none() && reflink_copy::reflink(src, dst).is_ok() {
+        return Some(Method::Reflink);
+    }
+    let _ = fs::remove_file(dst); // a failed reflink can leave an empty file behind
+    fs::hard_link(src, dst).ok().map(|_| Method::HardLink)
+}
+
+/// Bytes saved attributed to each directory (same order as `dirs`): every ledger entry after the first one for its hash is
+/// a copy that costs nothing. Summing the result equals `Report::bytes_saved_total`.
+pub fn saved_per_dir(store: &Path, dirs: &[PathBuf]) -> Vec<u64> {
+    let ledger = load(store);
+    let mut seen: BTreeMap<&str, ()> = BTreeMap::new();
+    let mut out = vec![0u64; dirs.len()];
+    for (k, (h, s)) in &ledger.linked {
+        if seen.insert(h.as_str(), ()).is_none() {
+            continue; // the first name pays for the bytes
+        }
+        if !fs::metadata(k).map(|m| m.len() == *s).unwrap_or(false) {
+            continue;
+        }
+        if let Some(i) = dirs.iter().position(|d| Path::new(k).starts_with(d)) {
+            out[i] += s;
+        }
+    }
+    out
 }
 
 fn store_path(store: &Path, hash: &str) -> PathBuf {
@@ -107,7 +145,7 @@ pub fn dedup(dirs: &[PathBuf], store: &Path) -> Result<Report> {
             fs::create_dir_all(sp.parent().context("store parent")?)?;
             if !sp.exists() {
                 // First sighting: the store gets a second name for this file's data. Zero bytes copied.
-                if fs::hard_link(&path, &sp).is_err() {
+                if link_or_clone(&path, &sp).is_none() {
                     rep.skipped_other_volume += 1;
                     continue;
                 }
@@ -117,15 +155,19 @@ pub fn dedup(dirs: &[PathBuf], store: &Path) -> Result<Report> {
             // Replace this file with a link to the store copy: link to a temp name, then rename over (never a gap with no file).
             let tmp = path.with_extension("luminos-dedup-tmp");
             let _ = fs::remove_file(&tmp);
-            if fs::hard_link(&sp, &tmp).is_err() {
+            let Some(method) = link_or_clone(&sp, &tmp) else {
                 rep.skipped_other_volume += 1;
                 continue;
-            }
+            };
             if let Err(e) = fs::rename(&tmp, &path) {
                 let _ = fs::remove_file(&tmp);
                 return Err(e).with_context(|| format!("replace {}", path.display()));
             }
             ledger.linked.insert(key, (hash, size));
+            match method {
+                Method::Reflink => rep.reflinked += 1,
+                Method::HardLink => rep.hardlinked += 1,
+            }
             rep.newly_linked += 1;
             rep.bytes_saved_now += size;
         }

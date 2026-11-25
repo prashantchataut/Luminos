@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge, LRow, Switch } from "../kit";
 import { set, useSettings } from "../store";
 import { buildPresence } from "../presence";
+import { engine, type PresenceStatus } from "../engine";
 
 const STATES = [["menus", "In menus"], ["singleplayer", "Singleplayer"], ["multiplayer", "Server"]] as const;
 const SAMPLE = { instanceName: "Survival 1.21", loader: "fabric", mcVersion: "1.21.11", serverAddress: "play.example.net" };
@@ -14,9 +15,12 @@ export default function PresenceCard() {
   const [t0] = useState(() => Math.floor(Date.now() / 1000) - 754); const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => { const i = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000); return () => clearInterval(i); }, []);
   const a = buildPresence({ ...SAMPLE, enabled: s.presenceOn, state, shareServer: s.presenceServer, shareInstanceName: s.presenceName, startedUnix: t0 });
+  const [st, setSt] = useState<PresenceStatus | null>(null);
+  useEffect(() => { const t = setInterval(() => engine.presenceStatus().then(setSt).catch(() => {}), 2000); engine.presenceStatus().then(setSt).catch(() => {}); return () => clearInterval(t); }, []);
+  const STATUS: Record<string, string> = { "no-app-id": "Not started: no Discord application id is set in this build (docs/DISCORD.md)", idle: "Starts when you launch a game", connecting: "Looking for Discord…", waiting: "Discord is not running. Will retry", connected: "Live on Discord" };
   return (
     <div>
-      <div className="eyebrow mb-1.5 px-1">Discord</div>
+      <div className="eyebrow mb-1.5 px-1">Discord <Badge tone={st?.state === "connected" ? "ok" : "mute"}>{st ? STATUS[st.state] ?? st.state : "…"}</Badge></div>
       <div className="panel p-1.5">
         <LRow icon="user" name="Show Luminos on Discord" desc="Friends see “Playing Luminos”. Off removes it immediately."><Switch label="Show Luminos on Discord" on={s.presenceOn} onChange={(v) => set("presenceOn", v)} /></LRow>
         <LRow icon="layers" name="Share the instance name" desc="Shown as the first line. Off shows “Playing with Luminos”."><Switch label="Share the instance name" on={s.presenceName} onChange={(v) => set("presenceName", v)} /></LRow>

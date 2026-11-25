@@ -97,6 +97,24 @@ jobs:
             done ) &
           launcher/target/release/examples/smoke ${{ matrix.mc }} out 2>&1 | tee out/run.log
           sleep 2; cat out/capture.log
+      - name: Agent end to end (real game, real agent link: module toggle, pack reload, pause refusal)
+        if: ${{ matrix.mc == '1.21.11' }}
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          GALLIUM_DRIVER: llvmpipe
+          vblank_mode: "0"
+          MESA_GL_VERSION_OVERRIDE: "4.6"
+          MESA_GLSL_VERSION_OVERRIDE: "460"
+          LUMINOS_CLIENT_JAR_DIR: ${{ github.workspace }}/jar
+          LUMINOS_AGENT_E2E: "1"
+        run: |
+          set -o pipefail
+          export LUMINOS_CLIENT_JAR="$(ls $GITHUB_WORKSPACE/jar/luminos-client-*-mc1.21.11.jar | head -1)"
+          Xvfb :98 -ac -screen 0 1920x1080x24 +extension GLX +render -noreset > xvfb98.log 2>&1 &
+          sleep 2; export DISPLAY=:98
+          mkdir -p out-agent
+          launcher/target/release/examples/smoke 1.21.11 out-agent 2>&1 | tail -5
+          python3 -c "import json;d=json.load(open('out-agent/result.json'))['agent'];print(json.dumps(d,indent=1));raise SystemExit(0 if d.get('pass') else 1)"
       - name: Summary
         if: always()
         run: |
