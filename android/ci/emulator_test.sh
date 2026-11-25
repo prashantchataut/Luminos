@@ -28,7 +28,19 @@ start --es lx_tab library;  shot 05-library 3
 start --es lx_tab skins;    shot 06-skins 5
 start --es lx_tab skins;    shot 06b-skins-turned 3
 start --es lx_tab settings; shot 07-settings 3
-echo "== crash check"
+echo "== what the user sees on Home after Prepare (exact text, from the real UI tree)"
+start --es lx_tab home; sleep 3
+adb shell uiautomator dump /sdcard/home.xml >/dev/null 2>&1; adb pull /sdcard/home.xml "$OUT/home-ui.xml" >/dev/null 2>&1 || true
+python3 - "$OUT" <<'PY' || true
+import re,sys
+x=open(sys.argv[1]+"/home-ui.xml",encoding="utf8").read()
+t=[m for m in re.findall(r'text="([^"]*)"',x) if m]
+msg=[m for m in t if "engine stage 3" in m or "not in this build" in m]
+open(sys.argv[1]+"/launch-message.txt","w").write("\n".join(msg) if msg else "NOT FOUND; texts on screen: "+" | ".join(t[:40]))
+print("launch message:",msg or "not found")
+PY
+echo "== crash and ANR check"
+if adb logcat -d | grep -q "ANR in app.luminos.mobile"; then echo "APP ANR"; exit 1; fi
 if adb logcat -d | grep -q "FATAL EXCEPTION"; then echo "APP CRASHED"; adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -60; exit 1; fi
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -2
 [ "$status" = ok ] || { echo "ENGINE CHECK DID NOT PASS ($status)"; exit 1; }
