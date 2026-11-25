@@ -1,6 +1,6 @@
 // Renders the v0.9 screens from the built dist (vite preview on :4173). Usage: node tools/shots-v09.mjs [which]
 import { chromium } from "playwright";
-const out = "../docs/launcher-shots/v09/";
+const out = (process.env.OUT || "../docs/launcher-shots/v09") + "/";
 const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const ctx = await b.newContext({ viewport: { width: 1360, height: 820 }, deviceScaleFactor: 1.5 });
 const p = await ctx.newPage(); const errs = [];

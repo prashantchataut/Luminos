@@ -50,9 +50,15 @@ pub fn is_newer(latest: &str, current: &str) -> bool {
 
 /// Pick the newest Windows launcher release from the GitHub `releases` array.
 pub fn pick_release(releases: &Value) -> Option<Release> {
+    // Release candidates are skipped unless explicitly asked for, so nobody is moved onto an rc by accident.
+    pick_release_opts(releases, std::env::var("LUMINOS_UPDATE_PRERELEASE").is_ok_and(|v| v == "1"))
+}
+
+/// Same as [`pick_release`] with the prerelease choice made by the caller.
+pub fn pick_release_opts(releases: &Value, include_pre: bool) -> Option<Release> {
     let mut best: Option<((u64, u64, u64), Release)> = None;
     for r in releases.as_array()? {
-        if r["draft"].as_bool() == Some(true) || r["prerelease"].as_bool() == Some(true) {
+        if r["draft"].as_bool() == Some(true) || (r["prerelease"].as_bool() == Some(true) && !include_pre) {
             continue;
         }
         let tag = r["tag_name"].as_str()?;
@@ -208,5 +214,25 @@ mod tests {
             hash_from_sums("short  Luminos-Setup.exe", "Luminos-Setup.exe"),
             None
         );
+    }
+}
+
+#[cfg(test)]
+mod prerelease_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn rel(tag: &str, pre: bool) -> Value {
+        json!({"tag_name": tag, "draft": false, "prerelease": pre, "body": "n", "html_url": format!("https://github.com/x/y/releases/tag/{tag}"),
+            "assets": [{"name": SETUP_ASSET, "browser_download_url": format!("https://x/{tag}/{SETUP_ASSET}"), "size": 10},
+                       {"name": SUMS_ASSET, "browser_download_url": format!("https://x/{tag}/{SUMS_ASSET}"), "size": 1}]})
+    }
+
+    #[test]
+    fn release_candidates_are_hidden_by_default_and_found_when_asked() {
+        let list = json!([rel("v1.0.0-rc1", true), rel("v0.6.0", false), rel("client-v0.3.0", false)]);
+        assert_eq!(pick_release_opts(&list, false).map(|r| r.tag), Some("v0.6.0".to_string()));
+        assert_eq!(pick_release_opts(&list, true).map(|r| r.tag), Some("v1.0.0-rc1".to_string()));
+        assert!(is_newer("v1.0.0-rc1", "0.6.0"));
     }
 }

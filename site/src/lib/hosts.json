@@ -210,22 +210,6 @@
       "required_to_play": false,
       "sends": "Only when you add an Ely.by account: the username and password you type, sent over HTTPS to Ely.by.",
       "category_label": "Sign-in"
-    },
-    {
-      "host": "minotar.net",
-      "purpose": "Fetch a skin by username when you import one",
-      "category": "skins",
-      "required_to_play": false,
-      "sends": "The username you typed.",
-      "category_label": "Skins"
-    },
-    {
-      "host": "mc-heads.net",
-      "purpose": "Fallback skin lookup by username",
-      "category": "skins",
-      "required_to_play": false,
-      "sends": "The username you typed.",
-      "category_label": "Skins"
     }
   ]
 }

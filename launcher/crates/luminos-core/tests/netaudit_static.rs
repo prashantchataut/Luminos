@@ -15,12 +15,12 @@ const NOT_A_REQUEST: &[(&str, &str)] = &[
         "verification URL the user opens in their browser (shown in a unit test / UI)",
     ),
     ("www.minecraft.net", "link opened in the user's browser"),
-    ("x", "placeholder host in unit-test fixtures"),
+    ("x", "stand-in host in unit-test fixtures"),
     ("join", "luminos://join parser test fixture"),
     ("your-luminos-auth.example", "UI hint text"),
     (
         "auth.luminos.invalid",
-        "placeholder API root; `.invalid` never resolves",
+        "stand-in API root; `.invalid` never resolves",
     ),
 ];
 

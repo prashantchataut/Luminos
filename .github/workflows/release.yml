@@ -1,11 +1,13 @@
 name: Release Luminos
-# Tag `v0.6.0` (or run manually) -> builds the Tauri 2 app, installs it silently on a clean Windows runner,
-# measures cold start / installer size / idle RAM, screenshots the real window, and publishes Luminos-Setup.exe.
+# Tag `vX.Y.Z` or `vX.Y.Z-rcN` -> one pipeline: Windows installer + portable zip (clean-runner install and measure), client jars for every
+# supported Minecraft version, SHA256SUMS.txt over all of it, build attestations, EN/ES notes from CHANGELOG.md, regenerated
+# client-compat.json and winget/scoop manifests, then the launcher's own update check run against the published release.
+# A tag containing "-" is published as a PRERELEASE. Stable is not cut until signing and a real-desktop run exist (docs/REAL_DESKTOP_CHECKLIST.md).
 on:
   push:
     tags: ["v*"]
   pull_request:
-    paths: ["app/**", "launcher/crates/luminos-core/**", ".github/workflows/release.yml", "scripts/perf-windows.ps1"]
+    paths: ["app/**", "client/**", "client26/**", "launcher/crates/luminos-core/**", ".github/workflows/release.yml", "scripts/**"]
   workflow_dispatch:
     inputs:
       version:
@@ -21,37 +23,50 @@ jobs:
   windows:
     runs-on: windows-latest
     env:
-      # Signing is a one-command switch: add the secrets listed in docs/SIGNING.md and these become true. No secrets, no signing, installer still built.
       HAVE_AZURE_SIGNING: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve version
+      - name: Resolve version and stamp it into the app
         id: v
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; elif [ "${{ github.ref_type }}" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="0.6.0"; fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
+          node -e "const fs=require('fs');const v=process.argv[1];for(const f of ['app/package.json','app/src-tauri/tauri.conf.json']){const j=JSON.parse(fs.readFileSync(f));j.version=v;fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n')}" "$V"
+          sed -i -E '0,/^version = ".*"/s//version = "'"$V"'"/' app/src-tauri/Cargo.toml
+          grep -m1 '^version' app/src-tauri/Cargo.toml
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: app/package-lock.json }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "app/src-tauri" }
+      - name: Front-end tests (themes are colours only, perf logic)
+        working-directory: app
+        run: |
+          npm ci
+          npm test
+      - name: Core tests incl. the real Windows Credential Manager round trip
+        working-directory: launcher
+        env: { LUMINOS_REQUIRE_OS_STORE: "1" }
+        run: cargo test -p luminos-core --lib -- --nocapture accounts::tests secrets
       - name: Build the installer (Tauri 2, NSIS)
         working-directory: app
         env:
-          # static CRT: no Visual C++ redistributable needed on a clean machine
           RUSTFLAGS: "-C target-feature=+crt-static"
-        run: |
-          npm ci
-          npx tauri build --bundles nsis
-      - name: Collect
+        run: npx tauri build --bundles nsis
+      - name: Collect installer and portable zip
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           $nsis = Get-ChildItem app\src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
           Copy-Item $nsis.FullName dist\Luminos-Setup.exe
-          Get-FileHash dist\Luminos-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Luminos-Setup.exe" } | Set-Content dist\SHA256SUMS.txt
-          Get-Content dist\SHA256SUMS.txt
+          $exe = Get-ChildItem app\src-tauri\target\release\*.exe | Select-Object -First 1
+          New-Item -ItemType Directory -Force portable | Out-Null
+          Copy-Item $exe.FullName portable\luminos.exe
+          Set-Content portable\Luminos-Portable.cmd "@echo off`r`nset LUMINOS_HOME=%~dp0data`r`nstart `"`" `"%~dp0luminos.exe`""
+          Set-Content portable\README.txt "Luminos portable. Run Luminos-Portable.cmd: everything is kept in the data folder next to it. Unsigned build; see docs/WINDOWS_SECURITY.md."
+          Compress-Archive -Path portable\* -DestinationPath dist\Luminos-Portable.zip -Force
+          Get-ChildItem dist | Format-Table Name, Length
       - name: Sign installer (Azure Trusted Signing, only when secrets exist)
         if: ${{ env.HAVE_AZURE_SIGNING == 'true' }}
         uses: azure/trusted-signing-action@v0.5.1
@@ -67,11 +82,9 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
-      - name: Checksums (after signing, so they match the published file)
+      - name: Authenticode status
         shell: pwsh
         run: |
-          Get-FileHash dist\Luminos-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Luminos-Setup.exe" } | Set-Content dist\SHA256SUMS.txt
-          Get-Content dist\SHA256SUMS.txt
           $sig = Get-AuthenticodeSignature dist\Luminos-Setup.exe
           "Authenticode status: $($sig.Status)  (NotSigned is expected until docs/SIGNING.md is done)"
       - name: Install, launch and measure (clean runner)
@@ -80,18 +93,87 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: perf, path: perf/* }
-      - name: Attest build provenance
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/attest-build-provenance@v2
-        with: { subject-path: dist/Luminos-Setup.exe }
       - uses: actions/upload-artifact@v4
         with: { name: windows, path: dist/* }
-      - name: Publish
-        if: startsWith(github.ref, 'refs/tags/v')
+
+  client-jars:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: "26.3", dir: client26 }
+          - { mc: "1.21.11", dir: client }
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: "${{ matrix.dir }}" } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew && ./gradlew build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar-${{ matrix.mc }}
+          path: ${{ matrix.dir }}/build/libs/luminos-client-*-mc${{ matrix.mc }}.jar
+
+  publish:
+    needs: [windows, client-jars]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/download-artifact@v4
+        with: { path: art }
+      - name: Gather, checksum, notes, compat, manifests
+        run: |
+          mkdir -p rel pkg
+          cp art/windows/* rel/
+          cp art/jar-*/*.jar rel/
+          node scripts/gen-compat.mjs rel "$GITHUB_REF_NAME" client/client-compat.json rel/client-compat.json
+          (cd rel && sha256sum Luminos-Setup.exe Luminos-Portable.zip *.jar client-compat.json > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          node scripts/release-notes.mjs "$GITHUB_REF_NAME" > notes.md
+          node scripts/gen-package-manifests.mjs "$GITHUB_REF_NAME" rel/SHA256SUMS.txt pkg
+          tar -czf rel/package-manifests.tar.gz -C pkg .
+          (cd rel && sha256sum package-manifests.tar.gz >> SHA256SUMS.txt)
+      - name: Attest build provenance (installer, zip, jars, compat, manifests)
+        uses: actions/attest-build-provenance@v2
+        with: { subject-path: "rel/*" }
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          name: Luminos ${{ steps.v.outputs.version }}
-          body_path: docs/RELEASE_NOTES.md
-          files: |
-            dist/Luminos-Setup.exe
-            dist/SHA256SUMS.txt
+          name: Luminos ${{ github.ref_name }}
+          body_path: notes.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: rel/*
+      - name: Commit regenerated client-compat.json and manifests to main
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main && git checkout -B compat-update origin/main
+          cp rel/client-compat.json client/client-compat.json
+          mkdir -p packaging && rm -rf packaging/* && cp -r pkg/* packaging/
+          git add client/client-compat.json packaging
+          git diff --cached --quiet && echo "nothing to commit" || { git commit -m "release ${GITHUB_REF_NAME}: client-compat.json (sha256) and winget/scoop manifests, generated from this release's SHA256SUMS.txt" && git push origin HEAD:main; }
+
+  update-check:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: launcher }
+      - name: Run the launcher's real update check against the published release
+        working-directory: launcher
+        env: { LUMINOS_HOME: "${{ runner.temp }}/lhome" }
+        run: |
+          set -o pipefail
+          cargo build -q -p luminos-core --example update_check
+          echo "default (release candidates hidden):" | tee -a "$GITHUB_STEP_SUMMARY"
+          ./target/debug/examples/update_check 0.6.0 | tee default.json | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "opt-in (LUMINOS_UPDATE_PRERELEASE=1), installer downloaded and hash-verified against SHA256SUMS.txt:" | tee -a "$GITHUB_STEP_SUMMARY"
+          LUMINOS_UPDATE_PRERELEASE=1 ./target/debug/examples/update_check 0.6.0 --verify-download | tee optin.json | tee -a "$GITHUB_STEP_SUMMARY"
+          node -e "const j=JSON.parse(require('fs').readFileSync('optin.json','utf8'));if(!j.offered||j.tag!==process.env.GITHUB_REF_NAME||!j.download_verified){console.error('updater did not offer '+process.env.GITHUB_REF_NAME);process.exit(1)}console.log('UPDATER SEES',j.tag)"
+      - uses: actions/upload-artifact@v4
+        with: { name: update-check, path: "launcher/*.json" }

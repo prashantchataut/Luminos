@@ -1,8 +1,12 @@
 name: Deploy site to GitHub Pages
+# main -> build + deploy + verify the LIVE site. Pull requests -> build only (so a PR branch always has a site check,
+# but never deploys: the github-pages environment only accepts main, which is why GitHub shows "not deployed" on a PR branch).
 on:
   push:
     branches: [main]
     paths: ["site/**", "docs/screenshots/**", "brand/**", ".github/workflows/pages.yml"]
+  pull_request:
+    paths: ["site/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -28,17 +32,16 @@ jobs:
           cache: npm
           cache-dependency-path: site/package-lock.json
       - run: npm ci
-      - name: Copy launcher renders into the site
-        run: |
-          mkdir -p public/screenshots
-          cp ../docs/screenshots/*.png public/screenshots/
+      - run: npx tsc --noEmit
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: site/dist
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -46,3 +49,24 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the live site; the download and changelog links must point at the release in site/src/lib/release.json
+        run: |
+          URL="https://prashantchataut.github.io/Luminos/"
+          TAG=$(node -p "require('./site/src/lib/release.json').tag")
+          for i in 1 2 3 4 5 6; do
+            html=$(curl -fsS "$URL?cb=$RANDOM" || true)
+            js=$(printf '%s' "$html" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+            [ -n "$js" ] && curl -fsS "$URL$js" -o live.js && grep -q "releases/download/$TAG/Luminos-Setup.exe" live.js && break
+            echo "live site not on $TAG yet (try $i)"; sleep 20
+          done
+          grep -q "releases/download/$TAG/Luminos-Setup.exe" live.js || { echo "LIVE SITE DOES NOT LINK $TAG"; exit 1; }
+          for u in "https://github.com/prashantchataut/Luminos/releases/download/$TAG/Luminos-Setup.exe" "https://github.com/prashantchataut/Luminos/releases/tag/$TAG" "https://github.com/prashantchataut/Luminos/blob/main/CHANGELOG.md"; do
+            code=$(curl -sL -o /dev/null -w '%{http_code}' -I "$u"); echo "$code $u"; [ "$code" = "200" ] || exit 1
+          done
+          echo "LIVE SITE OK for $TAG" | tee -a "$GITHUB_STEP_SUMMARY"
