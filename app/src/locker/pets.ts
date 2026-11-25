@@ -6,6 +6,7 @@ export type PetKind = "cube" | "dragon" | "wisp" | "minime";
 
 type V = { x: number; y: number; z: number };
 export type Part = { rotation: V; position?: V };
+export const PARTS = ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg"] as const;
 export type Rig = { head: Part; body: Part; rightArm: Part; leftArm: Part; rightLeg: Part; leftLeg: Part };
 
 const air = (t: number, period = 1.2) => { const ph = (t % period) / period; return ph < 0.7 ? Math.sin((ph / 0.7) * Math.PI) : 0; };
@@ -13,7 +14,8 @@ const hit = (t: number, period = 1.6) => { const ph = (t % period) / period; ret
 
 /** Poses the six body parts and returns how the whole body moves: lift (y), pitch (lean or lie down, radians) and a red flash 0..1. */
 export function applyMove(rig: Rig, move: Move, t: number): { lift: number; pitch: number; flash: number } {
-  for (const p of Object.values(rig)) { p.rotation.x = 0; p.rotation.y = 0; p.rotation.z = 0; }
+  // Only the six named parts: in the scene `rig` is a three.js Group, and Object.values() on it also returns position, quaternion, uuid...
+  for (const k of PARTS) { const p = rig[k]; p.rotation.x = 0; p.rotation.y = 0; p.rotation.z = 0; }
   let lift = 0, pitch = 0, flash = 0;
   if (move === "idle") {
     rig.rightArm.rotation.z = 0.06 + Math.sin(t * 1.6) * 0.03; rig.leftArm.rotation.z = -rig.rightArm.rotation.z;
