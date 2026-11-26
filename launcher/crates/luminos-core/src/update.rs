@@ -11,6 +11,9 @@ use std::path::PathBuf;
 
 pub const RELEASES_API: &str =
     "https://api.github.com/repos/prashantchataut/Luminos/releases?per_page=40";
+/// GitHub's own "latest release" pointer. Tried first; see [`check_latest`] for why it is not trusted blindly.
+pub const RELEASE_LATEST_API: &str =
+    "https://api.github.com/repos/prashantchataut/Luminos/releases/latest";
 pub const SETUP_ASSET: &str = "Luminos-Setup.exe";
 pub const SUMS_ASSET: &str = "SHA256SUMS.txt";
 
@@ -100,6 +103,17 @@ pub fn check(current: &str) -> Result<Option<Release>> {
     Ok(pick_release(&v).filter(|r| is_newer(&r.version, current)))
 }
 
+/// Ask `/releases/latest` first. The repo also publishes `android-v*` and `client-v*` releases, so when
+/// that pointer is not a launcher release with an installer we fall back to scanning the list.
+pub fn check_latest(current: &str) -> Result<Option<Release>> {
+    if let Ok(v) = http::get_json::<Value>(RELEASE_LATEST_API) {
+        if let Some(r) = pick_release(&Value::Array(vec![v])) {
+            return Ok(is_newer(&r.version, current).then_some(r));
+        }
+    }
+    check(current)
+}
+
 /// Extract the hash for `file` from a `sha256sum`-style text (`<hex>  <name>`).
 pub fn hash_from_sums(text: &str, file: &str) -> Option<String> {
     text.lines().find_map(|l| {
@@ -111,6 +125,15 @@ pub fn hash_from_sums(text: &str, file: &str) -> Option<String> {
 
 /// Download the installer to the cache and verify its SHA-256. A mismatch deletes the file and fails.
 pub fn download_verified(rel: &Release) -> Result<PathBuf> {
+    download_verified_with_progress(rel, &mut |_, _| {})
+}
+
+/// Same as [`download_verified`], reporting `(bytes_done, bytes_total)` while streaming to disk.
+pub fn download_verified_with_progress(
+    rel: &Release,
+    on_progress: &mut dyn FnMut(u64, u64),
+) -> Result<PathBuf> {
+    use std::io::{Read, Write};
     let sums_url = rel.sums_url.as_ref().ok_or_else(|| {
         anyhow!("this release has no SHA256SUMS.txt; refusing to install an unverified file")
     })?;
@@ -120,7 +143,23 @@ pub fn download_verified(rel: &Release) -> Result<PathBuf> {
     let dir = paths::cache_dir().join("update");
     std::fs::create_dir_all(&dir)?;
     let dest = dir.join(format!("Luminos-Setup-{}.exe", rel.version));
-    http::download_to(&rel.setup_url, &dest)?;
+    let tmp = dest.with_extension("part");
+    let mut resp = http::send_get(&rel.setup_url, &[])?;
+    let total = resp.body().content_length().unwrap_or(rel.setup_size);
+    let mut reader = resp.body_mut().with_config().limit(u64::MAX).reader();
+    let mut file = std::fs::File::create(&tmp)?;
+    let (mut done, mut buf) = (0u64, vec![0u8; 64 * 1024]);
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n])?;
+        done += n as u64;
+        on_progress(done, total.max(done));
+    }
+    drop(file);
+    std::fs::rename(&tmp, &dest)?;
     let got = compat::sha256_file(&dest)?;
     if got != want {
         let _ = std::fs::remove_file(&dest);
@@ -129,18 +168,14 @@ pub fn download_verified(rel: &Release) -> Result<PathBuf> {
     Ok(dest)
 }
 
-/// Run the verified installer silently. Windows only; the caller should exit the launcher afterwards.
+/// Run the verified NSIS installer silently (`/S /UPDATE`). Windows only; the caller should exit the launcher afterwards.
 pub fn run_installer(path: &std::path::Path) -> Result<()> {
     if !cfg!(windows) {
         bail!("silent install is Windows-only; open the release page instead");
     }
     std::process::Command::new(path)
-        .args([
-            "/SILENT",
-            "/SUPPRESSMSGBOXES",
-            "/CLOSEAPPLICATIONS",
-            "/RESTARTAPPLICATIONS",
-        ])
+        // NSIS (Tauri bundle): /S = silent; /UPDATE makes the installer start the app again when it finishes.
+        .args(["/S", "/UPDATE"])
         .spawn()
         .with_context(|| format!("starting {}", path.display()))?;
     Ok(())

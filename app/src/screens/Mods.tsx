@@ -5,17 +5,41 @@ import { Drawer, Field, PageHeader, Pills, SearchBox, Select, Slider, Switch } f
 import { CATEGORIES, MODULES, modById, type CatId, type Module, type Setting } from "../data/modules";
 import { cfgOf, resetModule, setCfg, toggleFav, toggleMod, useClient } from "../state/client";
 
+/** Live pill text from the module's own settings, so the card shows the real current preset. */
+function chips(m: Module, c: ReturnType<typeof useClient>): string[] {
+  const out: string[] = [];
+  for (const st of m.settings) {
+    const v = cfgOf(c, m.id, st) as unknown;
+    if (st.t === "slider") out.push(`${v}${st.unit ?? ""} ${st.label.toLowerCase()}`);
+    else if (st.t === "select") out.push(String(v));
+    else if (st.t === "toggle" && v) out.push(st.label);
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
+/** Tactical Bento card: obsidian slab, 3px glowing status bar on the left edge, switch + quick-drawer top right, live preset pills below. */
 const Card = memo(function Card({ m, on, onOpen }: { m: Module; on: boolean; onOpen: (id: string) => void }) {
+  const c = useClient();
+  const pills = chips(m, c);
   return (
-    <div className="card h-[160px] rounded-[12px] overflow-hidden flex flex-col justify-between">
-      <button className="relative h-[118px] w-full grid place-items-center group" onClick={() => onOpen(m.id)} aria-label={`${m.name} settings`}>
-        <span className="absolute top-3.5 right-3.5 w-[6px] h-[6px] rounded-full" style={{ background: "var(--accent)", opacity: on ? 1 : 0.35 }} />
-        <span className="t group-hover:scale-105" style={{ color: on ? "var(--fg)" : "var(--mute)" }}><Icon n={m.icon} s={40} w={1.75} /></span>
-      </button>
-      <button onClick={() => toggleMod(m.id)} aria-pressed={on} title={`${m.name}: ${on ? "enabled" : "disabled"}. ${m.blurb}`} className="h-[42px] w-full flex items-center justify-center gap-2 text-[13px] font-semibold t press px-3"
-        style={{ background: on ? "var(--accent)" : "var(--surface-2)", color: on ? "var(--accent-fg)" : "var(--mute)" }}>
-        {on && <Icon n="check" s={14} w={2.4} />}<span className="truncate">{m.name}</span>
-      </button>
+    <div className="relative rounded-[14px] p-4 pl-5 flex flex-col gap-3 min-h-[148px] overflow-hidden t" style={{ background: "#11141C", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)" }} data-module={m.id}>
+      <span aria-hidden className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full t" style={{ background: on ? "#3B82F6" : "#232938", boxShadow: on ? "0 0 12px 1px rgba(59,130,246,.65)" : "none" }} />
+      <div className="flex items-start justify-between gap-3">
+        <span className="grid place-items-center w-10 h-10 rounded-[12px] shrink-0" style={{ background: "#191F2E", color: on ? "#93C5FD" : "#6B7385" }}><Icon n={m.icon} s={20} w={1.75} /></span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => onOpen(m.id)} aria-label={`${m.name} quick settings`} title="Quick settings" className="grid place-items-center w-8 h-8 rounded-[9px] t hover:bg-[#191F2E]" style={{ color: "#8793A8" }}><Icon n="gear" s={16} /></button>
+          <Switch on={on} onChange={(v) => toggleMod(m.id, v)} label={`${m.name} ${on ? "enabled" : "disabled"}`} />
+        </div>
+      </div>
+      <div className="min-w-0">
+        <div className="text-[14.5px] font-bold text-white truncate">{m.name}</div>
+        <div className="text-[12px] leading-snug mt-0.5 line-clamp-2" style={{ color: "#8793A8" }}>{m.blurb}</div>
+      </div>
+      <div className="mt-auto flex flex-wrap gap-1.5">
+        {m.soon && <span className="h-[22px] px-2 rounded-[6px] text-[10.5px] font-semibold grid place-items-center" style={{ background: "#2A2210", color: "#FBBF24" }} title="The setting is saved by the launcher; the in-game module ships in a later client build.">Client build pending</span>}
+        {pills.map((t) => <button key={t} onClick={() => onOpen(m.id)} className="h-[22px] px-2 rounded-[6px] text-[10.5px] font-semibold num t hover:brightness-125" style={{ background: on ? "#14254A" : "#171C28", color: on ? "#BFD3FF" : "#6B7385" }}>{t}</button>)}
+      </div>
     </div>
   );
 });
@@ -68,7 +92,7 @@ export default function Mods() {
           <button className="btn-quiet mt-5" onClick={() => { setQ(""); setCat("all"); }}>Show all modules</button>
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-5">{list.map((m) => <Card key={m.id} m={m} on={!!c.on[m.id]} onOpen={onOpen} />)}</div>
+        <div className="grid grid-cols-3 gap-4">{list.map((m) => <Card key={m.id} m={m} on={!!c.on[m.id]} onOpen={onOpen} />)}</div>
       )}
       {open && <ModuleDrawer id={open} onClose={() => setOpen(null)} />}
     </Page>

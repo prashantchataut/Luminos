@@ -23,6 +23,13 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 2.2.0: logo restore, user art, client window/title, Showdown Studio, updater (see docs/STATUS_v2.2.md)
+- Restored the dithered-moon logo (v2.1.0 had replaced it). Wired the `be42463` art; audit in docs/design/USER_ART_AUDIT.md.
+- Client: `WindowBrand` (GLFW title + icon), `LuminosTitleScreen` rebuilt on `addRenderableWidget` (Mojang mappings; the brief's Yarn names map 1:1). Gradle build passes on JDK 25.
+- Rust: `check_app_update`, `install_app_update`, `start_microsoft_device_login`, `open_external` (not compilable here; CI first).
+- App: Showdown Studio, 10 capes, 16 generated skins, Bento Mods, wizard, update banner. Wings/pets removed.
+- Open: no screenshots of the new UI (no usable headless browser), nothing launched in a real game, no MS app id.
+
 ## Session 9: one product, honest basics, plan for 10-14 (launcher 0.5.0, PR #9)
 Handover: `docs/START_HERE.md`. Plan: `docs/PLAN_SESSIONS.md`. Parity list: `docs/ONECLIENT_PARITY.md`.
 - Verified: v0.5.0 installer checksum; live updater path; 59 core tests (10 new); static network audit; CI green on PR and main; screenshots viewed (skins, client, settings, setup).

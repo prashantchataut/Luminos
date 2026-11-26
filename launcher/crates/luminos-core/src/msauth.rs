@@ -18,8 +18,10 @@ const TOKEN: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/tok
 const SCOPE: &str = "XboxLive.signin offline_access";
 
 pub fn client_id() -> Option<String> {
+    // Runtime override first, then the id CI embedded at build time (secret LUMINOS_MS_CLIENT_ID).
     std::env::var("LUMINOS_MS_CLIENT_ID")
         .ok()
+        .or_else(|| option_env!("LUMINOS_MS_CLIENT_ID").map(str::to_string))
         .filter(|s| !s.trim().is_empty())
 }
 

@@ -1,102 +1,177 @@
 {
- "generator": "tools/make-skins.mjs",
- "licence": "CC0-1.0",
- "capes": [
-  {
-   "id": "luminos-celestial-moon",
-   "name": "Celestial Moon",
-   "description": "Deep navy cloth with a gold crescent and a scatter of stars.",
-   "file": "library/capes/luminos-celestial-moon.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-cobalt-crest",
-   "name": "Cobalt Crest",
-   "description": "Cobalt banner cloth with a silver crest.",
-   "file": "library/capes/luminos-cobalt-crest.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-sakura-drift",
-   "name": "Sakura Drift",
-   "description": "Plum silk with drifting pink petals.",
-   "file": "library/capes/luminos-sakura-drift.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-eclipse",
-   "name": "Eclipse",
-   "description": "Black cloth, a ring of ember light.",
-   "file": "library/capes/luminos-eclipse.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-shard",
-   "name": "Crystal Shard",
-   "description": "Teal cloth cut with glassy shards.",
-   "file": "library/capes/luminos-shard.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-valkyrie",
-   "name": "Valkyrie",
-   "description": "Crimson with gold wing-work.",
-   "file": "library/capes/luminos-valkyrie.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-nightfall",
-   "name": "Nightfall",
-   "description": "Indigo dusk, stars along the hem.",
-   "file": "library/capes/luminos-nightfall.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  },
-  {
-   "id": "luminos-ember-sun",
-   "name": "Ember Sun",
-   "description": "Burnt orange with a low sun.",
-   "file": "library/capes/luminos-ember-sun.png",
-   "frames": 1,
-   "frameMs": 0,
-   "animated": false,
-   "author": "Luminos",
-   "licence": "CC0-1.0",
-   "source": "tools/make-skins.mjs"
-  }
- ]
+  "generator": "scripts/gen-textured-skins.mjs",
+  "licence": "CC0-1.0",
+  "capes": [
+    {
+      "id": "job-application",
+      "name": "Job Application",
+      "description": "A very serious employment form. Name, experience, signature. Please apply in person.",
+      "file": "library/capes/job-application.png",
+      "frameFiles": [
+        "library/capes/job-application.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "Meme",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "ball-knowledge-tactician",
+      "name": "Ball Knowledge Tactician",
+      "description": "Chalkboard pitch, X and O arrows, one raised eyebrow. You either know ball or you don't.",
+      "file": "library/capes/ball-knowledge-tactician-f0.png",
+      "frameFiles": [
+        "library/capes/ball-knowledge-tactician-f0.png",
+        "library/capes/ball-knowledge-tactician-f1.png"
+      ],
+      "frames": 2,
+      "frameMs": 700,
+      "animated": true,
+      "tag": "Meme",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "touch-grass-3d",
+      "name": "Touch Grass 3D",
+      "description": "A grass block worn as a cloak: overhanging turf, dirt, roots. Doctor's orders.",
+      "file": "library/capes/touch-grass-3d.png",
+      "frameFiles": [
+        "library/capes/touch-grass-3d.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "3D",
+      "relief": true,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "404-skill-not-found",
+      "name": "404 Skill Not Found",
+      "description": "Your opponent ran into a problem. The problem was you. Blue screen of death, in a cape.",
+      "file": "library/capes/404-skill-not-found.png",
+      "frameFiles": [
+        "library/capes/404-skill-not-found.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "Meme",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "luminos-original-moon",
+      "name": "Luminos Original Moon",
+      "description": "Midnight cloth with the original dithered Luminos moon raised in 3D relief.",
+      "file": "library/capes/luminos-original-moon.png",
+      "frameFiles": [
+        "library/capes/luminos-original-moon.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "3D",
+      "relief": true,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "eclipse-monarch-3d",
+      "name": "Eclipse Monarch 3D",
+      "description": "A black sun crowned in violet fire, raised from the cloth.",
+      "file": "library/capes/eclipse-monarch-3d.png",
+      "frameFiles": [
+        "library/capes/eclipse-monarch-3d.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "3D",
+      "relief": true,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "crimson-ronin-3d",
+      "name": "Crimson Ronin 3D",
+      "description": "Lacquered red plates stacked like a samurai haori, each ridge extruded.",
+      "file": "library/capes/crimson-ronin-3d.png",
+      "frameFiles": [
+        "library/capes/crimson-ronin-3d.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "3D",
+      "relief": true,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "void-blossom",
+      "name": "Void Blossom",
+      "description": "Cherry petals drifting through a violet void.",
+      "file": "library/capes/void-blossom.png",
+      "frameFiles": [
+        "library/capes/void-blossom.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "2D",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "cobalt-prism",
+      "name": "Cobalt Prism",
+      "description": "Faceted cobalt crystal planes catching a hard light.",
+      "file": "library/capes/cobalt-prism.png",
+      "frameFiles": [
+        "library/capes/cobalt-prism.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "2D",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    },
+    {
+      "id": "golden-veteran",
+      "name": "Golden Veteran",
+      "description": "Worn gold-and-oxblood service colours with a campaign stripe for every year.",
+      "file": "library/capes/golden-veteran.png",
+      "frameFiles": [
+        "library/capes/golden-veteran.png"
+      ],
+      "frames": 1,
+      "frameMs": 0,
+      "animated": false,
+      "tag": "2D",
+      "relief": false,
+      "author": "Luminos",
+      "licence": "CC0-1.0",
+      "source": "scripts/gen-textured-skins.mjs"
+    }
+  ]
 }

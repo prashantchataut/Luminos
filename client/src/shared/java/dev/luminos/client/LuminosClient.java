@@ -70,6 +70,10 @@ public final class LuminosClient implements ClientModInitializer {
 		});
 		ClientTickEvents.START_CLIENT_TICK.register(mc -> { InputSampler.tick(mc); Probes.tick(mc); });
 		ClientTickEvents.END_CLIENT_TICK.register(LuminosClient::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(mc -> WindowBrand.tick());   // keep "Luminos Client <version>" as the window title
+		ClientLifecycleEvents.CLIENT_STARTED.register(mc -> WindowBrand.apply());   // title + native window icon (taskbar, Alt+Tab)
+		ClientTickEvents.END_CLIENT_TICK.register(mc -> WindowBrand.tick());   // keep "Luminos Client <version>" as the window title
+		ClientLifecycleEvents.CLIENT_STARTED.register(mc -> WindowBrand.apply());   // title + native window icon (taskbar, Alt+Tab)
 		ClientLifecycleEvents.CLIENT_STOPPING.register(c -> { restoreFov(c); restoreGamma(c); Config.save(); });
 		ShulkerTooltip.register();
 		Hotkeys.register();   // Right Ctrl / Right Shift on the title screen and pause menu

@@ -106,46 +106,69 @@ async fn ms_device_begin() -> R<Value> {
     .await
 }
 
-/// Step 2: block on a worker thread until the player approves, then run the Xbox, XSTS and Minecraft chain.
+/// Poll Microsoft until the player approves, then run the Xbox, XSTS and Minecraft chain, store the
+/// tokens in the OS secure store and make the account active. Blocking: call from a worker thread.
+fn finish_microsoft_login(device_code: String, expires_in: u64, interval: u64) -> R<Value> {
+    let id = luminos_core::msauth::client_id().ok_or_else(|| NO_MS_ID.to_string())?;
+    let dc = luminos_core::msauth::DeviceCode {
+        user_code: String::new(),
+        device_code,
+        verification_uri: String::new(),
+        expires_in,
+        interval,
+    };
+    let (access, refresh) = luminos_core::msauth::wait_for_approval(&id, &dc, &|| false).map_err(err)?;
+    let session = luminos_core::msauth::minecraft_login(&access, &refresh).map_err(err)?;
+    luminos_core::msauth::remember(&session).map_err(err)?;
+    // Keep the session: without this the player signs in and nothing changes.
+    let acc = Account {
+        username: session.username.clone(),
+        uuid: session.uuid.clone(),
+        kind: luminos_core::accounts::AccountKind::Microsoft,
+        skin_id: None,
+        auth_server: None,
+        access_token: Some(session.minecraft_token.clone()),
+        client_token: None,
+        cape_id: None,
+    };
+    let mut store = AccountStore::load();
+    if let Some(i) = store.accounts.iter().position(|a| a.username == acc.username) {
+        store.accounts[i] = acc;
+        store.active = i;
+    } else {
+        store.add(acc);
+    }
+    store.save();
+    let mut s = Settings::load();
+    s.setup_done = true;
+    s.save();
+    Ok(json!({ "username": session.username, "uuid": session.uuid, "expires_at": session.expires_at }))
+}
+
+/// Step 2: block on a worker thread until the player approves (kept for callers that drive the polling themselves).
 #[tauri::command]
 async fn ms_device_finish(device_code: String, expires_in: u64, interval: u64) -> R<Value> {
-    blocking(move || {
-        let id = luminos_core::msauth::client_id().ok_or_else(|| NO_MS_ID.to_string())?;
-        let dc = luminos_core::msauth::DeviceCode {
-            user_code: String::new(),
-            device_code,
-            verification_uri: String::new(),
-            expires_in,
-            interval,
+    blocking(move || finish_microsoft_login(device_code, expires_in, interval)).await
+}
+
+/// One call for the whole Microsoft sign-in: returns the code to show now, then keeps polling in the
+/// background and reports through the `ms-login` event: `{ ok, username?, uuid?, error? }`.
+#[tauri::command]
+async fn start_microsoft_device_login(app: AppHandle) -> R<Value> {
+    let begun = ms_device_begin().await?;
+    let (dc, exp, int) = (
+        begun["device_code"].as_str().unwrap_or_default().to_string(),
+        begun["expires_in"].as_u64().unwrap_or(900),
+        begun["interval"].as_u64().unwrap_or(5),
+    );
+    std::thread::spawn(move || {
+        let payload = match finish_microsoft_login(dc, exp, int) {
+            Ok(v) => json!({ "ok": true, "username": v["username"], "uuid": v["uuid"] }),
+            Err(e) => json!({ "ok": false, "error": e }),
         };
-        let (access, refresh) = luminos_core::msauth::wait_for_approval(&id, &dc, &|| false).map_err(err)?;
-        let session = luminos_core::msauth::minecraft_login(&access, &refresh).map_err(err)?;
-        luminos_core::msauth::remember(&session).map_err(err)?;
-        // Keep the session: without this the player signs in and nothing changes.
-        let acc = Account {
-            username: session.username.clone(),
-            uuid: session.uuid.clone(),
-            kind: luminos_core::accounts::AccountKind::Microsoft,
-            skin_id: None,
-            auth_server: None,
-            access_token: Some(session.minecraft_token.clone()),
-            client_token: None,
-            cape_id: None,
-        };
-        let mut store = AccountStore::load();
-        if let Some(i) = store.accounts.iter().position(|a| a.username == acc.username) {
-            store.accounts[i] = acc;
-            store.active = i;
-        } else {
-            store.add(acc);
-        }
-        store.save();
-        let mut s = Settings::load();
-        s.setup_done = true;
-        s.save();
-        Ok(json!({ "username": session.username, "uuid": session.uuid, "expires_at": session.expires_at }))
-    })
-    .await
+        let _ = app.emit("ms-login", payload);
+    });
+    Ok(begun)
 }
 
 /// Look a player up through Mojang only. Three outcomes: found, no such player, no skin set.
@@ -482,6 +505,80 @@ async fn check_update() -> R<Value> {
     .await
 }
 
+/// Open an https page in the default browser. Only the Microsoft and GitHub pages Luminos itself sends people to.
+#[tauri::command]
+fn open_external(url: String) -> R<()> {
+    let ok = ["https://www.microsoft.com/", "https://microsoft.com/", "https://login.live.com/", "https://github.com/prashantchataut/Luminos"];
+    if !ok.iter().any(|p| url.starts_with(p)) {
+        return Err("That address is not one Luminos opens.".into());
+    }
+    #[cfg(windows)]
+    {
+        let mut cmd = std::process::Command::new("rundll32");
+        cmd.args(["url.dll,FileProtocolHandler", &url]);
+        luminos_core::sys::quiet(&mut cmd);
+        cmd.spawn().map_err(err)?;
+    }
+    #[cfg(not(windows))]
+    {
+        let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+        std::process::Command::new(opener).arg(&url).spawn().map_err(err)?;
+    }
+    Ok(())
+}
+
+fn update_json(current: &str, r: Option<update::Release>) -> Value {
+    match r {
+        Some(r) => json!({ "updateAvailable": true, "currentVersion": current, "latestVersion": r.version,
+            "downloadUrl": r.setup_url, "releaseNotes": r.notes, "page": r.page, "sizeBytes": r.setup_size }),
+        None => json!({ "updateAvailable": false, "currentVersion": current, "latestVersion": current,
+            "downloadUrl": null, "releaseNotes": "", "page": null, "sizeBytes": 0 }),
+    }
+}
+
+/// Ask GitHub (`/releases/latest`, then the release list) whether a newer launcher than this build exists.
+#[tauri::command]
+async fn check_app_update() -> R<Value> {
+    blocking(|| {
+        let cur = env!("CARGO_PKG_VERSION");
+        Ok(update_json(cur, update::check_latest(cur).map_err(err)?))
+    })
+    .await
+}
+
+/// Download `Luminos-Setup.exe` (progress on the `update-progress` event, 0..=100), verify its SHA-256
+/// against the release's SHA256SUMS.txt, run it silently and exit so the installer can replace this exe.
+/// `download_url` must be the one `check_app_update` returned; anything else is refused.
+#[tauri::command]
+async fn install_app_update(app: AppHandle, download_url: String) -> R<()> {
+    let handle = app.clone();
+    blocking(move || {
+        let cur = env!("CARGO_PKG_VERSION");
+        let rel = update::check_latest(cur)
+            .map_err(err)?
+            .ok_or_else(|| "Luminos is already up to date.".to_string())?;
+        if rel.setup_url != download_url {
+            return Err("That download address does not belong to the latest Luminos release.".into());
+        }
+        let mut last = 101u64;
+        let path = update::download_verified_with_progress(&rel, &mut |done, total| {
+            let pct = if total == 0 { 0 } else { (done * 100 / total).min(100) };
+            if pct != last {
+                last = pct;
+                let _ = handle.emit("update-progress", json!({ "percent": pct, "done": done, "total": total }));
+            }
+        })
+        .map_err(err)?;
+        let _ = handle.emit("update-progress", json!({ "percent": 100, "done": 1, "total": 1, "installing": true }));
+        update::run_installer(&path).map_err(err)?;
+        Ok(())
+    })
+    .await?;
+    // The installer is already running; leave so it can overwrite our files.
+    app.exit(0);
+    Ok(())
+}
+
 static STARTED: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
 
 /// The frontend calls this after its first painted frame. With LUMINOS_PERF_FILE set (CI only) the
@@ -537,6 +634,10 @@ pub fn run() {
             storage_areas,
             clear_cache,
             check_update,
+            check_app_update,
+            open_external,
+            install_app_update,
+            start_microsoft_device_login,
             engine::live_snapshot,
             engine::live_apply,
             engine::live_cancel_batch,

@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { Pills } from "./ui";
 import { authlibArg, ELY_API, validYggdrasil } from "../authlib";
 import { call } from "../api";
+import MicrosoftSignIn from "./MicrosoftSignIn";
 
 type Kind = "OFFLINE" | "ELY.BY" | "MICROSOFT";
 export type Acct = { id: string; kind: Kind; name: string; server?: string };
@@ -18,6 +19,7 @@ function read(seed?: string): AState {
   return state;
 }
 function write(n: AState) { state = n; try { localStorage.setItem(KEY, JSON.stringify(n)); } catch { /* private mode */ } subs.forEach((f) => f()); }
+export function addAccount(acc: Acct) { const a = read(); write({ list: [...a.list.filter((x) => x.id !== acc.id), acc], active: acc.id }); void call("create_account", { name: acc.name, kind: acc.kind }).catch(() => undefined); }
 export function useAccounts(seed?: string) {
   read(seed);
   useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => state);
@@ -59,12 +61,7 @@ export default function AccountModal({ onClose }: { onClose: () => void }) {
           <div className="flex justify-end"><button className="btn-primary" disabled={!valid || !!srvErr} style={{ opacity: valid && !srvErr ? 1 : 0.45 }} onClick={() => add(tab === "offline" ? { id: "off-" + name.trim(), kind: "OFFLINE", name: name.trim() } : { id: "ely-" + name.trim(), kind: "ELY.BY", name: name.trim(), server: server.trim() || undefined })}>Add account</button></div>
         </div>
       )}
-      {tab === "ms" && (
-        <div className="rounded-[10px] p-4 text-[13px] leading-relaxed" style={{ background: "var(--surface)" }}>
-          <div className="font-semibold mb-1">Microsoft sign-in is not live yet</div>
-          <div className="mute">It uses the device-code flow and needs the owner’s Azure application id (docs/MICROSOFT_AUTH.md). Until that exists, nothing here can start a sign-in.</div>
-        </div>
-      )}
+      {tab === "ms" && <MicrosoftSignIn onDone={(n) => { addAccount({ id: "ms-" + n, kind: "MICROSOFT", name: n }); setTab("list"); }} />}
     </Modal>
   );
 }

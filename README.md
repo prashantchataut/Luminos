@@ -1,49 +1,28 @@
-<p align="center"><img src="brand/luminos-256.png" width="112" alt="Luminos"></p>
+<p align="center"><img src="brand/luminos-256.png" width="96" alt="Luminos: the dithered blue moon"></p>
+<h1 align="center">Luminos</h1>
+<p align="center">A light Minecraft launcher with a built-in performance stack and a first-party client.<br>
+<a href="https://prashantchataut.github.io/Luminos/">Website</a> · <a href="https://github.com/prashantchataut/Luminos/releases/latest">Download <code>Luminos-Setup.exe</code></a></p>
 
-# Luminos
+![Luminos](site/public/art/site-readme-banner-1280x640.webp)
 
-A fast Minecraft Java launcher with its own performance client built in. Written entirely in Rust, ~11 MB, no Electron.
-Content comes from **Modrinth**, game files from **Mojang** — nothing else is contacted.
+## What is in 2.2.0
+- **Original logo restored.** The dithered blue moon is back in the app, installer, window icon and site (v2.1.0's crescent-and-crystal mark is gone).
+- **Your artwork, wired.** Home hero, version cover cards, onboarding, the Showdown stage, the in-game title screen and the site use the images from commit `be42463`. Audit: [`docs/design/USER_ART_AUDIT.md`](docs/design/USER_ART_AUDIT.md).
+- **Game window.** The Fabric client sets the window title to `Luminos Client <version>` and the native window icon (16/32/256 px) through GLFW, so the title bar, taskbar and Alt+Tab no longer show the JVM's identity.
+- **In-game title screen rebuilt** on real Minecraft widgets (`addRenderableWidget`): Singleplayer, Multiplayer, Luminos Mods, HUD Studio & Cosmetics, Options, Quit.
+- **Skin Showdown Studio.** 3D stage, four lighting rigs (Moonlit Arena, Nether Glow, Daylight Shader, Studio Rim Light), five poses, side-by-side compare, import by Mojang or Ely.by username, pixel editor. 16 generated, textured skins. Wings and pets are removed.
+- **Ten capes**, including **Job Application**, Ball Knowledge Tactician (2 frames), Touch Grass 3D, 404 Skill Not Found, and 3D-relief cloaks (`scripts/gen-textured-skins.mjs` regenerates everything).
+- **Mods screen** as Tactical Bento cards (42 modules; 8 are launcher-side settings whose in-game module is pending, and are labelled so).
+- **Microsoft sign-in** (device code → Xbox Live → XSTS → Minecraft services, tokens in the OS keyring), a **4-step setup wizard**, and an **in-app updater** (GitHub `releases/latest`, SHA-256 check, silent NSIS install).
 
-**[Download Luminos-Setup.exe](https://github.com/prashantchataut/Luminos/releases/latest/download/Luminos-Setup.exe)** · [Website](https://prashantchataut.github.io/Luminos/) · [Release notes](docs/RELEASE_NOTES.md)
+## Capes
+![Capes](site/public/art/capes/job-application.png) ![](site/public/art/capes/touch-grass-3d.png) ![](site/public/art/capes/404-skill-not-found.png) ![](site/public/art/capes/luminos-original-moon.png)
 
-> Windows may show "unknown publisher" because the app isn't code-signed yet. It is a reputation warning, not a detection — see
-> [`docs/WINDOWS_SECURITY.md`](docs/WINDOWS_SECURITY.md) for how to verify the download.
+## Performance
+Sodium, Lithium, FerriteCore, ImmediatelyFast, Entity Culling and ModernFix are installed from Modrinth with the Luminos profile, with G1GC pause tuning. **No FPS benchmark has been run for 2.2.0, so none is claimed here.**
 
-| | |
-|---|---|
-| ![setup](docs/screenshots/01-setup-welcome.png) | ![home](docs/screenshots/06-home.png) |
-| ![mods](docs/screenshots/08-instance-content.png) | ![discover](docs/screenshots/09-discover.png) |
-
-*Every image is rendered by the launcher's own UI code (`luminos-shots`), not a mock-up.*
-
-## What it does
-- **Mod library** — search Modrinth for mods, modpacks, shaders, resource and data packs; dependencies resolved; `.mrpack` import.
-- **Auto-update / unlink** — update one mod or a whole instance via hash lookup; unlink to pin a version.
-- **Isolated instances** — own mods, saves, configs, RAM and Java. Fabric, Quilt and Vanilla launch today.
-- **Luminos Client** — one box in setup builds a Fabric instance with Sodium, Lithium, Entity Culling, FerriteCore, ImmediatelyFast, Mod Menu … plus our own HUD mod (Armor HUD, keystrokes, CPS, FPS, coordinates, potions, toggle sprint, zoom, drag-and-drop HUD editor).
-- **Crash doctor**, **world backups**, **server hub**, **playtime tracking**, **skin studio**, smart Java detection / runtime download, safe JVM flags.
-
-## Repository
-| Path | What |
-|---|---|
-| `launcher/crates/luminos-core` | headless engine |
-| `launcher/crates/luminos-app` | egui desktop UI, `luminos-shots` (screens → PNG), `luminos-brand` (logo assets) |
-| `client/` | Luminos Client Fabric mod (Java) |
-| `installer/` | Inno Setup script → `Luminos-Setup.exe` |
-| `site/` | GitHub Pages website (Vite + React) |
-| `docs/` | research, release notes, security notes, agent skills |
-| `CONTINUITY.md` | **session log — read first** · `AGENTS.md` rules for AI agents |
+## Honest status
+See [`docs/STATUS_v2.2.md`](docs/STATUS_v2.2.md): what ran, what was only compiled, what was not run on real hardware. `node scripts/verify-v2.2.mjs` is a static repo check, not a test of the running app.
 
 ## Build
-```bash
-cd launcher && cargo run --release -p luminos-app --bin luminos     # the launcher
-cargo run -p luminos-app --release --bin luminos-shots -- ../docs/screenshots   # renders
-cargo run -p luminos-app --release --bin luminos-brand                  # regenerate logo assets (run from repo root)
-```
-End-to-end launch check (real game, needs a Java path): `LUMINOS_SMOKE_JAVA=… cargo test -p luminos-core --test launch_smoke -- --ignored --nocapture`
-(`LUMINOS_SMOKE_LOADER=fabric`, `LUMINOS_SMOKE_PRESET=1` for the full client).
-
-## License
-Proprietary, all rights reserved — source is visible for evaluation and bug reports, but may not be copied, forked for redistribution or reused. See [`LICENSE`](LICENSE) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-Luminos is not affiliated with Mojang or Microsoft. Minecraft is their trademark.
+`cd app && npm ci && npm run build` · `cd client && ./gradlew build` (JDK 25 for Loom) · `npx tauri build --bundles nsis` · tag `vX.Y.Z` runs the release workflow. © Luminos, proprietary (see `LICENSE`).

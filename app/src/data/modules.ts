@@ -14,14 +14,14 @@ export type Setting =
   | { k: string; t: "slider"; label: string; def: number; min: number; max: number; step?: number; unit?: string }
   | { k: string; t: "color"; label: string; def: string }
   | { k: string; t: "select"; label: string; def: string; options: string[] };
-export type Module = { id: string; name: string; cat: CatId; icon: string; on: boolean; blurb: string; settings: Setting[] };
+export type Module = { id: string; name: string; cat: CatId; icon: string; on: boolean; blurb: string; settings: Setting[]; soon?: boolean };
 
 const tg = (k: string, label: string, def = true): Setting => ({ k, t: "toggle", label, def });
 const sl = (k: string, label: string, def: number, min: number, max: number, unit = "", step = 1): Setting => ({ k, t: "slider", label, def, min, max, step, unit });
 const co = (k: string, label: string, def: string): Setting => ({ k, t: "color", label, def });
 const se = (k: string, label: string, def: string, options: string[]): Setting => ({ k, t: "select", label, def, options });
 const hud = [tg("bg", "Show background"), tg("shadow", "Text shadow"), co("color", "Text colour", "#FFFFFF"), sl("scale", "Scale", 100, 60, 200, "%", 5)];
-const M = (id: string, name: string, cat: CatId, icon: string, on: boolean, blurb: string, settings: Setting[] = []): Module => ({ id, name, cat, icon, on, blurb, settings });
+const M = (id: string, name: string, cat: CatId, icon: string, on: boolean, blurb: string, settings: Setting[] = [], soon = false): Module => ({ id, name, cat, icon, on, blurb, settings, ...(soon ? { soon } : {}) });
 
 export const MODULES: Module[] = [
   M("waypoints", "Waypoints", "world", "waypoints", true, "Mark places and see a beam to them.", [co("beam", "Beam colour", "#2B4BFF"), sl("range", "Beam range", 400, 50, 2000, " blocks", 10), tg("names", "Show names"), tg("deathpoint", "Auto death waypoint"), se("shape", "Marker shape", "Diamond", ["Diamond", "Pin", "Dot"])]),
@@ -58,6 +58,15 @@ export const MODULES: Module[] = [
   M("packdisplay", "Pack Display", "pvp", "pack", false, "Show the resource packs you have active.", [...hud]),
   M("chatting", "Chatting", "qol", "chat", true, "Longer history, timestamps and copy.", [tg("time", "Timestamps", false), sl("history", "History lines", 500, 100, 2000, "", 100), tg("compact", "Merge repeated messages")]),
   M("deathrecap", "Death Recap", "qol", "death", true, "A short summary of how you died, with your coordinates.", [tg("coords", "Include coordinates"), tg("copy", "Copy to clipboard", false)]),
+  // Added in 2.2.0. Launcher-side settings are real; the in-game implementation ships with a later client build (flagged `soon`).
+  M("snaplook", "Snaplook", "move", "freelook", false, "Hold a key to look around, release to snap the camera back.", [sl("speed", "Snap-back speed", 60, 10, 100, "%", 5)], true),
+  M("replaymarker", "Replay / Clip Marker", "qol", "time", false, "Drop a timestamp marker in the log when something worth clipping happens.", [tg("chat", "Echo marker in chat")], true),
+  M("autogg", "AutoGG", "qol", "chat", false, "Send a polite message when a match ends.", [se("msg", "Message", "gg", ["gg", "good game", "gg wp"]), sl("delay", "Delay", 1, 0, 5, " s", 1)], true),
+  M("nickhider", "Nick Hider", "qol", "nametag", false, "Replace your own name on screen and in chat for clean recordings.", [se("as", "Show as", "Player", ["Player", "Steve", "Alex"])], true),
+  M("packorganizer", "Pack Organizer", "qol", "pack", false, "Group, search and reorder resource packs.", [tg("folders", "Group by folder")], true),
+  M("screenshotmanager", "Screenshot Manager", "qol", "hud", false, "Browse, copy and delete screenshots without leaving the game.", [tg("copy", "Copy to clipboard after capture")], true),
+  M("tabeditor", "Tab Editor", "hud", "scoreboard", false, "Restyle the player list: ping bars, sort order, header and footer.", [tg("ping", "Ping bars"), se("sort", "Sort by", "Name", ["Name", "Ping"])], true),
+  M("pingtag", "Ping Tag", "hud", "ping", false, "Show each player's latency on their nametag.", [tg("self", "Include yourself", false)], true),
 ];
 
 export const modById = (id: string) => MODULES.find((m) => m.id === id)!;

@@ -6,11 +6,24 @@ import { setPref, useClient, type Prefs } from "../state/client";
 import { set, useSettings } from "../store";
 import { engine } from "../engine";
 import { safeInvoke } from "../lib/tauri-bridge";
+import { useAppUpdate } from "../components/UpdateBanner";
 
 type Tab = "general" | "engine" | "java" | "storage";
 const TABS: { id: Tab; label: string }[] = [{ id: "general", label: "General & Gameplay" }, { id: "engine", label: "Performance Engine" }, { id: "java", label: "Java & Memory" }, { id: "storage", label: "Storage & Dedup" }];
 const RES = ["1280 × 800 (Default)", "1600 × 900", "1920 × 1080", "Borderless Fullscreen"];
 const gb = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
+
+function UpdaterRows() {
+  const u = useAppUpdate(false);
+  return (
+    <>
+      <Row title="Luminos Updates" desc={u.info ? (u.info.updateAvailable ? `Version ${u.info.latestVersion} is available (you have ${u.info.currentVersion}).` : `You are on the latest version (${u.info.currentVersion}).`) : u.error || "Check GitHub for a newer Luminos. Installs silently and restarts."}>
+        {u.info?.updateAvailable && u.pct === null ? <button className="btn-primary" onClick={() => void u.install()}>Install &amp; Restart</button> : u.pct !== null ? <span className="num text-[12.5px]">{u.pct >= 100 ? "Installing…" : `${u.pct}%`}</span> : <button className="btn-quiet" disabled={u.checking} onClick={() => void u.check()}>{u.checking ? "Checking…" : "Check now"}</button>}
+      </Row>
+      <Row title="Setup Wizard" desc="Run the first-run setup again: account, memory, gameplay preset."><button className="btn-quiet" onClick={() => dispatchEvent(new Event("luminos:wizard"))}>Run Setup Wizard</button></Row>
+    </>
+  );
+}
 
 function EngineCard() {
   const c = useClient();
@@ -56,6 +69,7 @@ export default function Preferences() {
       <div className="mb-7"><Pills value={tab} onChange={setTab} items={TABS} /></div>
       <div className="max-w-[920px] space-y-3">
         {(tab === "general" || tab === "engine") && <div className="mb-4"><EngineCard /></div>}
+        {tab === "general" && <UpdaterRows />}
         {tab === "general" && (
           <>
             <Row title="Window Resolution Preset" desc="Size of the game window on launch."><Select label="Window resolution" value={c.prefs.resolution} options={RES} onChange={(v) => setPref("resolution", v)} /></Row>

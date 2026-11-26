@@ -6,6 +6,7 @@ import Android from "./components/Android";
 import { Features, Client, Worlds, Limits } from "./components/Sections";
 import { Changelog, FAQ, Closing } from "./components/Closing";
 import Legal from "./components/Legal";
+import Capes from "./components/Capes";
 import { DownloadCTA, Wordmark } from "./components/ui";
 import { REPO_URL, useRelease } from "./lib/useRelease";
 
@@ -94,6 +95,7 @@ export default function App() {
         <Legal page={page} />
       ) : (
         <main id="main">
+        <Capes />
           <Hero release={release} />
           <Tour />
           <Themes />
