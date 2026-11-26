@@ -136,8 +136,8 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           <div className="relative max-w-[560px] space-y-3">
             <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#6882FF" }}>Fabric {c.prefs.gameVersion} • Luminos Client Engine</span>
             <h1 className="m-0 text-[34px] font-bold leading-tight text-white">Luminos Client</h1>
-            <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full text-[11.5px] font-medium" style={{ background: "rgba(22,27,38,.85)", color: "#BFD3FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#3B82F6" }} />Sodium + Lithium + ImmediatelyFast ready • Native Max FPS</span>
-            <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>
+            {!preparing && <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full text-[11.5px] font-medium" style={{ background: "rgba(22,27,38,.85)", color: "#BFD3FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#3B82F6" }} />Sodium + Lithium + ImmediatelyFast ready • Native Max FPS</span>}
+            {!preparing && <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
             <div className="pt-3 flex items-center gap-3 flex-wrap">
               {g.status === "idle" && (
                 <button onClick={() => void launch()} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
