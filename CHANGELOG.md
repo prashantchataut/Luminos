@@ -1,11 +1,19 @@
 # Changelog
 
 ## 4.0.0
-- **CI:** removed the tracked file `docs/<0x1A>` that broke checkout on every Windows job; added compile-only LWJGL to `client26` so the 26.x client builds.
-- **Client engine (1.21.11):** `Engine` plus 14 Mixins (`WorldRenderer`, `EntityRenderDispatcher`, `BlockEntityRenderDispatcher`, `ParticleManager`, `BackgroundRenderer`, `LightmapTextureManager`, `Camera`, `GameRenderer`, `Mouse`, `FramerateLimitTracker`, `HeldItemRenderer`, `InGameOverlayRenderer`, `ClientWorld`, `LevelWeather`), `MinecraftTitleMixin` renamed `MinecraftClientMixin` (title "Luminos Client 4.0"). New panel rows only on the 1.21 line.
-- **Launcher core:** `perfconfig.rs` (write-if-missing Sodium / ImmediatelyFast / ModernFix configs, run at every launch), JVM preset with `MaxGCPauseMillis=30` and `AlwaysPreTouch`, User-Agent `Luminos-Launcher/4.0.0`.
-- **Docs and checks:** `docs/architecture/V4_ENGINE_AND_SKILLS_AUDIT.md`, `scripts/verify-v4.0.mjs`.
-- **Not done:** UI redesign, InGameHud/waypoint/minimap, voxel cape mesh. In-game visuals unverified on a GPU.
+
+### English
+- **CI:** removed the tracked file `docs/<0x1A>` that broke checkout on every Windows job. The 26.x client no longer crashes at startup: Minecraft 26.x opens its window with SDL and has no GLFW, so every GLFW call in `WindowBrand` now lives in a class that is only loaded when GLFW exists (the 26.x line compiles with compile-only LWJGL).
+- **Client engine (1.21.11):** `Engine` plus 14 Mixins (`WorldRenderer`, `EntityRenderDispatcher`, `BlockEntityRenderDispatcher`, `ParticleManager`, `BackgroundRenderer`, `LightmapTextureManager`, `Camera`, `GameRenderer`, `Mouse`, `FramerateLimitTracker`, `HeldItemRenderer`, `InGameOverlayRenderer`, `ClientWorld`, `LevelWeather`). `MinecraftTitleMixin` became `MinecraftClientMixin` (title "Luminos Client 4.0"). The new panel rows appear only on the 1.21 line.
+- **Launcher core:** `perfconfig.rs` writes Sodium, ImmediatelyFast and ModernFix configs at every launch if you have none (never overwrites yours). New JVM preset with `MaxGCPauseMillis=30` and `AlwaysPreTouch`. User-Agent `Luminos-Launcher/4.0.0`.
+- **Docs and checks:** `docs/architecture/V4_ENGINE_AND_SKILLS_AUDIT.md` and `scripts/verify-v4.0.mjs`.
+- **Not done:** UI redesign, in-game HUD rewrite, 3D waypoints and minimap, voxel cape mesh. In-game visual effects were not looked at on a real GPU.
+
+### Español
+- **CI:** se eliminó el archivo `docs/<0x1A>` que rompía la descarga en todos los trabajos de Windows. El cliente 26.x ya no se cierra al iniciar: Minecraft 26.x usa SDL y no tiene GLFW, así que las llamadas a GLFW de `WindowBrand` ahora están en una clase que solo se carga si GLFW existe.
+- **Motor del cliente (1.21.11):** `Engine` y 14 Mixins: descarte de entidades y bloques lejanos, límite de partículas, niebla clara por dimensión, brillo máximo nativo, cámara libre de 360 grados, zoom suave, animación de espada 1.7, fuego bajo, bloqueo de hora y clima en el cliente y límite de 15 FPS sin foco.
+- **Núcleo del lanzador:** configuraciones previas de Sodium, ImmediatelyFast y ModernFix (nunca sobrescribe las tuyas) y nuevos parámetros de JVM.
+- **Pendiente:** rediseño de la interfaz, nuevo HUD, minimapa y waypoints 3D, y malla 3D de capas. Los efectos visuales no se han probado en una GPU real.
 
 ## 2.3.0
 - **Website:** the approved dithered-moon hero is first on the page again (v2.2.0 had put a Capes section above it; `Hero.tsx`/`Sky.tsx` are byte-identical to pre-v2.1.0). Capes moved below the tour.
