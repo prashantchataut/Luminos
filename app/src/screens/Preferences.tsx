@@ -77,6 +77,7 @@ export default function Preferences() {
             <Row title="Discord Rich Presence" desc="Display current version and server activity."><Switch on={s.presenceOn} onChange={(v) => set("presenceOn", v)} label="Discord Rich Presence" /></Row>
             <Row title="Interface Animations" desc="Turn off to remove all launcher motion."><Switch on={!s.reduceMotion} onChange={(v) => set("reduceMotion", !v)} label="Interface animations" /></Row>
             <Row title="Check for Updates" desc="Look for a new Luminos release at startup."><Switch on={s.checkUpdates} onChange={(v) => set("checkUpdates", v)} label="Check for updates" /></Row>
+            <Row title="Auto-Updater" desc="Luminos v2.3.0. Downloads the latest release, installs it silently and restarts. Works even when you are up to date."><button onClick={() => dispatchEvent(new Event("luminos:update"))} className="h-9 px-4 rounded-[9px] text-[12.5px] font-semibold t press" style={{ background: "var(--accent)", color: "var(--accent-fg)" }}>Check for Updates / Auto-Update</button></Row>
           </>
         )}
         {tab === "engine" && (

@@ -15,6 +15,7 @@ base {
 sourceSets {
 	main {
 		java.srcDirs = ['src/shared/java', 'src/legacy/java']
+		resources.srcDirs = ['src/main/resources', 'src/legacy/resources']
 	}
 }
 

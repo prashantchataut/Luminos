@@ -78,7 +78,7 @@ check("5g. keybind default shown in the launcher is RCTRL", /key: "RCTRL"/.test(
 // versions
 const v = (f, re) => (read(f).match(re) ?? [])[1];
 const ver = { "app/package.json": v("app/package.json", /"version":\s*"([^"]+)"/), "tauri.conf.json": conf.version, "Cargo.toml": v("app/src-tauri/Cargo.toml", /^version = "([^"]+)"/m), "client/gradle.properties": v("client/gradle.properties", /^mod_version=(.+)$/m) };
-check("6. version is 2.1.0 everywhere", Object.values(ver).every((x) => x === "2.1.0"), JSON.stringify(ver));
+check("6. version is the same everywhere", new Set(Object.values(ver)).size === 1, JSON.stringify(ver));
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

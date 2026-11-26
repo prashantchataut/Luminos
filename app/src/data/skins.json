@@ -3,10 +3,10 @@
     "id": "aether-knight",
     "name": "Aether Knight",
     "model": "classic",
-    "description": "Silver plate over midnight cloth, cobalt trim.",
+    "description": "Silver plate over midnight cloth, cobalt trim, closed visor.",
     "file": "skins/aether-knight.png",
     "builtin": true,
-    "colors": 1667
+    "colors": 117
   },
   {
     "id": "amethyst-duelist",
@@ -15,132 +15,132 @@
     "description": "Plum fencing jacket, white cuffs, slicked hair.",
     "file": "skins/amethyst-duelist.png",
     "builtin": true,
-    "colors": 1384
+    "colors": 89
   },
   {
     "id": "astral-traveler",
     "name": "Astral Traveler",
     "model": "classic",
-    "description": "Dusk-blue explorer coat with star stitching.",
+    "description": "Starlit navy coat, white-blue hair, a gold sash.",
     "file": "skins/astral-traveler.png",
     "builtin": true,
-    "colors": 1307
+    "colors": 97
   },
   {
     "id": "cobalt-rogue",
     "name": "Cobalt Rogue",
     "model": "classic",
-    "description": "Hooded cobalt leathers, quiet and quick.",
+    "description": "Hooded leather vest, cobalt scarf, light boots.",
     "file": "skins/cobalt-rogue.png",
     "builtin": true,
-    "colors": 1386
+    "colors": 104
   },
   {
     "id": "crimson-valkyrie",
     "name": "Crimson Valkyrie",
     "model": "classic",
-    "description": "Red lacquered armour, braided gold-blonde hair.",
+    "description": "Red lacquered plate, gold circlet, long golden hair.",
     "file": "skins/crimson-valkyrie.png",
     "builtin": true,
-    "colors": 1613
+    "colors": 106
   },
   {
     "id": "cyber-drift",
     "name": "Cyber Drift",
     "model": "classic",
-    "description": "Charcoal street tech with cyan piping.",
+    "description": "Black street jacket, cyan stripes, magenta visor.",
     "file": "skins/cyber-drift.png",
     "builtin": true,
-    "colors": 1198
-  },
-  {
-    "id": "frost-warden",
-    "name": "Frost Warden",
-    "model": "classic",
-    "description": "Fur-trimmed ice-blue guard in heavy wool.",
-    "file": "skins/frost-warden.png",
-    "builtin": true,
-    "colors": 1728
-  },
-  {
-    "id": "moss-spirit",
-    "name": "Moss Spirit",
-    "model": "classic",
-    "description": "Woven green tunic grown over with moss.",
-    "file": "skins/moss-spirit.png",
-    "builtin": true,
-    "colors": 1522
-  },
-  {
-    "id": "obsidian-monarch",
-    "name": "Obsidian Monarch",
-    "model": "classic",
-    "description": "Black court robe, violet-lit crown.",
-    "file": "skins/obsidian-monarch.png",
-    "builtin": true,
-    "colors": 911
-  },
-  {
-    "id": "sakura-ronin",
-    "name": "Sakura Ronin",
-    "model": "classic",
-    "description": "Faded rose kimono, charcoal hakama.",
-    "file": "skins/sakura-ronin.png",
-    "builtin": true,
-    "colors": 1495
-  },
-  {
-    "id": "solaris-mage",
-    "name": "Solaris Mage",
-    "model": "classic",
-    "description": "Saffron robes, sun-sigil belt, wide sleeves.",
-    "file": "skins/solaris-mage.png",
-    "builtin": true,
-    "colors": 1795
-  },
-  {
-    "id": "void-walker",
-    "name": "Void Walker",
-    "model": "classic",
-    "description": "Indigo void-cloth, pale face, star-bright eyes.",
-    "file": "skins/void-walker.png",
-    "builtin": true,
-    "colors": 950
-  },
-  {
-    "id": "ember-smith",
-    "name": "Ember Smith",
-    "model": "classic",
-    "description": "Scorched leather apron over a rust shirt.",
-    "file": "skins/ember-smith.png",
-    "builtin": true,
-    "colors": 1370
-  },
-  {
-    "id": "tide-ranger",
-    "name": "Tide Ranger",
-    "model": "classic",
-    "description": "Sea-green oilskin, driftwood belt, salt-bleached hair.",
-    "file": "skins/tide-ranger.png",
-    "builtin": true,
-    "colors": 1714
+    "colors": 94
   },
   {
     "id": "dune-nomad",
     "name": "Dune Nomad",
     "model": "classic",
-    "description": "Sand wraps, copper clasps, dust-stained boots.",
+    "description": "Sand robes, a wrapped headscarf and a brown sash.",
     "file": "skins/dune-nomad.png",
     "builtin": true,
-    "colors": 1458
+    "colors": 91
+  },
+  {
+    "id": "ember-smith",
+    "name": "Ember Smith",
+    "model": "classic",
+    "description": "Leather apron over a coal-red tunic, soot gloves.",
+    "file": "skins/ember-smith.png",
+    "builtin": true,
+    "colors": 101
+  },
+  {
+    "id": "frost-warden",
+    "name": "Frost Warden",
+    "model": "classic",
+    "description": "Pale-blue fur coat, white hair, ice-blue eyes.",
+    "file": "skins/frost-warden.png",
+    "builtin": true,
+    "colors": 89
   },
   {
     "id": "luminos-moon-knight",
     "name": "Luminos Moon Knight",
     "model": "classic",
-    "description": "The house skin: midnight mail and a glowing dithered moon.",
+    "description": "Midnight tunic, silver pauldrons, a crescent on the chest.",
     "file": "skins/luminos-moon-knight.png",
     "builtin": true,
-    "colors": 1275
+    "colors": 106
+  },
+  {
+    "id": "moss-spirit",
+    "name": "Moss Spirit",
+    "model": "classic",
+    "description": "Forest hoodie with a leaf crest, drawstrings, mossy sneakers.",
+    "file": "skins/moss-spirit.png",
+    "builtin": true,
+    "colors": 87
+  },
+  {
+    "id": "obsidian-monarch",
+    "name": "Obsidian Monarch",
+    "model": "classic",
+    "description": "Black and gold regalia under a gem-set crown.",
+    "file": "skins/obsidian-monarch.png",
+    "builtin": true,
+    "colors": 73
+  },
+  {
+    "id": "sakura-ronin",
+    "name": "Sakura Ronin",
+    "model": "classic",
+    "description": "Indigo haori with blossom crest, black ponytail, straw sandals.",
+    "file": "skins/sakura-ronin.png",
+    "builtin": true,
+    "colors": 92
+  },
+  {
+    "id": "solaris-mage",
+    "name": "Solaris Mage",
+    "model": "classic",
+    "description": "Amber robes, a sun emblem, a golden-banded hat.",
+    "file": "skins/solaris-mage.png",
+    "builtin": true,
+    "colors": 84
+  },
+  {
+    "id": "tide-ranger",
+    "name": "Tide Ranger",
+    "model": "classic",
+    "description": "Navy-and-white striped sweater, teal bandana, sneakers.",
+    "file": "skins/tide-ranger.png",
+    "builtin": true,
+    "colors": 91
+  },
+  {
+    "id": "void-walker",
+    "name": "Void Walker",
+    "model": "classic",
+    "description": "Violet-black cloak, deep hood, glowing purple eyes.",
+    "file": "skins/void-walker.png",
+    "builtin": true,
+    "colors": 97
   }
 ]

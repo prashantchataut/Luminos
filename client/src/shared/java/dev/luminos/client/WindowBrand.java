@@ -27,7 +27,7 @@ public final class WindowBrand {
 	private static int ticks;
 
 	/** The plain Minecraft version ("1.21.11"), not the launcher profile name ("fabric-loader-0.18.1-1.21.11"). */
-	static String mcVersion() {
+	public static String mcVersion() {
 		return FabricLoader.getInstance().getModContainer("minecraft")
 			.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
 	}

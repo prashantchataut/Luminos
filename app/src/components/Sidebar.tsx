@@ -41,6 +41,7 @@ export default memo(function Sidebar({ page, go, name, skin, version, onAccount 
           <span className="block text-[11px] truncate" style={{ color: "var(--mute)" }}>{g.status === "running" ? `Running${g.pid ? ` • PID ${g.pid}` : ""}` : g.status === "preparing" ? "Starting…" : `Fabric ${version} • Ready`}</span>
         </span>
       </button>
+        <button onClick={() => dispatchEvent(new Event("luminos:update"))} className="w-full h-8 rounded-[8px] text-[12px] t hover:bg-[var(--surface)] flex items-center justify-center gap-2" style={{ color: "var(--mute)" }}><span aria-hidden>↻</span>Check for Updates / Auto-Update</button>
         <button onClick={() => void quitLauncher()} className="w-full h-8 rounded-[8px] text-[12px] t hover:bg-[var(--surface)]" style={{ color: "var(--mute)" }}>Quit Luminos</button>
       </div>
     </nav>

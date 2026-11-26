@@ -277,3 +277,6 @@ Handover: `docs/START_HERE.md`. Evidence: `docs/client-shots/README.md` (feature
 - Verified: CI builds on 26.3 and 1.21.11; smoke passes; screenshots viewed and three defects fixed from them.
 - Not verified: everything listed under COMPILED in START_HERE. Not built: most of the brief (see START_HERE).
 - Gotcha: put dependency-free tests in `client/tests`, not `client/src/test`, or Gradle's `:test` fails the 1.21.x build (no framework).
+
+## Session 2.3.0 (see CHANGELOG)
+- Hero restored, HD 3D capes, 16 rule-built skins, streaming updater with re-run, LuminosClient.exe wrapper, title-screen cosmetics. Verified: `node scripts/verify-v2.3.mjs`, `cargo test -p luminos-core update::`, `./gradlew build` (JDK 25), Playwright shots. NOT verified: a real Windows update, a real game launch, in-game cape render.

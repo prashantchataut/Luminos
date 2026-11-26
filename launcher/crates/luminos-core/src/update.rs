@@ -26,6 +26,7 @@ pub struct Release {
     pub setup_url: String,
     pub setup_size: u64,
     pub sums_url: Option<String>,
+    pub published_at: String,
 }
 
 /// `v1.2.3`, `1.2.3` or `1.2.3-beta` -> (1, 2, 3). Anything else -> None.
@@ -87,6 +88,7 @@ pub fn pick_release_opts(releases: &Value, include_pre: bool) -> Option<Release>
                 .to_string(),
             setup_url: setup["browser_download_url"].as_str()?.to_string(),
             setup_size: setup["size"].as_u64().unwrap_or(0),
+            published_at: r["published_at"].as_str().unwrap_or("").to_string(),
             sums_url: find(SUMS_ASSET)
                 .and_then(|a| a["browser_download_url"].as_str().map(String::from)),
         };
@@ -112,6 +114,18 @@ pub fn check_latest(current: &str) -> Result<Option<Release>> {
         }
     }
     check(current)
+}
+
+/// The newest launcher release, whether or not it is newer than `current`. The UI uses this to offer
+/// "Reinstall / Test Auto-Updater" even when the app is already up to date.
+pub fn latest_release() -> Result<Option<Release>> {
+    if let Ok(v) = http::get_json::<Value>(RELEASE_LATEST_API) {
+        if let Some(r) = pick_release(&Value::Array(vec![v])) {
+            return Ok(Some(r));
+        }
+    }
+    let v: Value = http::get_json(RELEASES_API)?;
+    Ok(pick_release(&v))
 }
 
 /// Extract the hash for `file` from a `sha256sum`-style text (`<hex>  <name>`).
@@ -168,6 +182,104 @@ pub fn download_verified_with_progress(
     Ok(dest)
 }
 
+/// Only assets of this repository's releases may be installed.
+pub const DOWNLOAD_PREFIX: &str = "https://github.com/prashantchataut/Luminos/releases/download/";
+
+/// `.../download/v2.3.0/Luminos-Setup.exe` -> (`.../download/v2.3.0/SHA256SUMS.txt`, `Luminos-Setup.exe`).
+pub fn sums_url_for(url: &str) -> Option<(String, String)> {
+    let (dir, file) = url.rsplit_once('/')?;
+    (!file.is_empty()).then(|| (format!("{dir}/{SUMS_ASSET}"), file.to_string()))
+}
+
+/// Stream an installer from a release asset URL to `dest` (GitHub redirects to its CDN; every hop is audited by `http::send_get`).
+/// `on_progress(done, total)` fires at most every 80 ms plus once at the end. The file must be > 1 MB, start with the `MZ`
+/// executable header, and match the release's SHA256SUMS.txt entry. On any failure the partial file is deleted.
+pub fn download_installer(url: &str, dest: &std::path::Path, on_progress: &mut dyn FnMut(u64, u64)) -> Result<u64> {
+    use std::io::{Read, Write};
+    if !url.starts_with(DOWNLOAD_PREFIX) {
+        bail!("that download address is not a Luminos release asset");
+    }
+    let (sums_url, file_name) = sums_url_for(url).context("bad download address")?;
+    let sums = String::from_utf8_lossy(&http::get_bytes(&sums_url).context("fetching SHA256SUMS.txt")?).to_string();
+    let want = hash_from_sums(&sums, &file_name).with_context(|| format!("SHA256SUMS.txt does not list {file_name}"))?;
+    let tmp = dest.with_extension("part");
+    let result = (|| -> Result<u64> {
+        let mut resp = http::send_get(url, &[]).context("starting the download")?;
+        let total = resp.body().content_length().unwrap_or(0);
+        let mut reader = resp.body_mut().with_config().limit(u64::MAX).reader();
+        let mut file = std::fs::File::create(&tmp)?;
+        let (mut done, mut buf, mut last) = (0u64, vec![0u8; 64 * 1024], std::time::Instant::now());
+        on_progress(0, total);
+        loop {
+            let n = reader.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            file.write_all(&buf[..n])?;
+            done += n as u64;
+            if last.elapsed() >= std::time::Duration::from_millis(80) {
+                last = std::time::Instant::now();
+                on_progress(done, total.max(done));
+            }
+        }
+        file.flush()?;
+        drop(file);
+        on_progress(done, done);
+        if done <= 1_000_000 {
+            bail!("the download is only {done} bytes; that is not the installer");
+        }
+        let mut head = [0u8; 2];
+        std::fs::File::open(&tmp)?.read_exact(&mut head)?;
+        if &head != b"MZ" {
+            bail!("the download is not a Windows executable (missing MZ header)");
+        }
+        let got = compat::sha256_file(&tmp)?;
+        if got != want {
+            bail!("installer checksum mismatch (expected {want}, got {got})");
+        }
+        let _ = std::fs::remove_file(dest);
+        std::fs::rename(&tmp, dest)?;
+        Ok(done)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
+}
+
+/// The batch file that finishes an update after the launcher has exited: wait for the process to release its files,
+/// run the NSIS installer silently and wait for it, start the launcher again, delete itself.
+/// (`ping -n 3` is the delay because `timeout` refuses to run without a console, which this script does not have.)
+pub fn apply_script(installer: &std::path::Path, exe: &std::path::Path) -> String {
+    format!(
+        "@echo off\r\nping -n 3 127.0.0.1 >nul\r\nstart /wait \"\" \"{inst}\" /S\r\nif exist \"{exe}\" (start \"\" \"{exe}\") else (start \"\" \"%LOCALAPPDATA%\\Programs\\Luminos\\Luminos.exe\")\r\ndel \"%~f0\"\r\n",
+        inst = installer.display(),
+        exe = exe.display()
+    )
+}
+
+/// Windows: write `luminos_apply_update.cmd` into the temp folder and start it hidden and detached. The caller then exits the app.
+pub fn spawn_apply_script(installer: &std::path::Path) -> Result<PathBuf> {
+    if !cfg!(windows) {
+        bail!("silent install is Windows-only; open the release page instead");
+    }
+    let exe = std::env::current_exe().context("finding the running Luminos.exe")?;
+    let script = std::env::temp_dir().join("luminos_apply_update.cmd");
+    std::fs::write(&script, apply_script(installer, &exe))?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP: no console flash, and the script outlives this process.
+        std::process::Command::new("cmd.exe")
+            .arg("/C")
+            .arg(&script)
+            .creation_flags(0x0800_0000 | 0x0000_0200)
+            .spawn()
+            .with_context(|| format!("starting {}", script.display()))?;
+    }
+    Ok(script)
+}
+
 /// Run the verified NSIS installer silently (`/S /UPDATE`). Windows only; the caller should exit the launcher afterwards.
 pub fn run_installer(path: &std::path::Path) -> Result<()> {
     if !cfg!(windows) {
@@ -184,6 +296,23 @@ pub fn run_installer(path: &std::path::Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn apply_script_waits_installs_silently_restarts_and_deletes_itself() {
+        let s = apply_script(std::path::Path::new("C:\\T\\Luminos-Update-Setup.exe"), std::path::Path::new("C:\\L\\Luminos.exe"));
+        assert!(s.contains("ping -n 3 127.0.0.1"));
+        assert!(s.contains("start /wait \"\" \"C:\\T\\Luminos-Update-Setup.exe\" /S"));
+        assert!(s.contains("start \"\" \"C:\\L\\Luminos.exe\""));
+        assert!(s.contains("del \"%~f0\""));
+    }
+
+    #[test]
+    fn sums_url_sits_next_to_the_asset() {
+        let (u, f) = sums_url_for("https://github.com/prashantchataut/Luminos/releases/download/v2.3.0/Luminos-Setup.exe").unwrap();
+        assert_eq!(f, "Luminos-Setup.exe");
+        assert!(u.ends_with("/v2.3.0/SHA256SUMS.txt"));
+    }
+
     use serde_json::json;
 
     fn rel(tag: &str, assets: &[&str], draft: bool, pre: bool) -> Value {

@@ -529,52 +529,53 @@ fn open_external(url: String) -> R<()> {
 
 fn update_json(current: &str, r: Option<update::Release>) -> Value {
     match r {
-        Some(r) => json!({ "updateAvailable": true, "currentVersion": current, "latestVersion": r.version,
-            "downloadUrl": r.setup_url, "releaseNotes": r.notes, "page": r.page, "sizeBytes": r.setup_size }),
+        Some(r) => json!({ "updateAvailable": update::is_newer(&r.version, current), "currentVersion": current, "latestVersion": r.version,
+            "downloadUrl": r.setup_url, "assetName": update::SETUP_ASSET, "assetSize": r.setup_size, "sizeBytes": r.setup_size,
+            "releaseNotes": r.notes, "publishedAt": r.published_at, "page": r.page }),
         None => json!({ "updateAvailable": false, "currentVersion": current, "latestVersion": current,
-            "downloadUrl": null, "releaseNotes": "", "page": null, "sizeBytes": 0 }),
+            "downloadUrl": null, "assetName": null, "assetSize": 0, "sizeBytes": 0, "releaseNotes": "", "publishedAt": "", "page": null }),
     }
 }
 
-/// Ask GitHub (`/releases/latest`, then the release list) whether a newer launcher than this build exists.
+/// Ask GitHub (`/releases/latest`, then the release list; the shared HTTP agent sends `User-Agent: Luminos-Launcher/2.3.0`).
+/// ALWAYS returns the latest release's download URL, even when this build is already current, so the UI can offer
+/// "Reinstall / Test Auto-Updater". Errors are returned to the UI as text, never swallowed.
 #[tauri::command]
 async fn check_app_update() -> R<Value> {
     blocking(|| {
         let cur = env!("CARGO_PKG_VERSION");
-        Ok(update_json(cur, update::check_latest(cur).map_err(err)?))
+        let latest = update::latest_release().map_err(|e| format!("Could not reach GitHub releases: {e:#}"))?;
+        Ok(update_json(cur, latest))
     })
     .await
 }
 
-/// Download `Luminos-Setup.exe` (progress on the `update-progress` event, 0..=100), verify its SHA-256
-/// against the release's SHA256SUMS.txt, run it silently and exit so the installer can replace this exe.
-/// `download_url` must be the one `check_app_update` returned; anything else is refused.
+/// Stream the installer to `%TEMP%\Luminos-Update-Setup.exe` with live progress (`update-progress` and
+/// `update-download-progress`: percent, done, total, bytesPerSec), verify size / `MZ` header / SHA-256, start the detached
+/// `luminos_apply_update.cmd` (waits, runs the NSIS installer with /S, restarts Luminos) and exit this process so the
+/// installer can replace the running exe. Works for a newer release and as "Reinstall latest" when already current.
 #[tauri::command]
 async fn install_app_update(app: AppHandle, download_url: String) -> R<()> {
     let handle = app.clone();
     blocking(move || {
-        let cur = env!("CARGO_PKG_VERSION");
-        let rel = update::check_latest(cur)
-            .map_err(err)?
-            .ok_or_else(|| "Luminos is already up to date.".to_string())?;
-        if rel.setup_url != download_url {
-            return Err("That download address does not belong to the latest Luminos release.".into());
-        }
-        let mut last = 101u64;
-        let path = update::download_verified_with_progress(&rel, &mut |done, total| {
+        let dest = std::env::temp_dir().join("Luminos-Update-Setup.exe");
+        let started = std::time::Instant::now();
+        let say = |phase: &str, done: u64, total: u64| {
             let pct = if total == 0 { 0 } else { (done * 100 / total).min(100) };
-            if pct != last {
-                last = pct;
-                let _ = handle.emit("update-progress", json!({ "percent": pct, "done": done, "total": total }));
-            }
-        })
-        .map_err(err)?;
-        let _ = handle.emit("update-progress", json!({ "percent": 100, "done": 1, "total": 1, "installing": true }));
-        update::run_installer(&path).map_err(err)?;
+            let bps = (done as f64 / started.elapsed().as_secs_f64().max(0.001)) as u64;
+            let payload = json!({ "phase": phase, "percent": pct, "done": done, "total": total, "bytesPerSec": bps });
+            let _ = handle.emit("update-progress", payload.clone());
+            let _ = handle.emit("update-download-progress", payload);
+        };
+        say("downloading", 0, 0);
+        let size = update::download_installer(&download_url, &dest, &mut |done, total| say("downloading", done, total)).map_err(err)?;
+        say("installing", size, size);
+        update::spawn_apply_script(&dest).map_err(err)?;
+        // Give the script a moment to start, then leave so the installer can overwrite Luminos.exe.
+        std::thread::sleep(std::time::Duration::from_millis(300));
         Ok(())
     })
     .await?;
-    // The installer is already running; leave so it can overwrite our files.
     app.exit(0);
     Ok(())
 }

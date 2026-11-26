@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import AccountModal, { useAccounts } from "./components/AccountModal";
 import OnboardingModal from "./components/OnboardingModal";
 import UpdateBanner, { useAppUpdate } from "./components/UpdateBanner";
+import UpdateModal from "./components/UpdateModal";
 import { skinById, skinSrc, useLocker } from "./locker/catalog";
 import { useSettings } from "./store";
 import { startGameWatch } from "./state/game";
@@ -41,12 +42,14 @@ export default function App() {
   useEffect(() => {
     bootstrap()
       .then((b: any) => { setBoot(b); if (!b.setupDone) setWizard(true); })
-      .catch(() => setBoot({ version: "2.2.0", setupDone: true, account: {}, instances: [] }));
+      .catch(() => setBoot({ version: "2.3.0", setupDone: true, account: {}, instances: [] }));
   }, []);
   useEffect(() => { if (boot) requestAnimationFrame(() => requestAnimationFrame(() => { void safeInvoke("app_ready", {}, null); })); }, [boot !== null]);
   useEffect(() => { void startGameWatch(); }, []);
   useEffect(() => { document.documentElement.classList.toggle("reduce", s.reduceMotion); }, [s.reduceMotion]);
   const upd = useAppUpdate(s.checkUpdates);
+  const [updOpen, setUpdOpen] = useState(false);
+  useEffect(() => { const f = () => setUpdOpen(true); addEventListener("luminos:update", f); return () => removeEventListener("luminos:update", f); }, []);
   useEffect(() => { const f = () => setWizard(true); addEventListener("luminos:wizard", f); return () => removeEventListener("luminos:wizard", f); }, []);
   const closeWizard = useCallback(() => { setWizard(false); void safeInvoke("set_setting", { key: "setup_done", value: true }, null); }, []);
   const closeAccount = useCallback(() => { setAcct(false); void safeInvoke("set_setting", { key: "setup_done", value: true }, null); }, []);
@@ -59,7 +62,7 @@ export default function App() {
     <div className="w-screen h-screen overflow-hidden flex select-none antialiased" style={{ background: "var(--bg)", color: "var(--fg)" }}>
       <Sidebar page={page} go={go} name={accounts.current.name} skin={skinSrc(skinById(locker.skin))} version={version} onAccount={() => setAcct(true)} />
       <main className="flex-1 min-w-0 min-h-0 flex flex-col">
-        <UpdateBanner u={upd} />
+        <UpdateBanner u={upd} onOpen={() => setUpdOpen(true)} />
         <div className="flex-1 min-h-0" key={page}>
         <div className="h-full min-h-0 screen">
           <ErrorBoundary label={page} resetKey={page}>
@@ -77,6 +80,7 @@ export default function App() {
         </div>
         </div>
       </main>
+      {updOpen && <UpdateModal u={upd} onClose={() => setUpdOpen(false)} />}
       {wizard && <OnboardingModal onClose={closeWizard} />}
       {acct && <AccountModal onClose={closeAccount} />}
     </div>

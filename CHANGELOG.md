@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0
+- **Website:** the approved dithered-moon hero is first on the page again (v2.2.0 had put a Capes section above it; `Hero.tsx`/`Sky.tsx` are byte-identical to pre-v2.1.0). Capes moved below the tour.
+- **Capes:** ten HD 512x256 capes (`scripts/gen-hd-3d-capes.mjs`). Cards are real skinview3d renders of the cape worn from a 3/4 back view with an extruded voxel relief layer; the Showdown stage shows the same relief live. In-game: `CapeSkin` + `PlayerSkinMixin` swap the local player's cape texture (compiled, not yet run in a real game; no extra relief mesh in-game).
+- **Skins:** 16 rule-built 64x64 skins (`scripts/gen-authentic-skins.mjs`), shown as skinview3d portraits.
+- **Updater:** `check_app_update` always returns the latest release (so "Test / Re-run Auto-Updater" works while current); `install_app_update` streams with live progress, checks size / MZ / SHA-256, then a detached `.cmd` runs the NSIS installer with /S and restarts Luminos. Unit-tested script generation; never run against a real Windows install.
+- **Window identity:** the JVM is started as `LuminosClient.exe` (copy of java.exe in the same bin folder); `MinecraftTitleMixin` returns "Luminos Client <version>". The exe's file description is still the JDK's.
+- **In-game title screen:** seven buttons incl. Cosmetics & 3D Capes; new `LuminosCosmeticsScreen`.
+- Fix: the release source gate no longer hard-codes a version and accepts the 128 px icon layer.
+
 ## 2.1.0
 
 ### English

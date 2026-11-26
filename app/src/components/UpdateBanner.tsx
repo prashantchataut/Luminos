@@ -1,55 +1,52 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { safeInvoke, isTauri } from "../lib/tauri-bridge";
 
-export type UpdateInfo = { updateAvailable: boolean; currentVersion: string; latestVersion: string; downloadUrl: string | null; releaseNotes: string; page: string | null; sizeBytes: number };
+export const APP_VERSION = "2.3.0";
+export type UpdateInfo = {
+  updateAvailable: boolean; currentVersion: string; latestVersion: string; downloadUrl: string | null; assetName?: string | null; assetSize?: number;
+  releaseNotes: string; publishedAt?: string; page: string | null; sizeBytes: number;
+};
+export type UpdateProgress = { phase: "downloading" | "installing"; percent: number; done: number; total: number; bytesPerSec: number };
 
-/** Check GitHub through Rust, then download + verify + run the silent NSIS installer and let Rust exit the app. */
+/**
+ * Check GitHub through Rust (`check_app_update`), then stream + verify the installer and hand over to the detached silent installer
+ * script (`install_app_update`). Rust always returns the latest release's URL, so "Reinstall latest" works while up to date.
+ */
 export function useAppUpdate(autoCheck: boolean) {
-  const [info, setInfo] = useState<UpdateInfo | null>(null), [checking, setChecking] = useState(false), [pct, setPct] = useState<number | null>(null), [error, setError] = useState("");
+  const [info, setInfo] = useState<UpdateInfo | null>(null), [checking, setChecking] = useState(false), [error, setError] = useState("");
+  const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const un = useRef<null | (() => void)>(null);
   const check = useCallback(async () => {
-    if (!isTauri()) { setError("Updates are checked by the desktop app."); return null; }
+    if (!isTauri()) { setError("Updates are checked by the desktop app (this is a browser preview)."); return null; }
     setChecking(true); setError("");
-    const r = await safeInvoke<UpdateInfo | "__failed__">("check_app_update", {}, "__failed__", 20000);
+    const r = await safeInvoke<UpdateInfo | string | "__failed__">("check_app_update", {}, "__failed__", 25000);
     setChecking(false);
-    if (r === "__failed__") { setError("Could not reach GitHub. Check your connection."); return null; }
-    setInfo(r); return r;
+    if (r === "__failed__") { setError("Could not reach GitHub releases. Check your connection and try again."); return null; }
+    setInfo(r as UpdateInfo); return r as UpdateInfo;
   }, []);
   useEffect(() => { if (autoCheck) void check(); }, [autoCheck, check]);
   useEffect(() => () => { un.current?.(); }, []);
   const install = useCallback(async () => {
     if (!info?.downloadUrl) return;
-    setError(""); setPct(0);
+    setError(""); setProgress({ phase: "downloading", percent: 0, done: 0, total: info.assetSize ?? info.sizeBytes ?? 0, bytesPerSec: 0 });
     const { listen } = await import("@tauri-apps/api/event");
-    un.current = await listen<{ percent: number }>("update-progress", (e) => setPct(e.payload.percent));
-    const r = await safeInvoke<unknown>("install_app_update", { downloadUrl: info.downloadUrl }, "__failed__", 30 * 60 * 1000);
-    if (r === "__failed__") { setPct(null); setError("The update could not be installed. Nothing was changed."); }
+    un.current?.();
+    un.current = await listen<UpdateProgress>("update-progress", (e) => setProgress(e.payload));
+    const { invoke } = await import("@tauri-apps/api/core");
+    try { await invoke("install_app_update", { downloadUrl: info.downloadUrl }); }
+    catch (e) { setProgress(null); setError(`The update failed and nothing was changed: ${String(e)}`); }
   }, [info]);
-  return { info, checking, pct, error, check, install };
+  return { info, checking, progress, pct: progress ? progress.percent : null, error, check, install };
 }
 
-export default function UpdateBanner({ u }: { u: ReturnType<typeof useAppUpdate> }) {
-  if (!u.info?.updateAvailable && !u.error) return null;
-  const busy = u.pct !== null;
+/** Top notification bar: only visible when GitHub has a newer release. Clicking opens the Auto-Updater modal. */
+export default function UpdateBanner({ u, onOpen }: { u: ReturnType<typeof useAppUpdate>; onOpen: () => void }) {
+  if (!u.info?.updateAvailable) return null;
   return (
-    <div role="status" className="shrink-0 px-8 h-[52px] flex items-center gap-5" style={{ background: "#12203F", borderBottom: "1px solid #24407A" }}>
-      {u.info?.updateAvailable ? (
-        <>
-          <span className="text-[13px] font-semibold text-white">Update Available <span className="font-normal opacity-60">v{u.info.currentVersion} → v{u.info.latestVersion}</span></span>
-          {busy ? (
-            <div className="flex items-center gap-3 flex-1 max-w-[420px]" aria-label="Update progress">
-              <div className="h-[6px] flex-1 rounded-full overflow-hidden" style={{ background: "#1F3260" }}><div className="h-full t" style={{ width: `${u.pct}%`, background: "#3B82F6" }} /></div>
-              <span className="num text-[12px] w-[84px] text-white/80">{u.pct! >= 100 ? "Installing…" : `${u.pct}%`}</span>
-            </div>
-          ) : (
-            <>
-              <button className="h-8 px-4 rounded-[8px] text-[12.5px] font-semibold text-white t press" style={{ background: "#2B6BFF" }} onClick={() => void u.install()}>Install &amp; Restart</button>
-              {u.info.page && <span className="text-[12px] text-white/50 truncate">Luminos closes, updates silently and reopens.</span>}
-            </>
-          )}
-        </>
-      ) : null}
-      {u.error && <span className="text-[12.5px]" style={{ color: "#FCA5A5" }}>{u.error}</span>}
-    </div>
+    <button onClick={onOpen} role="status" className="shrink-0 px-8 h-[44px] flex items-center gap-4 w-full text-left t" style={{ background: "#12203F", borderBottom: "1px solid #24407A" }}>
+      <span className="text-[13px] font-semibold text-white">Luminos v{u.info.latestVersion} is available — Click to Auto-Update &amp; Restart</span>
+      <span className="text-[12px] text-white/50">v{u.info.currentVersion} → v{u.info.latestVersion}</span>
+      <span className="ml-auto h-7 px-3 rounded-[8px] text-[12px] font-semibold text-white grid place-items-center" style={{ background: "#2B6BFF" }}>Update now</span>
+    </button>
   );
 }

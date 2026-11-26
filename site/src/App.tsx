@@ -95,10 +95,10 @@ export default function App() {
         <Legal page={page} />
       ) : (
         <main id="main">
-        <Capes />
           <Hero release={release} />
           <Tour />
           <Themes />
+          <Capes />
           <Features />
           <Client />
           <Worlds />

@@ -54,18 +54,38 @@ export class LockerScene {
     }
   }
   private clearRelief() { if (this.relief) { this.relief.parent?.remove(this.relief); this.relief.traverse((o: any) => { o.geometry?.dispose?.(); o.material?.dispose?.(); }); this.relief = null; } }
-  /** Raised voxels come from the cape texture itself: pixels brighter than the median stand 0.5 units proud of the cloth. */
   private buildRelief(c: HTMLCanvasElement) {
-    const s = c.width / 64, ox = 2 * s * 0.5 * 2, oy = ox, w = 10 * s, h = 16 * s, px = 10 / w; // outer face = (1,1) 10x16 at 1x
-    const d = c.getContext("2d")!.getImageData(Math.round(s), Math.round(s), w, h).data, ls: number[] = [];
-    for (let i = 0; i < d.length; i += 4) ls.push(lum(d[i], d[i + 1], d[i + 2]));
-    const med = [...ls].sort((a, b) => a - b)[Math.floor(ls.length / 2)];
-    const idx = ls.map((l, i) => (l > med + 6 ? i : -1)).filter((i) => i >= 0);
-    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(px, px, 0.6), new THREE.MeshLambertMaterial({ color: 0xffffff }), idx.length);
-    const m = new THREE.Matrix4();
-    idx.forEach((i, n) => { const x = i % w, y = Math.floor(i / w); m.setPosition(-5 + (x + 0.5) * px, 8 - (y + 0.5) * px, 0.5 + 0.3); mesh.setMatrixAt(n, m); mesh.setColorAt(n, new THREE.Color(`rgb(${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]})`)); });
-    void ox; void oy;
-    const g = new THREE.Group(); g.add(mesh); this.relief = g;
+    const g = makeRelief(c); this.relief = g;
     (this.v.playerObject as any).cape?.add(g);
   }
+  /** Show the back of the player (cape side) at a 3/4 angle, or the front again. */
+  faceBack(b: boolean) { this.v.playerObject.rotation.y = b ? Math.PI - 0.55 : -0.5; }
+}
+
+/**
+ * 3D voxel relief for a cape texture of any 64n x 32n size. The outer face (1,1) 10x16 (at 1x) is sampled in 2x2 texel cells
+ * (40x64 cells for a 512x256 cape). The frame ring and any cell clearly brighter than the cloth median are extruded
+ * outwards (-z is the outside of the cape in skinview3d) up to 1.2 units, so the cloak has real depth from every angle.
+ */
+export function makeRelief(c: HTMLCanvasElement): THREE.Group {
+  const k = c.width / 64, fw = 10 * k, fh = 16 * k, cell = Math.max(1, Math.round(k / 4)), gw = Math.floor(fw / cell), gh = Math.floor(fh / cell);
+  const d = c.getContext("2d")!.getImageData(Math.round(k), Math.round(k), fw, fh).data, px = 10 / gw;
+  const lumAt: number[] = [], col: number[][] = [];
+  for (let cy = 0; cy < gh; cy++) for (let cx = 0; cx < gw; cx++) {
+    let r = 0, gg = 0, b = 0, n = 0;
+    for (let y = 0; y < cell; y++) for (let x = 0; x < cell; x++) { const i = ((cy * cell + y) * fw + cx * cell + x) * 4; if (d[i + 3] > 8) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; } }
+    n = n || 1; col.push([r / n, gg / n, b / n]); lumAt.push(lum(r / n, gg / n, b / n));
+  }
+  const med = [...lumAt].sort((a, b) => a - b)[Math.floor(lumAt.length / 2)], ring = Math.max(2, Math.round(4 / cell));
+  const list: { x: number; y: number; h: number; c: number[] }[] = [];
+  for (let cy = 0; cy < gh; cy++) for (let cx = 0; cx < gw; cx++) {
+    const i = cy * gw + cx, edge = Math.min(cx, gw - 1 - cx, cy, gh - 1 - cy), border = edge < ring;
+    const h = border ? (edge === 0 ? 0.5 : 1.2) : lumAt[i] > med + 28 ? 0.8 : 0;
+    if (h > 0) list.push({ x: cx, y: cy, h, c: col[i] });
+  }
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(px, px, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }), list.length);
+  const m = new THREE.Matrix4(), sc = new THREE.Matrix4();
+  list.forEach((v, n) => { sc.makeScale(1, 1, v.h); m.setPosition(5 - (v.x + 0.5) * px, 8 - (v.y + 0.5) * px, -v.h / 2); m.multiply(sc); mesh.setMatrixAt(n, m); mesh.setColorAt(n, new THREE.Color(`rgb(${Math.round(v.c[0])},${Math.round(v.c[1])},${Math.round(v.c[2])})`)); });
+  const g = new THREE.Group(); g.position.set(0, 8, 0.5 - 0.5); g.add(mesh); mesh.position.y = -8; g.userData.voxels = list.length;
+  return g;
 }

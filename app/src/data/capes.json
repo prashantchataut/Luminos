@@ -1,0 +1,82 @@
+[
+  {
+    "id": "luminos-original-moon",
+    "name": "Luminos Original Moon 3D",
+    "tag": "3D",
+    "description": "Midnight cloak, the dithered crescent, a silver shoulder clasp.",
+    "file": "capes/luminos-original-moon.png",
+    "size": "512x256"
+  },
+  {
+    "id": "job-application",
+    "name": "Job Application 3D",
+    "tag": "Meme",
+    "description": "A wooden clipboard, a steel spring clip and a very serious form.",
+    "file": "capes/job-application.png",
+    "size": "512x256"
+  },
+  {
+    "id": "ball-knowledge-tactician",
+    "name": "Ball Knowledge Tactician 3D",
+    "tag": "Meme",
+    "description": "A brushed-aluminium coaching board. You either know ball or you don't.",
+    "file": "capes/ball-knowledge-tactician.png",
+    "size": "512x256"
+  },
+  {
+    "id": "touch-grass-3d",
+    "name": "Touch Grass 3D",
+    "tag": "3D",
+    "description": "A grass block, worn. Diamond ore at the hem.",
+    "file": "capes/touch-grass-3d.png",
+    "size": "512x256"
+  },
+  {
+    "id": "404-skill-not-found",
+    "name": "404 Skill Not Found",
+    "tag": "Meme",
+    "description": "Your opponent ran into a problem. It was you. CPS_TOO_LOW.",
+    "file": "capes/404-skill-not-found.png",
+    "size": "512x256"
+  },
+  {
+    "id": "crimson-ronin-3d",
+    "name": "Crimson Ronin 3D",
+    "tag": "3D",
+    "description": "Blood-red haori, gold clouds, lacquer shoulder plates, a strapped katana.",
+    "file": "capes/crimson-ronin-3d.png",
+    "size": "512x256"
+  },
+  {
+    "id": "eclipse-monarch-3d",
+    "name": "Eclipse Monarch 3D",
+    "tag": "3D",
+    "description": "Obsidian mantle, gold trim, a corona that never sets.",
+    "file": "capes/eclipse-monarch-3d.png",
+    "size": "512x256"
+  },
+  {
+    "id": "cobalt-prism-3d",
+    "name": "Cobalt Prism 3D",
+    "tag": "3D",
+    "description": "Carbon cloak, cobalt energy veins, spine armour.",
+    "file": "capes/cobalt-prism-3d.png",
+    "size": "512x256"
+  },
+  {
+    "id": "sakura-nightfall-3d",
+    "name": "Sakura Nightfall 3D",
+    "tag": "3D",
+    "description": "Twilight indigo, falling blossoms and one paper lantern.",
+    "file": "capes/sakura-nightfall-3d.png",
+    "size": "512x256"
+  },
+  {
+    "id": "void-dragon-3d",
+    "name": "Void Dragon 3D",
+    "tag": "3D",
+    "description": "Ender-obsidian scales, glowing spine ridges, a tattered hem.",
+    "file": "capes/void-dragon-3d.png",
+    "size": "512x256"
+  }
+]

@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 /**
- * The Luminos title screen. Every button is a registered {@link LuminosButton} (addRenderableWidget), so clicks,
+ * The Luminos title screen (Mojang mappings: {@code addRenderableWidget} is Yarn's {@code addDrawableChild}). Every button is a registered {@link LuminosButton} (addRenderableWidget), so clicks,
  * hover, Tab/Enter navigation and the click sound come from Minecraft's own Screen code, not from hand-rolled hit boxes.
  *
  * Background: the supplied night-village artwork (textures/gui/title_bg.png, 1600x900) scaled to cover the window, a
@@ -33,7 +33,7 @@ public final class LuminosTitleScreen extends Screen {
 	protected void init() {
 		int bw = 200, bh = 22, gap = 5;
 		int x = Math.max(28, width / 12);
-		int rows = 6;
+		int rows = 7;
 		int total = rows * bh + (rows - 1) * gap + 14;
 		int y = Math.max(64, Math.min(height / 2 - 40, height - total - 44));
 
@@ -46,7 +46,10 @@ public final class LuminosTitleScreen extends Screen {
 		addRenderableWidget(new LuminosButton(x, y, bw, bh, "Luminos Mods  [Right Ctrl]", false,
 			() -> minecraft.setScreen(new LuminosQuickPanelScreen(Panel.Tab.MODULES, false, this))));
 		y += bh + gap;
-		addRenderableWidget(new LuminosButton(x, y, bw, bh, "HUD Studio & Cosmetics", false,
+		addRenderableWidget(new LuminosButton(x, y, bw, bh, "Cosmetics & 3D Capes", false,
+			() -> minecraft.setScreen(new LuminosCosmeticsScreen(this))));
+		y += bh + gap;
+		addRenderableWidget(new LuminosButton(x, y, bw, bh, "HUD Studio", false,
 			() -> minecraft.setScreen(new HudEditorScreen(this))));
 		y += bh + gap + 14;
 		int half = (bw - gap) / 2;
@@ -106,6 +109,12 @@ public final class LuminosTitleScreen extends Screen {
 		g.renderOutline(x, y, w, 16, 0x26FFFFFF);
 		g.fill(x, y, x + 2, y + 16, 0xFF3B82F6);
 		gx.text(s, x + 9, y + 4, color);
+	}
+
+	/** Never swallow clicks: every registered button gets its click from Minecraft's own Screen code. */
+	@Override
+	public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+		return super.mouseClicked(event, doubleClick);
 	}
 
 	@Override

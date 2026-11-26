@@ -304,7 +304,7 @@ pub fn build_command_ext(
 
     let mem = inst.memory_mb.unwrap_or(settings.memory_mb).max(512);
     let _ = fs::create_dir_all(&game_dir);
-    let mut cmd = Command::new(&prep.java);
+    let mut cmd = Command::new(branded_java(&prep.java));
     crate::sys::quiet(&mut cmd);
     cmd.current_dir(&game_dir);
     // The Luminos Client title screen shows which instance this is.
@@ -586,4 +586,31 @@ pub fn wait_and_record(h: &GameHandle) -> i32 {
         let _ = inst.save();
     }
     code
+}
+
+/// On Windows the game process is named after its executable. Copy the managed runtime's `java.exe` / `javaw.exe` to
+/// `LuminosClient.exe` in the SAME `bin` folder (so every DLL path resolves exactly as before) and start that, so Task Manager's
+/// Details tab and the taskbar group show `LuminosClient.exe`. Falls back to the original binary if the copy fails.
+/// Note: the file description inside the copied exe is still the JDK's; only the process name changes.
+pub fn branded_java(java: &std::path::Path) -> std::path::PathBuf {
+    if !cfg!(windows) {
+        return java.to_path_buf();
+    }
+    let is_java = java
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.eq_ignore_ascii_case("java.exe") || n.eq_ignore_ascii_case("javaw.exe"));
+    let Some(dir) = java.parent().filter(|_| is_java) else {
+        return java.to_path_buf();
+    };
+    let dst = dir.join("LuminosClient.exe");
+    let same = match (fs::metadata(java), fs::metadata(&dst)) {
+        (Ok(a), Ok(b)) => a.len() == b.len(),
+        _ => false,
+    };
+    if same || fs::copy(java, &dst).is_ok() {
+        dst
+    } else {
+        java.to_path_buf()
+    }
 }

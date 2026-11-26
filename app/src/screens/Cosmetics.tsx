@@ -7,22 +7,25 @@ import { ENVS, LockerScene, type Env, type Pose } from "../locker/scene";
 import { addSkin, allSkins, ITEMS, isEquipped, newId, setSkin, skinById, skinSrc, toggleEquip, updateSkin, useLocker, type Item, type SkinRec } from "../locker/catalog";
 import { fromImage, readSkinFile, toDataUrl } from "../locker/skinfile";
 import { skinFront } from "../lib/art";
+import { snapCape, snapSkin } from "../locker/snapshots";
 import { safeInvoke } from "../lib/tauri-bridge";
 import { useSettings } from "../store";
 
 type Tab = "skins" | "capes";
 const POSES: { id: Pose; label: string }[] = [{ id: "idle", label: "Idle breathe" }, { id: "sprint", label: "Sprint, cape flow" }, { id: "block", label: "Sword block-hit" }, { id: "sneak", label: "Sneak" }, { id: "turntable", label: "360° turntable" }];
 
+/** Skin card: a real 3D skinview3d portrait (walking pose, yaw 25 deg, pitch -10 deg) rendered once offscreen; the flat 2D front view shows until it is ready. */
 const SkinArt = memo(function SkinArt({ s }: { s: SkinRec }) {
-  const [url, setUrl] = useState("");
-  useEffect(() => { let live = true; skinFront(skinSrc(s), s.model === "slim").then((u) => live && setUrl(u)).catch(() => undefined); return () => { live = false; }; }, [s.id, s.data, s.model]);
-  return url ? <img src={url} alt="" className="skin-px h-full w-auto object-contain" draggable={false} /> : <div className="h-[70%] aspect-[1/2] rounded-md opacity-30" style={{ background: "var(--surface-2)" }} />;
+  const [url, setUrl] = useState(""), [flat, setFlat] = useState("");
+  useEffect(() => { let live = true; setUrl(""); snapSkin(skinSrc(s), s.model === "slim").then((u) => live && setUrl(u)).catch(() => undefined); skinFront(skinSrc(s), s.model === "slim").then((u) => live && setFlat(u)).catch(() => undefined); return () => { live = false; }; }, [s.id, s.data, s.model]);
+  if (url) return <img src={url} alt={`${s.name}, 3D portrait`} data-3d="skin" className="h-full w-auto object-contain" draggable={false} />;
+  return flat ? <img src={flat} alt="" className="skin-px h-full w-auto object-contain opacity-60" draggable={false} /> : <div className="h-[70%] aspect-[1/2] rounded-md opacity-30" style={{ background: "var(--surface-2)" }} />;
 });
-/** The outer face of a cape texture (any 64n×32n size), drawn at 20×32 so 1 texel = 1 canvas pixel at 2× art. */
-const CapeArt = memo(function CapeArt({ file }: { file: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const i = new Image(); i.onload = () => { const g = ref.current?.getContext("2d"); if (!g) return; const k = i.width / 64; g.imageSmoothingEnabled = false; g.clearRect(0, 0, 20, 32); g.drawImage(i, k, k, 10 * k, 16 * k, 0, 0, 20, 32); }; i.src = "/" + file; }, [file]);
-  return <canvas ref={ref} width={20} height={32} className="skin-px h-full w-auto object-contain" style={{ boxShadow: "0 6px 18px rgba(0,0,0,.35)" }} aria-hidden="true" />;
+/** Cape card: the cape draped on the equipped skin from a 3/4 back view (yaw 150 deg) with the 3D relief layer, rendered offscreen once. */
+const CapeArt = memo(function CapeArt({ file, skin }: { file: string; skin: SkinRec }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => { let live = true; setUrl(""); snapCape("/" + file, skinSrc(skin), skin.model === "slim").then((u) => live && setUrl(u)).catch(() => undefined); return () => { live = false; }; }, [file, skin.id, skin.data, skin.model]);
+  return url ? <img src={url} alt="" data-3d="cape" className="h-full w-auto object-contain" draggable={false} /> : <div className="h-[70%] aspect-[1/2] rounded-md opacity-30" style={{ background: "var(--surface-2)" }} />;
 });
 
 const Card = memo(function Card({ title, tag, on, art, onEquip, label }: { title: string; tag?: string; on: boolean; art: React.ReactNode; onEquip: () => void; label?: string }) {
@@ -73,6 +76,7 @@ export default function Cosmetics() {
     void A.current?.setCape(files, !!cape?.relief, cape?.frameMs ?? 0).catch(() => setMsg("That cape could not be drawn."));
     void B.current?.setCape(files, !!cape?.relief, cape?.frameMs ?? 0).catch(() => undefined);
   }, [cape?.id, compare]);
+  useEffect(() => { A.current?.faceBack(tab === "capes"); B.current?.faceBack(tab === "capes"); }, [tab, compare]);
   useEffect(() => { A.current?.setPose(pose); B.current?.setPose(pose); tick.current++; }, [pose, compare]);
   useEffect(() => { B.current?.setEnv(env); }, [env, compare]);
   useEffect(() => { if (!msg) return; const t = setTimeout(() => setMsg(""), 4200); return () => clearTimeout(t); }, [msg]);
@@ -141,7 +145,7 @@ export default function Cosmetics() {
           <div className="mb-5 flex items-center justify-between gap-4"><Pills value={tab} onChange={setTab} items={[{ id: "skins", label: `Skins (${skins.length})` }, { id: "capes", label: `Capes & Cloaks (${ITEMS.length})` }]} /></div>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-3 gap-5 content-start">
             {tab === "skins" && skins.map((x) => <Card key={x.id} title={x.name} tag={x.model === "slim" ? "SLIM" : undefined} on={compare ? bId === x.id : L.skin === x.id} label={compare ? `${x.name}` : undefined} art={<SkinArt s={x} />} onEquip={() => (compare ? setBId(x.id) : setSkin(x.id))} />)}
-            {tab === "capes" && ITEMS.map((i: Item) => <Card key={i.id} title={i.name} tag={i.animated ? "ANIMATED" : i.tag} on={isEquipped(i, L)} art={<CapeArt file={i.capeFile} />} onEquip={() => toggleEquip(i)} />)}
+            {tab === "capes" && ITEMS.map((i: Item) => <Card key={i.id} title={i.name} tag={i.tag} on={isEquipped(i, L)} art={<CapeArt file={i.capeFile} skin={skin} />} onEquip={() => toggleEquip(i)} />)}
           </div>
         </section>
       </div>
