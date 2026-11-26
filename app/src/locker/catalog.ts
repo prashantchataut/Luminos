@@ -10,7 +10,7 @@ export type Item = {
 };
 /** Display names: the asset names without the "3D" suffix; one long name shortened. */
 const niceName = (n: string) => n.replace(/\s+3D$/, "").replace("Ball Knowledge Tactician", "Ball Knowledge");
-const CAPE_ORDER = ["luminos-original-moon", "eclipse-monarch-3d", "cobalt-prism-3d", "crimson-ronin-3d", "sakura-nightfall-3d", "void-dragon-3d", "job-application", "touch-grass-3d", "ball-knowledge-tactician"];
+const CAPE_ORDER = ["luminos-original-moon", "eclipse-monarch-3d", "cobalt-prism-3d", "crimson-ronin-3d", "sakura-nightfall-3d", "void-dragon-3d", "job-application", "touch-grass-3d", "ball-knowledge-tactician", "404-skill-not-found"];
 export const ITEMS: Item[] = CAPE_ORDER.map((id) => (library.capes as any[]).find((c) => c.id === id)).filter(Boolean).map((c: any) => ({
   id: "cloak-" + c.id, cat: "cloaks" as const, name: niceName(c.name), blurb: c.description, tag: c.tag ?? "2D",
   capeFile: c.file, frameFiles: c.frameFiles ?? [c.file], frameMs: c.frameMs ?? 0, animated: !!c.animated, relief: !!c.relief,
@@ -65,6 +65,9 @@ function persist() {
 }
 function commit(next: LockerState) { state = next; persist(); subs.forEach((f) => f()); }
 export const getLocker = () => state;
+export const onLocker = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
+/** The game changed the equipped cape: take it over. The launcher's own file write is skipped by the caller (ids already match). */
+export function setCapeFromGame(id: string | null) { commit({ ...state, equipped: { cloaks: id } }); }
 export const useLocker = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => state);
 
 export const allSkins = (s: LockerState = state): SkinRec[] => [defaultRec(), ...s.mine];

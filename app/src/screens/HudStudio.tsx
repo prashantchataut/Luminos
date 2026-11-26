@@ -59,7 +59,7 @@ export default function HudStudio() {
   const wrap = useRef<HTMLDivElement>(null), start = useRef<{ x: number; y: number; p: [number, number] } | null>(null);
   useLayoutEffect(() => {
     const el = wrap.current; if (!el) return;
-    const f = () => setK(Math.max(0.5, Math.min(el.clientWidth / W, el.clientHeight / H)));
+    const f = () => setK(Math.max(0.5, el.clientWidth / W));
     f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect();
   }, []);
   useEffect(() => { document.body.style.cursor = drag ? "grabbing" : ""; return () => { document.body.style.cursor = ""; }; }, [!!drag]);
@@ -81,7 +81,7 @@ export default function HudStudio() {
       <PageHeader title="Edit HUD" sub="Drag elements, then fine-tune them on the right. Changes save as you go." />
       <div className="flex gap-7 flex-1 min-h-0">
         <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4">
-        <div ref={wrap} className="flex-1 min-w-0 min-h-0 flex items-start justify-center">
+        <div ref={wrap} className="w-full min-w-0 flex items-start justify-center">
           <div className="relative overflow-hidden rounded-[14px] shrink-0" style={{ width: W * k, height: H * k, background: "#10131a" }}>
             <div className="absolute left-0 top-0 origin-top-left" style={{ width: W, height: H, transform: `scale(${k})` }} onPointerDown={(e) => e.target === e.currentTarget && setSel("")}>
               <img src="/art/hud-backdrop.jpg" alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
@@ -109,6 +109,14 @@ export default function HudStudio() {
         <div className="h-11 shrink-0 rounded-[10px] px-4 flex items-center justify-between text-[12px]" style={{ background: "var(--surface)" }} role="status">
           <span className="mute">{el ? <>Selected <b className="font-semibold" style={{ color: "var(--fg)" }}>{el.label}</b></> : "Select an element to edit it"}</span>
           <span className="mono mute num">{cur ? `x ${cur[0]}  y ${cur[1]}  ·  ${el.size[0]} × ${el.size[1]}` : ""}  ·  arrow keys nudge 5 px</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3" role="group" aria-label="HUD elements">
+          {ELS.map((e) => (
+            <button key={e.id} onClick={() => setSel(e.id)} aria-pressed={sel === e.id} className="h-11 px-3.5 rounded-[10px] flex items-center gap-2.5 text-[12.5px] font-medium text-left t press" style={{ background: sel === e.id ? "#2B4BFF" : "#141821", color: sel === e.id ? "#fff" : "#8A94A6" }}>
+              <span aria-hidden className="w-2 h-2 rounded-full shrink-0" style={{ background: c.on[e.mod] ? "#34D399" : "#4B5563" }} />
+              <span className="truncate">{e.label}</span>
+            </button>
+          ))}
         </div>
         </div>
         <Inspector el={el ?? ELS[0]} />

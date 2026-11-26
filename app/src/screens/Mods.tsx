@@ -65,6 +65,11 @@ export default function Mods() {
   return (
     <Page>
       <PageHeader title="Mods" sub={`${enabled} of ${MODULES.length} enabled`} right={<SearchBox value={q} onChange={setQ} placeholder={`Search ${MODULES.length} client modules...`} />} />
+      <div className="mb-5 h-11 rounded-[10px] px-4 flex items-center gap-3 text-[12.5px]" style={{ background: "#141821" }} role="status">
+        <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: "#34D399" }} />
+        <span className="font-semibold text-white">Built-in Performance Stack: Active</span>
+        <span className="mute truncate">Sodium, Lithium, FerriteCore and ModernFix ship inside Luminos and are not listed as modules.</span>
+      </div>
       <div className="mb-7"><Pills value={cat} onChange={setCat} items={CATEGORIES} /></div>
       {list.length === 0 ? (
         <div className="rounded-[14px] py-16 text-center" style={{ background: "var(--surface)" }}>

@@ -18,6 +18,7 @@ import Preferences from "./screens/Preferences";
 import Themes from "./screens/Themes";
 import Profiles from "./screens/Profiles";
 import HudStudio from "./screens/HudStudio";
+import { startGameConfigSync } from "./state/client";
 
 // The only screen that owns a WebGL context. Loaded on demand, unmounted (and its context released) on leaving.
 const Cosmetics = lazy(() => import("./screens/Cosmetics"));
@@ -43,10 +44,11 @@ export default function App() {
   useEffect(() => {
     bootstrap()
       .then((b: any) => { setBoot(b); if (!b.setupDone) setWizard(true); })
-      .catch(() => setBoot({ version: "2.3.0", setupDone: true, account: {}, instances: [] }));
+      .catch(() => setBoot({ version: "4.3.0", setupDone: true, account: {}, instances: [] }));
   }, []);
   useEffect(() => { if (boot) requestAnimationFrame(() => requestAnimationFrame(() => { void safeInvoke("app_ready", {}, null); })); }, [boot !== null]);
   useEffect(() => { void startGameWatch(); }, []);
+  useEffect(() => startGameConfigSync(), []);
   useEffect(() => { document.documentElement.classList.toggle("reduce", s.reduceMotion); }, [s.reduceMotion]);
   const upd = useAppUpdate(s.checkUpdates);
   const [updOpen, setUpdOpen] = useState(false);
@@ -61,7 +63,7 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen overflow-hidden flex select-none antialiased" style={{ background: "var(--bg)", color: "var(--fg)" }}>
-      <Sidebar page={page} go={go} name={accounts.current.name} skin={skinSrc(skinById(locker.skin))} version={version} onAccount={() => setAcct(true)} />
+      <Sidebar page={page} go={go} name={accounts.current.name} skin={skinSrc(skinById(locker.skin))} kind={accounts.current.kind} version={version} onAccount={() => setAcct(true)} />
       <main className="flex-1 min-w-0 min-h-0 flex flex-col">
         <UpdateBanner u={upd} onOpen={() => setUpdOpen(true)} />
         <div className="flex-1 min-h-0" key={page}>

@@ -51,7 +51,7 @@ export default function Themes() {
       <div className="grid grid-cols-4 gap-5 mb-8">
         {THEMES.map((t) => <Preview key={t.id} id={t.id} name={t.name} note={t.note} active={s.theme === t.id} onPick={() => { setErr(null); set("theme", t.id as ThemeId); }} />)}
       </div>
-      <div className="max-w-[920px] space-y-3">
+      <div className="space-y-3">
         <Row title="Accent Color" desc={err ?? "Buttons, toggles and selection."}>
           <div className="flex items-center gap-2">{SWATCHES.map((h) => <button key={h} aria-label={`Accent ${h}`} aria-pressed={cur.toLowerCase() === h.toLowerCase()} onClick={() => accent(h)} className="w-6 h-6 rounded-full t press" style={{ background: h, boxShadow: cur.toLowerCase() === h.toLowerCase() ? "0 0 0 2px var(--surface), 0 0 0 4px var(--fg)" : "none" }} />)}</div>
           <input type="color" aria-label="Custom accent" value={cur.length === 7 ? cur : "#2b4bff"} onChange={(e) => accent(e.target.value)} />

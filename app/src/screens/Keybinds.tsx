@@ -42,8 +42,8 @@ export default function Keybinds() {
     <Page>
       <PageHeader title="Keybinds" sub="Configure client hotkeys and quick module toggles." right={<button className="btn-quiet" onClick={resetKeys}><Icon n="reset" s={14} />Reset Defaults</button>} />
       <div className="mb-7"><Pills value={cat} onChange={setCat} items={KEY_CATS} /></div>
-      <div className="space-y-3 max-w-[920px]">{list.map((b) => <BindRow key={b.id} b={b} key_={c.keys[b.id]?.key ?? b.key} mode={c.keys[b.id]?.mode ?? b.mode} recording={rec === b.id} onRecord={setRec} />)}</div>
-      <p className="mt-6 text-[12px] mute max-w-[920px]">Click a key, then press the new one. Backspace clears it, Esc cancels. A key can only trigger one action, so binding it elsewhere moves it.</p>
+      <div className="space-y-3">{list.map((b) => <BindRow key={b.id} b={b} key_={c.keys[b.id]?.key ?? b.key} mode={c.keys[b.id]?.mode ?? b.mode} recording={rec === b.id} onRecord={setRec} />)}</div>
+      <p className="mt-6 text-[12px] mute">Click a key, then press the new one. Backspace clears it, Esc cancels. A key can only trigger one action, so binding it elsewhere moves it.</p>
     </Page>
   );
 }

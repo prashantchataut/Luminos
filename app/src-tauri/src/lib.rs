@@ -713,6 +713,8 @@ pub fn run() {
             game::open_minecraft_folder,
             game::write_luminos_config,
             game::read_luminos_config,
+            game::load_client_config,
+            game::save_client_config,
             sync_run,
             sync_export,
             sync_import,

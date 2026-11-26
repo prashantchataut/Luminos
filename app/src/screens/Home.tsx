@@ -130,12 +130,12 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   return (
     <Page>
       <div className="space-y-8">
-        <section className="relative h-[300px] rounded-[16px] overflow-hidden flex items-end justify-end p-8" style={{ background: "var(--surface)" }}>
-          <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-left" decoding="async" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(270deg, #0B0D12 0%, rgba(11,13,18,0.82) 42%, rgba(11,13,18,0.0) 78%)" }} />
+        <section className="relative h-[300px] rounded-[16px] overflow-hidden flex items-end justify-start p-9" style={{ background: "var(--surface)" }}>
+          <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-right" decoding="async" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,0.95) 0%, rgba(11,13,18,0.65) 48%, rgba(11,13,18,0) 82%)" }} />
           <div className="relative max-w-[560px] space-y-4">
-            <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#6882FF" }}>Fabric {c.prefs.gameVersion} • Luminos Client Engine</span>
-            <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client</h1>
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase" style={{ color: "#8FA2FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />Fabric {c.prefs.gameVersion} • Sodium + Lithium + Native Mixins Ready</span>
+            <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client <span style={{ color: "#8FA2FF" }}>4.3</span></h1>
             {!preparing && <p className="m-0 !mt-3 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
             <div className="pt-3 flex items-center gap-3 flex-wrap">
               {g.status === "idle" && (

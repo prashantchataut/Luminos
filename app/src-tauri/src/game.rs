@@ -266,18 +266,103 @@ fn config_path(game_dir: &Path) -> PathBuf {
     game_dir.join("config").join("luminos").join("config.json")
 }
 
-/// Mirror the launcher's module toggles, hotkeys and HUD layout into every instance, where the in-game client reads them.
+/// The one schema both the launcher and the in-game client read and write: `<game dir>/config/luminos/config.json`.
+/// `modules` = id -> bool, `hotkeys` = action -> key name, `hud` = id -> {nx, ny, scale, enabled} (nx/ny are fractions of a 640x360 canvas),
+/// `cape` = equipped cape id ("" = none). Keys this struct does not know about (the game adds some) are kept in `extra`.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct LuminosClientConfig {
+    pub version: u32,
+    pub written_by: String,
+    pub modules: serde_json::Map<String, Value>,
+    pub module_settings: serde_json::Map<String, Value>,
+    pub hotkeys: serde_json::Map<String, Value>,
+    pub hud: serde_json::Map<String, Value>,
+    pub cape: String,
+    pub preset: String,
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, Value>,
+}
+
+/// Objects merge key by key, everything else is replaced, so a launcher save never wipes what only the game wrote (and the reverse).
+fn deep_merge(base: &mut Value, new: Value) {
+    match (base, new) {
+        (Value::Object(b), Value::Object(n)) => {
+            for (k, v) in n {
+                match b.get_mut(&k) {
+                    Some(slot) => deep_merge(slot, v),
+                    None => {
+                        b.insert(k, v);
+                    }
+                }
+            }
+        }
+        (slot, v) => *slot = v,
+    }
+}
+
+/// Write `value` merged over what is on disk, through a temp file + rename so the game never reads a half-written file.
+fn write_config_atomic(path: &Path, value: Value) -> Result<(), String> {
+    let mut merged = std::fs::read_to_string(path).ok().and_then(|s| serde_json::from_str::<Value>(&s).ok()).filter(Value::is_object).unwrap_or_else(|| json!({}));
+    deep_merge(&mut merged, value);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(err)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_string_pretty(&merged).map_err(err)?).map_err(err)?;
+    std::fs::rename(&tmp, path).map_err(err)
+}
+
+fn default_client_config() -> LuminosClientConfig {
+    LuminosClientConfig { version: 3, written_by: "launcher".into(), ..Default::default() }
+}
+
+/// Reads `<minecraft_dir>/config/luminos/config.json` of the chosen (default: first) instance; creates it with defaults when missing.
+#[tauri::command]
+pub async fn load_client_config(instance: Option<String>) -> R<LuminosClientConfig> {
+    blocking(move || {
+        let list = instances::list();
+        let inst = instance.and_then(|id| list.iter().find(|i| i.id == id).cloned()).or_else(|| list.first().cloned());
+        let Some(inst) = inst else { return Ok(default_client_config()) };
+        let p = config_path(&inst.game_dir());
+        if let Some(cfg) = std::fs::read_to_string(&p).ok().and_then(|s| serde_json::from_str::<LuminosClientConfig>(&s).ok()) {
+            return Ok(cfg);
+        }
+        let cfg = default_client_config();
+        write_config_atomic(&p, serde_json::to_value(&cfg).map_err(err)?)?;
+        Ok(cfg)
+    })
+    .await
+}
+
+/// Atomically writes the config into every instance (merged over what the game wrote). Returns how many instances were written.
+#[tauri::command]
+pub async fn save_client_config(config: LuminosClientConfig) -> R<usize> {
+    blocking(move || {
+        let mut cfg = config;
+        if cfg.version == 0 {
+            cfg.version = 3;
+        }
+        cfg.written_by = "launcher".into();
+        let value = serde_json::to_value(&cfg).map_err(err)?;
+        let mut n = 0;
+        for i in instances::list() {
+            write_config_atomic(&config_path(&i.game_dir()), value.clone())?;
+            n += 1;
+        }
+        Ok(n)
+    })
+    .await
+}
+
+/// Raw-JSON form of `save_client_config`, kept for the older call sites.
 #[tauri::command]
 pub async fn write_luminos_config(json: String) -> R<usize> {
     blocking(move || {
-        serde_json::from_str::<Value>(&json).map_err(err)?;
+        let value = serde_json::from_str::<Value>(&json).map_err(err)?;
         let mut n = 0;
         for i in instances::list() {
-            let p = config_path(&i.game_dir());
-            if let Some(parent) = p.parent() {
-                std::fs::create_dir_all(parent).map_err(err)?;
-            }
-            std::fs::write(&p, &json).map_err(err)?;
+            write_config_atomic(&config_path(&i.game_dir()), value.clone())?;
             n += 1;
         }
         Ok(n)

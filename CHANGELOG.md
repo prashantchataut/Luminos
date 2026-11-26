@@ -1,12 +1,33 @@
 # Changelog
 
+## 4.3.0
+
+### English
+- **One shared config, live in both directions.** The launcher (`load_client_config` / `save_client_config` in `src-tauri`, typed `LuminosClientConfig`) and the in-game client (`LauncherSync.java`) read and write the same `<minecraft dir>/config/luminos/config.json`: module toggles, hotkeys, HUD positions (`hud.<id>.nx/ny` as fractions of a 640x360 canvas) and the equipped cape. Writes are atomic (temp file + rename) and merged, so a launcher save no longer wipes what the game wrote. The game re-reads the file about once a second when its `lastModified` changes, so toggles, key changes, HUD moves and capes set in the launcher apply without a restart. The launcher loads the file on start, on window focus and every 2 s, and a read that races a local edit never undoes it.
+- **Launcher UI:** sidebar is 224 px with Play / Client / Personalization groups and a bottom dock (account type, live status Ready / Launching N% / In-Game, Quit when running, update check). Home hero now runs its dark gradient from the left with the engine-ready badge and "Luminos Client 4.3". Mods shows a "Built-in Performance Stack: Active" banner. Edit HUD no longer leaves an empty block under the canvas and gains an element picker. Keybinds, Themes and Preferences rows span the full content width. The "Emote Wheel" keybind (no feature behind it) is gone. The 10th cape (404 Skill Not Found) is back in the grid. Launch progress is shown once, not three times.
+- **Fixed the release pipeline:** the 4.2.0 release failed because its CHANGELOG entry lacked the English / Español sections the notes script requires. 4.2.0 never reached GitHub Releases; 4.3.0 is the first release since 4.1.0.
+- **Not verified:** no real Minecraft window and no GPU were available. The in-game title screen and quick panel PNGs in `docs/design/rounds/` are still the 4.1.0 offscreen render (no JDK 25 here to regenerate them). The 3D character in Capes renders very dark in the headless software-GL screenshots; it was not checked on a GPU.
+
+### Español
+- **Una sola configuración compartida, en vivo en ambos sentidos.** El lanzador (`load_client_config` / `save_client_config`) y el cliente del juego (`LauncherSync.java`) leen y escriben el mismo `config/luminos/config.json`: módulos, atajos, posiciones del HUD y la capa equipada. Las escrituras son atómicas y se fusionan. El juego vuelve a leer el archivo cada segundo si cambia, así que los cambios del lanzador se aplican sin reiniciar; el lanzador lo carga al iniciar, al enfocar la ventana y cada 2 s.
+- **Interfaz del lanzador:** barra lateral de 224 px con grupos Jugar / Cliente / Personalización y un panel inferior (tipo de cuenta, estado en vivo, actualización). Banner de rendimiento integrado en Mods, selector de elementos en Editar HUD, filas de ancho completo y progreso de inicio mostrado una sola vez.
+- **Corregida la publicación:** 4.2.0 falló porque su entrada del CHANGELOG no tenía las secciones English / Español. 4.3.0 es la primera versión publicada desde 4.1.0.
+- **Sin verificar:** no hubo ventana real de Minecraft ni GPU. Las imágenes del juego en `docs/design/rounds/` siguen siendo las de 4.1.0.
+
 ## 4.2.0
 
+### English
 - **Fixed the `hs_err_pid` JVM crash.** `AlwaysPreTouch` is gone from every JVM preset. `-Xms` is a fixed 512 MB, and `-Xmx` is the requested value capped at 55% of the RAM that is free at launch and clamped to 1-3 GB (`memguard.rs`; Windows `GlobalMemoryStatusEx`, Linux `MemAvailable`). Default RAM is 2048 MB. ModernFix `dynamic_resources=true` is the new default (an untouched 4.0/4.1 file is upgraded; your edits are never overwritten).
 - **Old client jar can no longer boot.** Every `*luminos*.jar` in `mods/` and the Luminos cache folders is deleted before the fresh jar is copied, including when the client has to be downloaded.
 - **Title screen buttons are real.** `TitleScreenMixin` now edits Minecraft's own TitleScreen in place (clear vanilla widgets, add five `Button`s with `addRenderableWidget`); it never replaces the screen or touches `render()`/`mouseClicked()`. The custom 26.x click handler (`TitleView`) is removed.
 - **Launcher UI:** flat 7-item sidebar, 4-column module cards with a full-width switch bar, single-column 62px Preferences rows with a Free System RAM readout, Home hero trimmed (no stat pill).
 - Not verified: nothing here was run inside a real Minecraft window, and the OneClient reference screenshots were not available to compare against. See `docs/design/V4.2_SKILL_AUDIT.md`.
+
+### Español
+- **Corregido el fallo `hs_err_pid` de la JVM.** `AlwaysPreTouch` ya no está en ningún perfil; `-Xms` es 512 MB fijo y `-Xmx` se limita al 55% de la RAM libre al iniciar (entre 1 y 3 GB). RAM por defecto: 2048 MB.
+- **El jar antiguo del cliente ya no puede arrancar:** se borra todo `*luminos*.jar` de `mods/` antes de copiar el nuevo.
+- **Los botones de la pantalla de título son reales** (`TitleScreenMixin` edita la pantalla de Minecraft sin tocar `render()` ni `mouseClicked()`).
+- **Sin verificar:** nada se ejecutó dentro de una ventana real de Minecraft.
 
 ## 4.1.0
 

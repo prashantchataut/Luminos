@@ -6,7 +6,6 @@ export const KEY_CATS: { id: KeyCat | "all"; label: string }[] = [
 export const BINDS: Bind[] = [
   { id: "menu", name: "Open Client Quick Panel / Mod Menu", hint: "Opens the in-game panel, also from the title screen. Right Shift works as a second shortcut.", icon: "sliders", cat: "ui", key: "RCTRL" },
   { id: "hud", name: "Open HUD Editor", hint: "Drag and resize HUD elements in game.", icon: "hud", cat: "ui", key: "H" },
-  { id: "emote", name: "Emote Wheel", hint: "Pick an equipped emote.", icon: "emote", cat: "ui", key: "V" },
   { id: "zoom", name: "Zoom", hint: "Look far away.", icon: "zoom", cat: "nav", key: "C", mode: "Hold" },
   { id: "freelook", name: "Freelook (360° Perspective)", hint: "Look around without turning.", icon: "freelook", cat: "nav", key: "Left Alt", mode: "Hold" },
   { id: "waypoint", name: "Create Quick Waypoint", hint: "Drop a waypoint where you stand.", icon: "waypoints", cat: "nav", key: "B" },

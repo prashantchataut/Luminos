@@ -66,7 +66,7 @@ function Advanced() {
   return (
     <>
       <div className="mb-5"><Pills value={tab} onChange={setTab} items={TABS} /></div>
-      <div className="max-w-[920px] space-y-3">
+      <div className="space-y-3">
         {(tab === "general" || tab === "engine") && <div className="mb-4"><EngineCard /></div>}
         {tab === "general" && <UpdaterRows />}
         {tab === "general" && (
@@ -133,7 +133,7 @@ export default function Preferences() {
   return (
     <Page>
       <PageHeader title="Preferences" sub="Saved the moment you change them." />
-      <div className="max-w-[860px] space-y-2.5">
+      <div className="space-y-2.5">
         <PRow icon="sliders" title="Allocated Memory (RAM)" sub={<><span data-testid="free-ram">Free System RAM: {freeGb ? `${freeGb} GB` : "unavailable"}</span>{free != null && effective < ram ? ` · game will start with ${effective} MB` : ""}</>}>
           <Slider label="Allocated memory" value={ram} min={1024} max={3072} step={256} onChange={(v) => set("memoryMb", v)} w={200} />
           <span className="mono text-[12px] w-[64px] text-right num">{ram} MB</span>
