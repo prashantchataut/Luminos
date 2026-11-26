@@ -302,7 +302,7 @@ pub fn build_command_ext(
             .to_string(),
     );
 
-    let mem = inst.memory_mb.unwrap_or(settings.memory_mb).max(512);
+    let requested_mb = inst.memory_mb.unwrap_or(settings.memory_mb);
     let _ = fs::create_dir_all(&game_dir);
     // pre-tuned Sodium / ImmediatelyFast / ModernFix configs; only written when the player has none yet
     let _ = crate::perfconfig::write_defaults(&game_dir);
@@ -311,8 +311,10 @@ pub fn build_command_ext(
     cmd.current_dir(&game_dir);
     // The Luminos Client title screen shows which instance this is.
     cmd.env("LUMINOS_INSTANCE", &inst.name);
-    cmd.arg(format!("-Xmx{mem}M"))
-        .arg(format!("-Xms{}M", (mem / 4).max(256)));
+    // Heap sizing that cannot crash the JVM at start-up (hs_err_pid / os::commit_memory): small fixed -Xms512M, no AlwaysPreTouch
+    // anywhere, and -Xmx capped at 55% of the RAM that is free *right now* (see memguard.rs).
+    let (xms_arg, xmx_arg, _xmx_mb) = crate::memguard::heap_args(requested_mb);
+    cmd.arg(xmx_arg).arg(xms_arg);
     let base_flags = crate::jvmflags::effective(&settings.jvm_args, prep.java_major);
     for a in base_flags
         .split_whitespace()

@@ -708,6 +708,7 @@ pub fn run() {
             game::stop_game,
             game::quit_launcher,
             game::scan_local_worlds_and_servers,
+            game::free_memory_mb,
             game::add_saved_server,
             game::open_minecraft_folder,
             game::write_luminos_config,

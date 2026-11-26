@@ -58,7 +58,12 @@ fn random_token() -> String {
     let mut out = String::new();
     for i in 0..4u64 {
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
-        h.write_u64(i ^ std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0));
+        h.write_u64(
+            i ^ std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos() as u64)
+                .unwrap_or(0),
+        );
         out.push_str(&format!("{:016x}", h.finish()));
     }
     out
@@ -67,7 +72,11 @@ fn random_token() -> String {
 impl Hub {
     pub fn start() -> Result<Hub> {
         let l = TcpListener::bind(("127.0.0.1", 0)).context("agent hub: bind loopback")?;
-        let hub = Hub { port: l.local_addr()?.port(), token: random_token(), st: Arc::default() };
+        let hub = Hub {
+            port: l.local_addr()?.port(),
+            token: random_token(),
+            st: Arc::default(),
+        };
         let h2 = hub.clone();
         std::thread::spawn(move || {
             for s in l.incoming().flatten() {
@@ -84,7 +93,10 @@ impl Hub {
 
     /// JVM arguments that point a game at this hub.
     pub fn jvm_args(&self) -> Vec<String> {
-        vec![format!("-Dluminos.agent=127.0.0.1:{}", self.port), format!("-Dluminos.agent.token={}", self.token)]
+        vec![
+            format!("-Dluminos.agent=127.0.0.1:{}", self.port),
+            format!("-Dluminos.agent.token={}", self.token),
+        ]
     }
 
     pub fn connected(&self) -> bool {
@@ -111,9 +123,15 @@ impl Hub {
         let mut r = BufReader::new(stream);
         let mut line = String::new();
         // Authenticate within 5 s, on the first line, or drop the connection.
-        let ok = r.read_line(&mut line).ok().and_then(|_| serde_json::from_str::<Value>(&line).ok()).is_some_and(|v| {
-            v["t"] == "auth" && v["token"].as_str() == Some(self.token.as_str()) && v["protocol"].as_u64() == Some(PROTOCOL as u64)
-        });
+        let ok = r
+            .read_line(&mut line)
+            .ok()
+            .and_then(|_| serde_json::from_str::<Value>(&line).ok())
+            .is_some_and(|v| {
+                v["t"] == "auth"
+                    && v["token"].as_str() == Some(self.token.as_str())
+                    && v["protocol"].as_u64() == Some(PROTOCOL as u64)
+            });
         if !ok {
             let _ = w.shutdown(Shutdown::Both);
             return;
@@ -134,7 +152,9 @@ impl Hub {
                 Ok(n) if n > MAX_LINE => break,
                 Ok(_) => {}
             }
-            let Ok(v) = serde_json::from_str::<Value>(&line) else { continue };
+            let Ok(v) = serde_json::from_str::<Value>(&line) else {
+                continue;
+            };
             if v["t"] == "hello" {
                 lock(&self.st).hello = Some(v.clone());
             }
@@ -165,7 +185,14 @@ impl Hub {
     /// Events with `seq > since`, and the newest seq.
     pub fn events_since(&self, since: u64) -> (Vec<Value>, u64) {
         let s = lock(&self.st);
-        (s.events.iter().filter(|e| e["seq"].as_u64().unwrap_or(0) > since).cloned().collect(), s.seq)
+        (
+            s.events
+                .iter()
+                .filter(|e| e["seq"].as_u64().unwrap_or(0) > since)
+                .cloned()
+                .collect(),
+            s.seq,
+        )
     }
 }
 
@@ -176,7 +203,12 @@ mod tests {
     fn connect(h: &Hub, token: &str) -> (TcpStream, BufReader<TcpStream>) {
         let mut s = TcpStream::connect(("127.0.0.1", h.port())).unwrap();
         let r = BufReader::new(s.try_clone().unwrap());
-        writeln!(s, "{}", json!({"t":"auth","token":token,"protocol":PROTOCOL})).unwrap();
+        writeln!(
+            s,
+            "{}",
+            json!({"t":"auth","token":token,"protocol":PROTOCOL})
+        )
+        .unwrap();
         (s, r)
     }
     fn wait(h: &Hub, f: impl Fn(&Hub) -> bool) {
@@ -196,8 +228,13 @@ mod tests {
         let mut l = String::new();
         assert_eq!(r.read_line(&mut l).unwrap_or(0), 0, "connection is dropped");
         assert!(!h.connected());
-        assert!(h.send(json!({"t":"pause","on":true})).is_err(), "no game: caller must queue");
-        let tok = h.jvm_args()[1].trim_start_matches("-Dluminos.agent.token=").to_string();
+        assert!(
+            h.send(json!({"t":"pause","on":true})).is_err(),
+            "no game: caller must queue"
+        );
+        let tok = h.jvm_args()[1]
+            .trim_start_matches("-Dluminos.agent.token=")
+            .to_string();
         let (_ok, _r) = connect(&h, &tok);
         wait(&h, |h| h.connected());
     }
@@ -205,16 +242,33 @@ mod tests {
     #[test]
     fn commands_go_out_and_real_progress_comes_back() {
         let h = Hub::start().unwrap();
-        let tok = h.jvm_args()[1].trim_start_matches("-Dluminos.agent.token=").to_string();
+        let tok = h.jvm_args()[1]
+            .trim_start_matches("-Dluminos.agent.token=")
+            .to_string();
         let (mut s, mut r) = connect(&h, &tok);
-        writeln!(s, "{}", json!({"t":"hello","mc":"1.21.11","modules":[{"id":"fps","enabled":true}]})).unwrap();
+        writeln!(
+            s,
+            "{}",
+            json!({"t":"hello","mc":"1.21.11","modules":[{"id":"fps","enabled":true}]})
+        )
+        .unwrap();
         wait(&h, |h| h.hello().is_some());
-        let op = h.send(json!({"t":"toggle_module","id":"fps","on":false})).unwrap();
+        let op = h
+            .send(json!({"t":"toggle_module","id":"fps","on":false}))
+            .unwrap();
         let mut l = String::new();
         r.read_line(&mut l).unwrap();
         let cmd: Value = serde_json::from_str(&l).unwrap();
-        assert_eq!((cmd["t"].as_str(), cmd["op"].as_u64(), cmd["on"].as_bool()), (Some("toggle_module"), Some(op), Some(false)));
-        writeln!(s, "{}", json!({"t":"progress","op":op,"stage":"applying","pct":50})).unwrap();
+        assert_eq!(
+            (cmd["t"].as_str(), cmd["op"].as_u64(), cmd["on"].as_bool()),
+            (Some("toggle_module"), Some(op), Some(false))
+        );
+        writeln!(
+            s,
+            "{}",
+            json!({"t":"progress","op":op,"stage":"applying","pct":50})
+        )
+        .unwrap();
         writeln!(s, "{}", json!({"t":"done","op":op,"ok":true})).unwrap();
         wait(&h, |h| h.events_since(0).0.iter().any(|e| e["t"] == "done"));
         let (ev, newest) = h.events_since(0);

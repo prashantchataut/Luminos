@@ -9,8 +9,8 @@ const STEPS = ["Welcome", "Account", "Performance", "Gameplay"];
 /** What this PC reports. The webview caps navigator.deviceMemory at 8, so 8 means "8 GB or more". */
 function hardware() {
   const mem = (navigator as any).deviceMemory as number | undefined, cores = navigator.hardwareConcurrency || 4;
-  const ram = mem ? (mem >= 8 ? 4096 + 2048 * Math.min(2, Math.floor((mem - 8) / 4) + 1) : Math.max(2048, mem * 512)) : 4096;
-  return { mem, cores, ramMb: Math.min(8192, ram) };
+  const ram = mem ? (mem >= 8 ? 4096 + 2048 * Math.min(2, Math.floor((mem - 8) / 4) + 1) : Math.max(2048, mem * 512)) : 2048;
+  return { mem, cores, ramMb: Math.min(3072, Math.max(1024, ram)) };
 }
 const BLURB: Record<string, string> = {};
 
@@ -49,7 +49,7 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
             <div><div className="eyebrow">CPU threads</div><div className="num text-[20px] font-semibold">{hw.cores}</div></div>
             <div><div className="eyebrow">Game heap</div><div className="num text-[20px] font-semibold">{ram} MB</div></div>
           </div>
-          <input type="range" min={2048} max={16384} step={512} value={ram} onChange={(e) => setRam(+e.target.value)} aria-label="Game memory in megabytes" className="w-full" />
+          <input type="range" min={1024} max={3072} step={256} value={ram} onChange={(e) => setRam(+e.target.value)} aria-label="Game memory in megabytes" className="w-full" />
           <div className="text-[12.5px] leading-relaxed mute">Sodium, Lithium, FerriteCore, ImmediatelyFast, Entity Culling and ModernFix are installed with the Luminos profile and G1GC pause tuning is applied by default. Nothing to switch on.</div>
         </div>)}
 

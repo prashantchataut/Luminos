@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Page from "../components/Page";
 import { Icon } from "../components/Icon";
 import { PageHeader, Pills, Row, Select, Slider, Switch } from "../components/ui";
@@ -60,13 +60,12 @@ function Storage() {
   );
 }
 
-export default function Preferences() {
+function Advanced() {
   const c = useClient(), s = useSettings();
   const [tab, setTab] = useState<Tab>("general");
   return (
-    <Page>
-      <PageHeader title="Preferences" sub="Saved the moment you change them." />
-      <div className="mb-7"><Pills value={tab} onChange={setTab} items={TABS} /></div>
+    <>
+      <div className="mb-5"><Pills value={tab} onChange={setTab} items={TABS} /></div>
       <div className="max-w-[920px] space-y-3">
         {(tab === "general" || tab === "engine") && <div className="mb-4"><EngineCard /></div>}
         {tab === "general" && <UpdaterRows />}
@@ -88,15 +87,70 @@ export default function Preferences() {
         )}
         {tab === "java" && (
           <>
-            <Row title="Allocated Memory (RAM)" desc="2 GB to 16 GB. 4 GB suits most setups.">
-              <Slider label="Allocated memory" value={s.memoryMb} min={2048} max={16384} step={512} onChange={(v) => set("memoryMb", v)} w={220} />
-              <span className="mono text-[12px] h-[30px] px-3 rounded-full grid place-items-center num" style={{ background: "var(--surface-2)" }}>{s.memoryMb} MB</span>
-            </Row>
             <Row title="Java Runtime" desc="Downloaded and matched to your Minecraft version automatically."><span className="text-[12.5px] mute">Automatic</span></Row>
           </>
         )}
         {tab === "storage" && <Storage />}
         <p className="pt-3 text-[12px] mute leading-relaxed">Settings live in luminos-client-settings.json next to your account file. Memory and engine options apply the next time the game starts.</p>
+      </div>
+    </>
+  );
+}
+
+/** Safe heap for a request: 55% of the RAM that is free right now, clamped to 1-3 GB. Same rule as luminos-core's memguard.rs. */
+export const safeHeapMb = (req: number, freeMb: number | null) => Math.min(3072, Math.max(1024, Math.min(req, freeMb == null ? 2048 : Math.floor(freeMb * 0.55))));
+
+function useFreeRam() {
+  const [free, setFree] = useState<number | null>(null);
+  useEffect(() => {
+    let live = true;
+    const demo = typeof location !== "undefined" && new URLSearchParams(location.search).get("freeram");
+    const read = async () => { const v = demo ? Number(demo) : await safeInvoke<number | null>("free_memory_mb", {}, null, 3000); if (live) setFree(typeof v === "number" ? v : null); };
+    void read(); const t = setInterval(read, 4000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  return free;
+}
+
+/** OneClient-style row: 62px, icon + title/subtitle on the left, exactly one control on the right. */
+function PRow({ icon, title, sub, children }: { icon: string; title: string; sub: ReactNode; children: ReactNode }) {
+  return (
+    <div className="h-[62px] px-5 rounded-[10px] flex items-center justify-between gap-6" style={{ background: "#141821" }}>
+      <div className="flex items-center gap-4 min-w-0">
+        <span className="grid place-items-center w-9 h-9 rounded-[9px] shrink-0" style={{ background: "#1B202C", color: "#AEB9CF" }}><Icon n={icon} s={18} /></span>
+        <div className="min-w-0 leading-tight"><div className="text-[14px] font-medium truncate">{title}</div><div className="text-[12px] mt-0.5 mute truncate">{sub}</div></div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">{children}</div>
+    </div>
+  );
+}
+
+export default function Preferences() {
+  const c = useClient(), s = useSettings(), free = useFreeRam();
+  const ram = Math.min(3072, Math.max(1024, s.memoryMb > 3072 ? 2048 : s.memoryMb));
+  const effective = safeHeapMb(ram, free);
+  const freeGb = free == null ? null : (free / 1024).toFixed(1);
+  return (
+    <Page>
+      <PageHeader title="Preferences" sub="Saved the moment you change them." />
+      <div className="max-w-[860px] space-y-2.5">
+        <PRow icon="sliders" title="Allocated Memory (RAM)" sub={<><span data-testid="free-ram">Free System RAM: {freeGb ? `${freeGb} GB` : "unavailable"}</span>{free != null && effective < ram ? ` · game will start with ${effective} MB` : ""}</>}>
+          <Slider label="Allocated memory" value={ram} min={1024} max={3072} step={256} onChange={(v) => set("memoryMb", v)} w={200} />
+          <span className="mono text-[12px] w-[64px] text-right num">{ram} MB</span>
+        </PRow>
+        <PRow icon="hud" title="Resolution" sub="Size of the game window on launch">
+          <Select label="Window resolution" value={c.prefs.resolution} options={RES} onChange={(v) => setPref("resolution", v)} />
+        </PRow>
+        <PRow icon="reset" title="Auto-Updater" sub="Downloads the latest release, installs it and restarts">
+          <button className="btn-quiet !h-[34px]" onClick={() => dispatchEvent(new Event("luminos:update"))}>Check for updates</button>
+        </PRow>
+        <PRow icon="bolt" title="Performance Engine" sub="On = Max FPS profile, off = Balanced. Sodium, FerriteCore and ModernFix are always included">
+          <Switch on={c.prefs.engine === "Max FPS"} onChange={(v) => setPref("engine", v ? "Max FPS" : "Balanced")} label="Performance engine" />
+        </PRow>
+        <details className="pt-4 group">
+          <summary className="h-9 px-1 flex items-center gap-2 text-[12.5px] font-medium cursor-pointer select-none mute hover:text-white list-none"><Icon n="chev" s={13} />Advanced</summary>
+          <div className="pt-3"><Advanced /></div>
+        </details>
       </div>
     </Page>
   );

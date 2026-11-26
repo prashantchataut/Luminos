@@ -183,6 +183,12 @@ fn roots() -> Vec<(String, PathBuf, Option<String>)> {
     v
 }
 
+/// Free physical memory right now, in MiB (what the launch-time heap clamp uses). `None` when the OS cannot say.
+#[tauri::command]
+pub fn free_memory_mb() -> Option<u64> {
+    luminos_core::memguard::available_memory_mb()
+}
+
 #[tauri::command]
 pub async fn scan_local_worlds_and_servers() -> R<Value> {
     blocking(|| {
@@ -334,29 +340,36 @@ pub fn ensure_client(app: &AppHandle, inst: &Instance) -> Value {
     let bundled = bundled_client_jar(app, &inst.mc_version);
     let mut source = "none";
     let mut jar_name = Value::Null;
+    // Purge FIRST, unconditionally and before anything is copied or downloaded: every `*luminos*.jar` in <game dir>/mods and in the
+    // Luminos cache folders goes, so Minecraft can never boot (or be handed back) a stale client. This is what kept the old,
+    // unclickable title screen alive after an update.
     let mut purged: Vec<String> = vec![];
+    match launch_watch::purge_stale_client_jars(&mods) {
+        Ok(v) => purged.extend(v),
+        Err(e) => return json!({ "ok": false, "source": "none", "note": format!("Could not remove the old Luminos Client from mods: {e}") }),
+    }
+    for cache in [luminos_core::paths::cache_dir(), luminos_core::paths::root().join("client")] {
+        match launch_watch::purge_cache_jars(&cache) {
+            Ok(v) => purged.extend(v),
+            Err(e) => return json!({ "ok": false, "source": "none", "note": format!("Could not clear the Luminos client cache: {e}") }),
+        }
+    }
     if let Some(src) = &bundled {
         let name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        // Purge FIRST: every luminos-client* / luminos_client* / luminos-*.jar from any earlier version goes, so Minecraft can never
-        // boot a stale client. Then the bundled jar is copied unconditionally (no size-equals shortcut that could keep an old file).
-        match launch_watch::purge_stale_client_jars(&mods) {
-            Ok(v) => purged = v,
-            Err(e) => return json!({ "ok": false, "source": "bundled", "note": format!("Could not remove the old Luminos Client from mods: {e}") }),
-        }
+        // The bundled jar is copied unconditionally (no size-equals shortcut that could keep an old file).
         if let Err(e) = std::fs::copy(src, mods.join(&name)) {
             return json!({ "ok": false, "source": "bundled", "note": format!("Could not copy the Luminos Client into mods: {e}") });
         }
         source = "bundled";
         jar_name = json!(name);
     } else {
-        // No bundled jar (a development checkout): fetch the published one for this Minecraft version. install_first_party replaces older
-        // copies; only when offline do we keep what is there, and the note says so.
+        // No bundled jar (a development checkout): fetch the published, hash-verified one for this Minecraft version. Nothing stale is
+        // kept as a fallback: offline means "no client this launch", and the note says so.
         match preset::install_first_party(inst) {
             Ok(n) => {
                 source = "download";
                 jar_name = json!(n);
             }
-            Err(_) if has_jar(&mods, "luminos-client") => source = "existing",
             Err(e) => return json!({ "ok": false, "source": "none", "note": format!("No Luminos Client build for Minecraft {}: {e:#}", inst.mc_version) }),
         }
     }

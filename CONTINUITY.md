@@ -23,6 +23,11 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 4.2.0: memory crash, stale client jar, real title buttons, calmer launcher
+- Done and run: `memguard` (core, 5 unit tests, Windows branch type-checked with rustc), `launch_watch` purge tests (10), `perfconfig` test, Gradle build of `client` (1.21.11) and `client26` (26.3) on JDK 25, app `tsc` + `vite build`, 3 real Playwright rounds (`docs/design/rounds/`), `node scripts/verify-v4.2.mjs`.
+- 🟡 Not run: `app/src-tauri` was not compiled locally (no webkit here; CI first), the title mixin and buttons were never launched in a real game, Windows `GlobalMemoryStatusEx` path never executed, OneClient screenshots never seen.
+- Heap rule now: Xms 512M, Xmx = min(requested, 55% free RAM) clamped 1024..3072. Anyone asking for more than 3 GB is capped on purpose.
+
 ## Session 2.2.0: logo restore, user art, client window/title, Showdown Studio, updater (see docs/STATUS_v2.2.md)
 - Restored the dithered-moon logo (v2.1.0 had replaced it). Wired the `be42463` art; audit in docs/design/USER_ART_AUDIT.md.
 - Client: `WindowBrand` (GLFW title + icon), `LuminosTitleScreen` rebuilt on `addRenderableWidget` (Mojang mappings; the brief's Yarn names map 1:1). Gradle build passes on JDK 25.

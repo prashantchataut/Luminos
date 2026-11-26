@@ -10,6 +10,10 @@ import net.minecraft.network.chat.Component;
 /** Everything whose name differs between Minecraft lines lives here, so shared code stays identical. (26.x) */
 final class Nav {
 	private Nav() {}
+	/** A title-screen button on 26.x: Minecraft's own Button, so it renders and clicks natively. */
+	static net.minecraft.client.gui.components.Button menuButton(TitleScene.Btn spec, Runnable action) {
+		return net.minecraft.client.gui.components.Button.builder(Component.literal(spec.label()), b -> action.run()).bounds(spec.x(), spec.y(), spec.w(), spec.h()).build();
+	}
 	static Screen screen(Minecraft mc) { return mc.gui.screen(); }
 	static void open(Minecraft mc, Screen s) { mc.setScreenAndShow(s); }
 	static KeyMapping register(KeyMapping k) { return KeyMappingHelper.registerKeyMapping(k); }

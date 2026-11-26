@@ -67,7 +67,7 @@ export async function bootstrap() {
   if (b) {
     return { version: b.version, setupDone: b.settings.setup_done, settings: b.settings, account: b.account, instances: (b.instances as any[]).map(norm) };
   }
-  return { version: SEED.version, setupDone: true, settings: { memory_mb: 4096, allow_beta_mods: false, offline_skins: true, check_updates: true, reduce_motion: false }, account: SEED.account, instances: SEED.instances };
+  return { version: SEED.version, setupDone: true, settings: { memory_mb: 2048, allow_beta_mods: false, offline_skins: true, check_updates: true, reduce_motion: false }, account: SEED.account, instances: SEED.instances };
 }
 export async function call<T = any>(cmd: string, args: any = {}): Promise<T> {
   if (isTauri) return safeInvoke<T>(cmd, args, null as T);

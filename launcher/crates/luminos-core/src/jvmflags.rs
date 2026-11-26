@@ -8,15 +8,16 @@
 /// The previous hard-coded default; treated as "auto" so existing installs get the upgrade.
 pub const LEGACY_DEFAULT: &str = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC";
 
-/// Luminos 4.0 default: G1 with a 30 ms pause target and 8 MB regions, pre-touched heap.
-const LUMINOS_V4: &str = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=30 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20";
+/// Luminos default: G1 with a 30 ms pause target and 8 MB regions. NEVER add AlwaysPreTouch: it commits the whole heap at launch
+/// and crashes the JVM on Windows machines with little free memory (hs_err_pid, os::commit_memory).
+const LUMINOS_V4: &str = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=30 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20";
 
 /// The 2.x preset, kept for reference and for users who paste it by hand.
 #[allow(dead_code)]
 const AIKAR: &str = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=130 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:G1NewSizePercent=25 -XX:G1MaxNewSizePercent=40 -XX:G1ReservePercent=20 -XX:G1HeapRegionSize=8M -XX:InitiatingHeapOccupancyPercent=15 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1";
 
 #[allow(dead_code)]
-const ZGC: &str = "-XX:+UseZGC -XX:+ZGenerational -XX:+DisableExplicitGC -XX:+AlwaysPreTouch";
+const ZGC: &str = "-XX:+UseZGC -XX:+ZGenerational -XX:+DisableExplicitGC";
 
 /// Flags recommended for a given Java major version.
 pub fn recommended(_java_major: u32) -> &'static str {
@@ -45,8 +46,10 @@ mod tests {
         assert!(recommended(21).contains("UseG1GC"));
         assert!(recommended(17).contains("UseG1GC"));
         assert!(recommended(8).contains("G1NewSizePercent"));
-        // Luminos 4.0 spec: pre-touched heap and a 30 ms pause target
-        assert!(recommended(21).contains("AlwaysPreTouch"));
+        // 4.2.0: the heap is NOT pre-touched (it crashed the JVM on Windows) and the pause target stays 30 ms
+        assert!(!recommended(21).contains("AlwaysPreTouch"));
+        assert!(!recommended(8).contains("AlwaysPreTouch"));
+        assert!(!ZGC.contains("AlwaysPreTouch"));
         assert!(recommended(21).contains("MaxGCPauseMillis=30"));
     }
 

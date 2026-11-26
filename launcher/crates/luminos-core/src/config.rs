@@ -38,7 +38,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             setup_done: false,
-            memory_mb: 4096,
+            memory_mb: 2048, // safe default; launch also clamps to free RAM (memguard.rs)
             java_path: None,
             jvm_args: String::new(), // empty = auto (see jvmflags.rs)
             reduce_motion: false,

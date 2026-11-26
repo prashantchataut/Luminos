@@ -55,14 +55,19 @@ pub fn is_newer(latest: &str, current: &str) -> bool {
 /// Pick the newest Windows launcher release from the GitHub `releases` array.
 pub fn pick_release(releases: &Value) -> Option<Release> {
     // Release candidates are skipped unless explicitly asked for, so nobody is moved onto an rc by accident.
-    pick_release_opts(releases, std::env::var("LUMINOS_UPDATE_PRERELEASE").is_ok_and(|v| v == "1"))
+    pick_release_opts(
+        releases,
+        std::env::var("LUMINOS_UPDATE_PRERELEASE").is_ok_and(|v| v == "1"),
+    )
 }
 
 /// Same as [`pick_release`] with the prerelease choice made by the caller.
 pub fn pick_release_opts(releases: &Value, include_pre: bool) -> Option<Release> {
     let mut best: Option<((u64, u64, u64), Release)> = None;
     for r in releases.as_array()? {
-        if r["draft"].as_bool() == Some(true) || (r["prerelease"].as_bool() == Some(true) && !include_pre) {
+        if r["draft"].as_bool() == Some(true)
+            || (r["prerelease"].as_bool() == Some(true) && !include_pre)
+        {
             continue;
         }
         let tag = r["tag_name"].as_str()?;
@@ -194,14 +199,21 @@ pub fn sums_url_for(url: &str) -> Option<(String, String)> {
 /// Stream an installer from a release asset URL to `dest` (GitHub redirects to its CDN; every hop is audited by `http::send_get`).
 /// `on_progress(done, total)` fires at most every 80 ms plus once at the end. The file must be > 1 MB, start with the `MZ`
 /// executable header, and match the release's SHA256SUMS.txt entry. On any failure the partial file is deleted.
-pub fn download_installer(url: &str, dest: &std::path::Path, on_progress: &mut dyn FnMut(u64, u64)) -> Result<u64> {
+pub fn download_installer(
+    url: &str,
+    dest: &std::path::Path,
+    on_progress: &mut dyn FnMut(u64, u64),
+) -> Result<u64> {
     use std::io::{Read, Write};
     if !url.starts_with(DOWNLOAD_PREFIX) {
         bail!("that download address is not a Luminos release asset");
     }
     let (sums_url, file_name) = sums_url_for(url).context("bad download address")?;
-    let sums = String::from_utf8_lossy(&http::get_bytes(&sums_url).context("fetching SHA256SUMS.txt")?).to_string();
-    let want = hash_from_sums(&sums, &file_name).with_context(|| format!("SHA256SUMS.txt does not list {file_name}"))?;
+    let sums =
+        String::from_utf8_lossy(&http::get_bytes(&sums_url).context("fetching SHA256SUMS.txt")?)
+            .to_string();
+    let want = hash_from_sums(&sums, &file_name)
+        .with_context(|| format!("SHA256SUMS.txt does not list {file_name}"))?;
     let tmp = dest.with_extension("part");
     let result = (|| -> Result<u64> {
         let mut resp = http::send_get(url, &[]).context("starting the download")?;
@@ -299,7 +311,10 @@ mod tests {
 
     #[test]
     fn apply_script_waits_installs_silently_restarts_and_deletes_itself() {
-        let s = apply_script(std::path::Path::new("C:\\T\\Luminos-Update-Setup.exe"), std::path::Path::new("C:\\L\\Luminos.exe"));
+        let s = apply_script(
+            std::path::Path::new("C:\\T\\Luminos-Update-Setup.exe"),
+            std::path::Path::new("C:\\L\\Luminos.exe"),
+        );
         assert!(s.contains("ping -n 3 127.0.0.1"));
         assert!(s.contains("start /wait \"\" \"C:\\T\\Luminos-Update-Setup.exe\" /S"));
         assert!(s.contains("start \"\" \"C:\\L\\Luminos.exe\""));
@@ -308,7 +323,10 @@ mod tests {
 
     #[test]
     fn sums_url_sits_next_to_the_asset() {
-        let (u, f) = sums_url_for("https://github.com/prashantchataut/Luminos/releases/download/v2.3.0/Luminos-Setup.exe").unwrap();
+        let (u, f) = sums_url_for(
+            "https://github.com/prashantchataut/Luminos/releases/download/v2.3.0/Luminos-Setup.exe",
+        )
+        .unwrap();
         assert_eq!(f, "Luminos-Setup.exe");
         assert!(u.ends_with("/v2.3.0/SHA256SUMS.txt"));
     }
@@ -394,9 +412,19 @@ mod prerelease_tests {
 
     #[test]
     fn release_candidates_are_hidden_by_default_and_found_when_asked() {
-        let list = json!([rel("v1.0.0-rc1", true), rel("v0.6.0", false), rel("client-v0.3.0", false)]);
-        assert_eq!(pick_release_opts(&list, false).map(|r| r.tag), Some("v0.6.0".to_string()));
-        assert_eq!(pick_release_opts(&list, true).map(|r| r.tag), Some("v1.0.0-rc1".to_string()));
+        let list = json!([
+            rel("v1.0.0-rc1", true),
+            rel("v0.6.0", false),
+            rel("client-v0.3.0", false)
+        ]);
+        assert_eq!(
+            pick_release_opts(&list, false).map(|r| r.tag),
+            Some("v0.6.0".to_string())
+        );
+        assert_eq!(
+            pick_release_opts(&list, true).map(|r| r.tag),
+            Some("v1.0.0-rc1".to_string())
+        );
         assert!(is_newer("v1.0.0-rc1", "0.6.0"));
     }
 }

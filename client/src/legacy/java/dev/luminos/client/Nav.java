@@ -13,6 +13,8 @@ final class Nav {
 	/** True on the line that ships the native Mixin engine (1.21.x). */
 	static boolean hasEngine() { return true; }
 	static void engineInit(KeyMapping.Category cat) { Engine.init(cat); }
+	/** A title-screen button: Luminos-styled pill on this line (a real Button either way). */
+	static net.minecraft.client.gui.components.Button menuButton(TitleScene.Btn spec, Runnable action) { return new LuminosTitleScreen.LuminosPillButton(spec, action); }
 	static Screen screen(Minecraft mc) { return mc.screen; }
 	static void open(Minecraft mc, Screen s) { mc.setScreen(s); }
 	static KeyMapping register(KeyMapping k) { return KeyBindingHelper.registerKeyBinding(k); }

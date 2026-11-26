@@ -19,7 +19,10 @@ fn path(game_dir: &Path) -> std::path::PathBuf {
 }
 
 pub fn load(game_dir: &Path) -> Vec<Task> {
-    fs::read_to_string(path(game_dir)).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
+    fs::read_to_string(path(game_dir))
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
 }
 
 fn save(game_dir: &Path, t: &[Task]) -> Result<()> {
@@ -55,13 +58,24 @@ pub fn apply_all(game_dir: &Path) -> Result<Vec<String>> {
     let mods = game_dir.join("mods");
     let mut log = vec![];
     for t in &tasks {
-        let (on, off) = (mods.join(&t.file), mods.join(format!("{}.disabled", t.file)));
+        let (on, off) = (
+            mods.join(&t.file),
+            mods.join(format!("{}.disabled", t.file)),
+        );
         let (from, to) = if t.enable { (&off, &on) } else { (&on, &off) };
         if from.exists() {
             fs::rename(from, to).with_context(|| format!("switch {}", t.file))?;
-            log.push(format!("{} {}", if t.enable { "enabled" } else { "disabled" }, t.label));
+            log.push(format!(
+                "{} {}",
+                if t.enable { "enabled" } else { "disabled" },
+                t.label
+            ));
         } else if to.exists() {
-            log.push(format!("{} was already {}", t.label, if t.enable { "enabled" } else { "disabled" }));
+            log.push(format!(
+                "{} was already {}",
+                t.label,
+                if t.enable { "enabled" } else { "disabled" }
+            ));
         } else {
             log.push(format!("{}: file {} is gone, skipped", t.label, t.file));
         }
@@ -81,7 +95,12 @@ mod tests {
         d
     }
     fn t(file: &str, enable: bool, batch: u64) -> Task {
-        Task { file: file.into(), enable, label: file.trim_end_matches(".jar").into(), batch }
+        Task {
+            file: file.into(),
+            enable,
+            label: file.trim_end_matches(".jar").into(),
+            batch,
+        }
     }
 
     #[test]
@@ -91,7 +110,11 @@ mod tests {
         fs::write(d.join("mods/b.jar.disabled"), b"2").unwrap();
         push(&d, vec![t("a.jar", false, 1), t("b.jar", true, 1)]).unwrap();
         assert_eq!(load(&d).len(), 2);
-        assert_eq!(cancel_batch(&d, 1).unwrap(), 2, "undo removes the whole batch");
+        assert_eq!(
+            cancel_batch(&d, 1).unwrap(),
+            2,
+            "undo removes the whole batch"
+        );
         assert!(load(&d).is_empty() && d.join("mods/a.jar").exists());
         push(&d, vec![t("a.jar", false, 2), t("b.jar", true, 2)]).unwrap();
         let log = apply_all(&d).unwrap();

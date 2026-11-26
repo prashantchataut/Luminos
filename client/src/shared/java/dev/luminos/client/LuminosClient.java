@@ -32,16 +32,10 @@ public final class LuminosClient implements ClientModInitializer {
 	private static int smokeTick = -1;
 	private static int ticksSinceSave;
 
-	/** True when the Luminos title screen should replace the vanilla one (used by TitleScreenMixin and the tick fallback). */
+	/** True when the Luminos title screen should replace the vanilla one (read by TitleScreenMixin, which cleans the vanilla screen up in place). */
 	public static boolean wantCustomTitle() {
 		boolean smokeHolds = smokeTick >= 0 && smokeIdx == 0 && !stepOpened;
 		return Config.get().customTitle && System.getenv("LUMINOS_VANILLA_TITLE") == null && !smokeHolds;
-	}
-
-	/** Swaps the vanilla title screen for the Luminos one if it is the screen showing right now (Nav hides the per-version API names). */
-	public static void replaceTitleScreen() {
-		Minecraft mc = Minecraft.getInstance();
-		if (Nav.screen(mc) instanceof TitleScreen && wantCustomTitle()) Nav.open(mc, new LuminosTitleScreen());
 	}
 
 	private static KeyMapping bind(String id, int key, KeyMapping.Category cat) {
@@ -210,12 +204,7 @@ public final class LuminosClient implements ClientModInitializer {
 		Screen cur = Nav.screen(mc);
 		if (smokeTick >= 0) { smokeTick++; smokeStep(mc); }
 		boolean smoke = smokeTick >= 0;
-		boolean wantCustom = Config.get().customTitle && System.getenv("LUMINOS_VANILLA_TITLE") == null;
-		if (cur instanceof TitleScreen && wantCustom && (!smoke || smokeIdx > 0 || stepOpened)) {
-			if (!customShown) { customShown = true; LOGGER.info("[luminos] custom title screen shown"); }
-			if (!smoke) Nav.open(mc, new LuminosTitleScreen());
-		}
-		if (cur instanceof TitleScreen && wantCustom && smoke && !stepOpened && smokeIdx == 0) { /* the tour opens the title itself */ }
+		if (cur instanceof TitleScreen && wantCustomTitle() && !customShown) { customShown = true; LOGGER.info("[luminos] custom title buttons applied"); }
 		// Right Ctrl / Right Shift only open the panel from the bare in-game view: never over chat, inventories or any other screen.
 		while (panelKey.consumeClick()) if (Nav.screen(mc) == null && mc.player != null) openPanel(mc, false, "key");
 		while (searchKey.consumeClick()) if (Nav.screen(mc) == null && mc.player != null) openPanel(mc, true, "key");

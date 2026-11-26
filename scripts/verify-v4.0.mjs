@@ -41,7 +41,7 @@ check("perfconfig writes sodium-options.json / immediatelyfast.json / modernfix-
 check("sodium keys: block face + fog occlusion + entity culling + visible textures", ["use_block_face_culling", "use_fog_occlusion", "use_entity_culling", "animate_only_visible_textures"].every((k) => pc.includes(k)));
 check("launch.rs writes the configs at launch", rd("launcher/crates/luminos-core/src/launch.rs").includes("perfconfig::write_defaults"));
 const jv = rd("launcher/crates/luminos-core/src/jvmflags.rs");
-check("JVM flags: G1, MaxGCPauseMillis=30, AlwaysPreTouch, G1HeapRegionSize=8M", ["UseG1GC", "MaxGCPauseMillis=30", "AlwaysPreTouch", "G1HeapRegionSize=8M", "G1ReservePercent=20"].every((k) => jv.includes(k)));
+check("JVM flags: G1, MaxGCPauseMillis=30, G1HeapRegionSize=8M (4.2.0: no AlwaysPreTouch)", ["UseG1GC", "MaxGCPauseMillis=30", "G1HeapRegionSize=8M", "G1ReservePercent=20"].every((k) => jv.includes(k)));
 check("User-Agent is Luminos-Launcher/4.0.0", rd("launcher/crates/luminos-core/src/http.rs").includes("Luminos-Launcher/4.0.0"));
 if (!argv.has("--no-cargo")) {
   try {

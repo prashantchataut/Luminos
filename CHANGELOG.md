@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.0
+
+- **Fixed the `hs_err_pid` JVM crash.** `AlwaysPreTouch` is gone from every JVM preset. `-Xms` is a fixed 512 MB, and `-Xmx` is the requested value capped at 55% of the RAM that is free at launch and clamped to 1-3 GB (`memguard.rs`; Windows `GlobalMemoryStatusEx`, Linux `MemAvailable`). Default RAM is 2048 MB. ModernFix `dynamic_resources=true` is the new default (an untouched 4.0/4.1 file is upgraded; your edits are never overwritten).
+- **Old client jar can no longer boot.** Every `*luminos*.jar` in `mods/` and the Luminos cache folders is deleted before the fresh jar is copied, including when the client has to be downloaded.
+- **Title screen buttons are real.** `TitleScreenMixin` now edits Minecraft's own TitleScreen in place (clear vanilla widgets, add five `Button`s with `addRenderableWidget`); it never replaces the screen or touches `render()`/`mouseClicked()`. The custom 26.x click handler (`TitleView`) is removed.
+- **Launcher UI:** flat 7-item sidebar, 4-column module cards with a full-width switch bar, single-column 62px Preferences rows with a Free System RAM readout, Home hero trimmed (no stat pill).
+- Not verified: nothing here was run inside a real Minecraft window, and the OneClient reference screenshots were not available to compare against. See `docs/design/V4.2_SKILL_AUDIT.md`.
+
 ## 4.1.0
 
 ### English

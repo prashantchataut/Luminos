@@ -241,11 +241,21 @@ pub fn b64_encode(data: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(data.len() * 4 / 3 + 4);
     for c in data.chunks(3) {
-        let n = (c[0] as u32) << 16 | (*c.get(1).unwrap_or(&0) as u32) << 8 | *c.get(2).unwrap_or(&0) as u32;
+        let n = (c[0] as u32) << 16
+            | (*c.get(1).unwrap_or(&0) as u32) << 8
+            | *c.get(2).unwrap_or(&0) as u32;
         out.push(T[(n >> 18) as usize & 63] as char);
         out.push(T[(n >> 12) as usize & 63] as char);
-        out.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
+        out.push(if c.len() > 1 {
+            T[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if c.len() > 2 {
+            T[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -306,7 +316,9 @@ fn read_world(dir: &Path, source: &str, source_dir: &Path) -> Option<World> {
         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0);
-    let data = parse_nbt(&bytes).ok().and_then(|root| root.get("Data").cloned());
+    let data = parse_nbt(&bytes)
+        .ok()
+        .and_then(|root| root.get("Data").cloned());
     let name = data
         .as_ref()
         .and_then(|d| d.get("LevelName"))
@@ -320,8 +332,17 @@ fn read_world(dir: &Path, source: &str, source_dir: &Path) -> Option<World> {
         .and_then(|t| t.as_i64())
         .filter(|v| *v > 0)
         .unwrap_or(mtime_ms);
-    let mode = data.as_ref().and_then(|d| d.get("GameType")).and_then(|t| t.as_i64()).unwrap_or(-1);
-    let hardcore = data.as_ref().and_then(|d| d.get("hardcore")).and_then(|t| t.as_i64()).unwrap_or(0) == 1;
+    let mode = data
+        .as_ref()
+        .and_then(|d| d.get("GameType"))
+        .and_then(|t| t.as_i64())
+        .unwrap_or(-1);
+    let hardcore = data
+        .as_ref()
+        .and_then(|d| d.get("hardcore"))
+        .and_then(|t| t.as_i64())
+        .unwrap_or(0)
+        == 1;
     let version = data
         .as_ref()
         .and_then(|d| d.get("Version"))
@@ -350,7 +371,9 @@ fn read_world(dir: &Path, source: &str, source_dir: &Path) -> Option<World> {
 pub fn scan_worlds(roots: &[(String, PathBuf)]) -> Vec<World> {
     let mut out = vec![];
     for (label, root) in roots {
-        let Ok(rd) = fs::read_dir(root.join("saves")) else { continue };
+        let Ok(rd) = fs::read_dir(root.join("saves")) else {
+            continue;
+        };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
@@ -406,7 +429,10 @@ pub struct ServerEntry {
 fn load_servers_root(path: &Path) -> Result<Tag> {
     match fs::read(path) {
         Ok(b) if !b.is_empty() => parse_nbt(&b),
-        _ => Ok(Tag::Compound(vec![("servers".into(), Tag::List(0, vec![]))])),
+        _ => Ok(Tag::Compound(vec![(
+            "servers".into(),
+            Tag::List(0, vec![]),
+        )])),
     }
 }
 
@@ -416,17 +442,35 @@ pub fn read_servers(dir: &Path, source: &str) -> Vec<ServerEntry> {
     if !path.exists() {
         return vec![];
     }
-    let Ok(root) = load_servers_root(&path) else { return vec![] };
-    let Some(Tag::List(_, list)) = root.get("servers") else { return vec![] };
+    let Ok(root) = load_servers_root(&path) else {
+        return vec![];
+    };
+    let Some(Tag::List(_, list)) = root.get("servers") else {
+        return vec![];
+    };
     list.iter()
         .filter_map(|s| {
             let ip = s.get("ip")?.as_str()?.trim().to_string();
             if ip.is_empty() {
                 return None;
             }
-            let name = s.get("name").and_then(|t| t.as_str()).filter(|n| !n.trim().is_empty()).unwrap_or(&ip).to_string();
-            let icon = s.get("icon").and_then(|t| t.as_str()).filter(|i| !i.is_empty()).map(|i| format!("data:image/png;base64,{i}"));
-            Some(ServerEntry { name, ip, icon, source: source.to_string() })
+            let name = s
+                .get("name")
+                .and_then(|t| t.as_str())
+                .filter(|n| !n.trim().is_empty())
+                .unwrap_or(&ip)
+                .to_string();
+            let icon = s
+                .get("icon")
+                .and_then(|t| t.as_str())
+                .filter(|i| !i.is_empty())
+                .map(|i| format!("data:image/png;base64,{i}"));
+            Some(ServerEntry {
+                name,
+                ip,
+                icon,
+                source: source.to_string(),
+            })
         })
         .collect()
 }
@@ -442,18 +486,29 @@ pub fn add_server(dir: &Path, name: &str, ip: &str) -> Result<bool> {
     fs::create_dir_all(dir)?;
     let path = dir.join("servers.dat");
     let mut root = load_servers_root(&path)?;
-    let Tag::Compound(fields) = &mut root else { bail!("servers.dat is not a compound") };
+    let Tag::Compound(fields) = &mut root else {
+        bail!("servers.dat is not a compound")
+    };
     if !fields.iter().any(|(k, _)| k == "servers") {
         fields.push(("servers".into(), Tag::List(0, vec![])));
     }
     for (k, v) in fields.iter_mut() {
         if k == "servers" {
-            let Tag::List(id, list) = v else { bail!("servers.dat has no server list") };
-            if list.iter().any(|s| s.get("ip").and_then(|t| t.as_str()).is_some_and(|x| x.eq_ignore_ascii_case(ip))) {
+            let Tag::List(id, list) = v else {
+                bail!("servers.dat has no server list")
+            };
+            if list.iter().any(|s| {
+                s.get("ip")
+                    .and_then(|t| t.as_str())
+                    .is_some_and(|x| x.eq_ignore_ascii_case(ip))
+            }) {
                 return Ok(false);
             }
             *id = 10;
-            list.push(Tag::Compound(vec![("ip".into(), Tag::String(ip.into())), ("name".into(), Tag::String(name.into()))]));
+            list.push(Tag::Compound(vec![
+                ("ip".into(), Tag::String(ip.into())),
+                ("name".into(), Tag::String(name.into())),
+            ]));
         }
     }
     if path.exists() {
@@ -488,7 +543,13 @@ mod tests {
         let t = Tag::Compound(vec![
             ("a".into(), Tag::Int(7)),
             ("l".into(), Tag::List(8, vec![Tag::String("x".into())])),
-            ("c".into(), Tag::Compound(vec![("b".into(), Tag::Byte(1)), ("q".into(), Tag::Long(-5))])),
+            (
+                "c".into(),
+                Tag::Compound(vec![
+                    ("b".into(), Tag::Byte(1)),
+                    ("q".into(), Tag::Long(-5)),
+                ]),
+            ),
             ("arr".into(), Tag::IntArray(vec![1, 2, 3])),
         ]);
         assert_eq!(parse_nbt(&write_nbt(&t)).unwrap(), t);
@@ -513,12 +574,19 @@ mod tests {
     #[test]
     fn worlds_are_read_from_level_dat_newest_first() {
         let d = tmp("worlds");
-        for (folder, name, played, mode) in [("w1", "Old Base", 1000i64, 0i32), ("w2", "New Base", 9000, 1)] {
+        for (folder, name, played, mode) in [
+            ("w1", "Old Base", 1000i64, 0i32),
+            ("w2", "New Base", 9000, 1),
+        ] {
             let w = d.join("saves").join(folder);
             fs::create_dir_all(&w).unwrap();
             let data = Tag::Compound(vec![(
                 "Data".into(),
-                Tag::Compound(vec![("LevelName".into(), Tag::String(name.into())), ("LastPlayed".into(), Tag::Long(played)), ("GameType".into(), Tag::Int(mode))]),
+                Tag::Compound(vec![
+                    ("LevelName".into(), Tag::String(name.into())),
+                    ("LastPlayed".into(), Tag::Long(played)),
+                    ("GameType".into(), Tag::Int(mode)),
+                ]),
             )]);
             fs::write(w.join("level.dat"), gz(&write_nbt(&data))).unwrap();
         }
@@ -528,7 +596,11 @@ mod tests {
         assert_eq!(ws.len(), 2);
         assert_eq!(ws[0].name, "New Base");
         assert_eq!(ws[0].game_mode, "Creative");
-        assert!(ws[0].icon.as_deref().unwrap().starts_with("data:image/png;base64,"));
+        assert!(ws[0]
+            .icon
+            .as_deref()
+            .unwrap()
+            .starts_with("data:image/png;base64,"));
         assert_eq!(ws[1].folder, "w1");
         assert!(ws[1].icon.is_none());
     }
@@ -551,12 +623,21 @@ mod tests {
         let d = tmp("keep");
         let root = Tag::Compound(vec![(
             "servers".into(),
-            Tag::List(10, vec![Tag::Compound(vec![("ip".into(), Tag::String("a.example".into())), ("name".into(), Tag::String("A".into())), ("acceptTextures".into(), Tag::Byte(1))])]),
+            Tag::List(
+                10,
+                vec![Tag::Compound(vec![
+                    ("ip".into(), Tag::String("a.example".into())),
+                    ("name".into(), Tag::String("A".into())),
+                    ("acceptTextures".into(), Tag::Byte(1)),
+                ])],
+            ),
         )]);
         fs::write(d.join("servers.dat"), write_nbt(&root)).unwrap();
         assert!(add_server(&d, "B", "b.example").unwrap());
         let back = parse_nbt(&fs::read(d.join("servers.dat")).unwrap()).unwrap();
-        let Some(Tag::List(10, l)) = back.get("servers") else { panic!("no list") };
+        let Some(Tag::List(10, l)) = back.get("servers") else {
+            panic!("no list")
+        };
         assert_eq!(l.len(), 2);
         assert_eq!(l[0].get("acceptTextures"), Some(&Tag::Byte(1)));
     }

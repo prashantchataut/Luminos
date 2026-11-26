@@ -130,18 +130,17 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   return (
     <Page>
       <div className="space-y-8">
-        <section className="relative h-[330px] rounded-[18px] overflow-hidden flex items-end justify-end p-10" style={{ background: "var(--surface)" }}>
+        <section className="relative h-[300px] rounded-[16px] overflow-hidden flex items-end justify-end p-8" style={{ background: "var(--surface)" }}>
           <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-left" decoding="async" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(270deg, #0B0D12 0%, rgba(11,13,18,0.82) 42%, rgba(11,13,18,0.0) 78%)" }} />
-          <div className="relative max-w-[560px] space-y-3">
+          <div className="relative max-w-[560px] space-y-4">
             <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#6882FF" }}>Fabric {c.prefs.gameVersion} • Luminos Client Engine</span>
-            <h1 className="m-0 text-[34px] font-bold leading-tight text-white">Luminos Client</h1>
-            {!preparing && <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full text-[11.5px] font-medium" style={{ background: "rgba(22,27,38,.85)", color: "#BFD3FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#3B82F6" }} />Sodium + Lithium + ImmediatelyFast ready • Native Max FPS</span>}
-            {!preparing && <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
+            <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client</h1>
+            {!preparing && <p className="m-0 !mt-3 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
             <div className="pt-3 flex items-center gap-3 flex-wrap">
               {g.status === "idle" && (
                 <button onClick={() => void launch()} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
-                  <Icon n="play" s={14} fill />Launch Game
+                  <span aria-hidden>▶</span>Launch {c.prefs.gameVersion}
                 </button>
               )}
               {preparing && <LaunchProgressPanel />}
@@ -159,16 +158,6 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           </div>
         </section>
 
-        <section aria-label="Versions" className="grid grid-cols-2 gap-5">
-          {versions.slice(0, 2).map((v, k) => (
-            <button key={v} onClick={() => setPref("gameVersion", v)} aria-pressed={c.prefs.gameVersion === v} className="group relative h-[132px] rounded-[14px] overflow-hidden text-left t press" style={{ outline: c.prefs.gameVersion === v ? "2px solid #3B82F6" : "none" }}>
-              <img src={k === 0 ? "/covers/overworld.webp" : "/covers/nether.webp"} alt="" className="absolute inset-0 w-full h-full object-cover t group-hover:scale-[1.03]" decoding="async" loading="lazy" />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,.88) 0%, rgba(11,13,18,.35) 70%, transparent 100%)" }} />
-              <div className="relative h-full p-5 flex flex-col justify-end"><div className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#93C5FD" }}>{c.prefs.gameVersion === v ? "Selected" : "Version"}</div><div className="text-[20px] font-bold text-white">Minecraft {v}</div></div>
-            </button>
-          ))}
-        </section>
-
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <h2 className="m-0 text-[16px] font-semibold">Quickplay</h2>
@@ -177,7 +166,6 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
                 <span aria-hidden className={scanning ? "inline-block animate-spin" : "inline-block"}>↻</span>Refresh
               </button>
               <button onClick={() => setAddOpen(true)} className="h-8 px-3 rounded-[8px] text-[12.5px] font-medium t hover:bg-[var(--surface)]" style={{ color: "var(--accent-text)" }}>+ Add Server</button>
-              <button className="text-[13px] t hover:underline" style={{ color: "var(--accent-text)" }} onClick={() => go("profiles")}>Manage Worlds &amp; Servers →</button>
             </div>
           </div>
           {scanned && cards === 0 ? (

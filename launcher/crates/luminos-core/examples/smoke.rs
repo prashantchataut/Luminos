@@ -109,9 +109,16 @@ fn main() {
     if e2e {
         let packs = inst.game_dir().join("resourcepacks");
         let _ = std::fs::create_dir_all(&packs);
-        let mut z = zip::ZipWriter::new(std::fs::File::create(packs.join("agent-test.zip")).expect("pack zip"));
-        z.start_file("pack.mcmeta", zip::write::SimpleFileOptions::default()).expect("pack.mcmeta");
-        std::io::Write::write_all(&mut z, br#"{"pack":{"pack_format":75,"description":"Luminos agent test pack"}}"#).expect("write");
+        let mut z = zip::ZipWriter::new(
+            std::fs::File::create(packs.join("agent-test.zip")).expect("pack zip"),
+        );
+        z.start_file("pack.mcmeta", zip::write::SimpleFileOptions::default())
+            .expect("pack.mcmeta");
+        std::io::Write::write_all(
+            &mut z,
+            br#"{"pack":{"pack_format":75,"description":"Luminos agent test pack"}}"#,
+        )
+        .expect("write");
         z.finish().expect("finish pack");
     } else {
         std::env::set_var("LUMINOS_SMOKE", "1");
@@ -214,18 +221,39 @@ fn wait_for(secs: u64, f: impl Fn() -> bool) -> bool {
 }
 
 /// Sends `cmd`, waits for the agent's `done`, and returns (done event, the progress stages in the order they arrived).
-fn run_cmd(hub: &luminos_core::agent::Hub, cmd: serde_json::Value, secs: u64) -> (Option<serde_json::Value>, Vec<String>) {
+fn run_cmd(
+    hub: &luminos_core::agent::Hub,
+    cmd: serde_json::Value,
+    secs: u64,
+) -> (Option<serde_json::Value>, Vec<String>) {
     let op = hub.send(cmd).expect("send");
-    let got = wait_for(secs, || hub.events_since(0).0.iter().any(|e| e["t"] == "done" && e["op"] == op));
+    let got = wait_for(secs, || {
+        hub.events_since(0)
+            .0
+            .iter()
+            .any(|e| e["t"] == "done" && e["op"] == op)
+    });
     let ev = hub.events_since(0).0;
-    let stages = ev.iter().filter(|e| e["t"] == "progress" && e["op"] == op).filter_map(|e| e["stage"].as_str().map(String::from)).collect();
-    (got.then(|| ev.into_iter().find(|e| e["t"] == "done" && e["op"] == op)).flatten(), stages)
+    let stages = ev
+        .iter()
+        .filter(|e| e["t"] == "progress" && e["op"] == op)
+        .filter_map(|e| e["stage"].as_str().map(String::from))
+        .collect();
+    (
+        got.then(|| ev.into_iter().find(|e| e["t"] == "done" && e["op"] == op))
+            .flatten(),
+        stages,
+    )
 }
 
 fn flag(hub: &luminos_core::agent::Hub, list: &str, id: &str) -> Option<bool> {
     let (done, _) = run_cmd(hub, serde_json::json!({"t": "snapshot"}), 20);
     done?;
-    hub.hello()?[list].as_array()?.iter().find(|m| m["id"] == id)?["enabled"].as_bool()
+    hub.hello()?[list]
+        .as_array()?
+        .iter()
+        .find(|m| m["id"] == id)?["enabled"]
+        .as_bool()
 }
 
 fn agent_checks(hub: &luminos_core::agent::Hub) -> serde_json::Value {
@@ -235,15 +263,35 @@ fn agent_checks(hub: &luminos_core::agent::Hub) -> serde_json::Value {
     }
     let hello = hub.hello().unwrap_or_default();
     let before = flag(hub, "modules", "fps");
-    let (off, off_stages) = run_cmd(hub, json!({"t": "toggle_module", "id": "fps", "on": false}), 30);
+    let (off, off_stages) = run_cmd(
+        hub,
+        json!({"t": "toggle_module", "id": "fps", "on": false}),
+        30,
+    );
     let after_off = flag(hub, "modules", "fps");
-    let (on, _) = run_cmd(hub, json!({"t": "toggle_module", "id": "fps", "on": true}), 30);
+    let (on, _) = run_cmd(
+        hub,
+        json!({"t": "toggle_module", "id": "fps", "on": true}),
+        30,
+    );
     let after_on = flag(hub, "modules", "fps");
-    let (bad, _) = run_cmd(hub, json!({"t": "toggle_module", "id": "no-such-module", "on": true}), 30);
+    let (bad, _) = run_cmd(
+        hub,
+        json!({"t": "toggle_module", "id": "no-such-module", "on": true}),
+        30,
+    );
     let pack_before = flag(hub, "packs", "file/agent-test.zip");
-    let (pack_on, pack_stages) = run_cmd(hub, json!({"t": "set_pack", "id": "file/agent-test.zip", "on": true}), 120);
+    let (pack_on, pack_stages) = run_cmd(
+        hub,
+        json!({"t": "set_pack", "id": "file/agent-test.zip", "on": true}),
+        120,
+    );
     let pack_after_on = flag(hub, "packs", "file/agent-test.zip");
-    let (pack_off, _) = run_cmd(hub, json!({"t": "set_pack", "id": "file/agent-test.zip", "on": false}), 120);
+    let (pack_off, _) = run_cmd(
+        hub,
+        json!({"t": "set_pack", "id": "file/agent-test.zip", "on": false}),
+        120,
+    );
     let pack_after_off = flag(hub, "packs", "file/agent-test.zip");
     let (pause, _) = run_cmd(hub, json!({"t": "pause", "on": true}), 30);
     let ok = |d: &Option<serde_json::Value>| d.as_ref().is_some_and(|d| d["ok"] == true);
@@ -257,7 +305,9 @@ fn agent_checks(hub: &luminos_core::agent::Hub) -> serde_json::Value {
         "pack_disabled_via_reload": ok(&pack_off) && pack_after_off == Some(false),
         "pause_refused_without_a_world": pause.as_ref().is_some_and(|d| d["ok"] == false && d["detail"].as_str().unwrap_or("").contains("no world")),
     });
-    let pass = checks.as_object().is_some_and(|c| c.values().all(|v| v == true));
+    let pass = checks
+        .as_object()
+        .is_some_and(|c| c.values().all(|v| v == true));
     json!({"pass": pass, "checks": checks, "minecraft": hello["mc"], "mods_seen": hello["mods"].as_array().map(|m| m.len()), "module_stages": off_stages, "pack_stages": pack_stages,
            "NOT_TESTED_HERE": "pause with a world open (needs a loaded singleplayer world)"})
 }

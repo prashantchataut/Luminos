@@ -4,16 +4,13 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import net.minecraft.client.gui.screens.options.OptionsScreen;
-import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
- * The Luminos title screen. Layout and painting live in {@link TitleScene} (so the offscreen preview in docs/design/rounds draws the
+ * Standalone copy of the Luminos title menu (used by the CI smoke tour and as a fallback; the player normally sees Minecraft's own
+ * TitleScreen cleaned up in place by TitleScreenMixin). Layout and painting live in {@link TitleScene} (so the offscreen preview in docs/design/rounds draws the
  * same pixels); this class only owns state and behaviour. Every button is a {@link LuminosPillButton}, a real Minecraft {@link Button}
  * registered with {@code addRenderableWidget} (Mojang's name for Yarn's {@code addDrawableChild}), and {@code mouseClicked} defers to
  * {@code super}, so hit-testing, hover, Tab/Enter navigation and the click sound all come from Minecraft's own Screen code.
@@ -25,11 +22,11 @@ public final class LuminosTitleScreen extends Screen {
 	public LuminosTitleScreen() { super(Component.literal("Luminos")); }
 
 	/** A Minecraft Button whose pixels come from {@link TitleScene#paintButton}; hover eases 0..1 at 0.25 per frame. */
-	static final class LuminosPillButton extends Button {
+	public static final class LuminosPillButton extends Button {
 		private final TitleScene.Btn spec;
 		private float hoverAnim;
 
-		LuminosPillButton(TitleScene.Btn spec, Runnable action) {
+		public LuminosPillButton(TitleScene.Btn spec, Runnable action) {
 			super(spec.x(), spec.y(), spec.w(), spec.h(), Component.literal(spec.label()), b -> action.run(), DEFAULT_NARRATION);
 			this.spec = spec;
 		}
@@ -43,26 +40,7 @@ public final class LuminosTitleScreen extends Screen {
 
 	@Override
 	protected void init() {
-		for (TitleScene.Btn b : TitleScene.layout(width, height)) {
-			addRenderableWidget(new LuminosPillButton(b, action(b.id())));
-		}
-	}
-
-	private Runnable action(String id) {
-		return switch (id) {
-			case "single" -> () -> minecraft.setScreen(new SelectWorldScreen(this));
-			case "multi" -> () -> minecraft.setScreen(new JoinMultiplayerScreen(this));
-			case "mods" -> () -> minecraft.setScreen(new LuminosQuickPanelScreen(Panel.Tab.MODULES, false, this));
-			case "options" -> () -> minecraft.setScreen(new OptionsScreen(this, minecraft.options));
-			case "quit" -> () -> minecraft.stop();
-			case "hud" -> () -> minecraft.setScreen(new HudEditorScreen(this));
-			case "capes" -> () -> minecraft.setScreen(new LuminosCosmeticsScreen(this));
-			default -> () -> {   // "vanilla"
-				Config.get().customTitle = false;
-				Config.save();
-				minecraft.setScreen(new TitleScreen());
-			};
-		};
+		for (TitleScene.Btn b : TitleMenu.layout(width, height)) addRenderableWidget(TitleMenu.widget(b, this));
 	}
 
 	/** The scene is painted in {@link #render}; vanilla's own background (blur / panorama) must not draw over it. */

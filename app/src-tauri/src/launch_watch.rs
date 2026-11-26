@@ -173,10 +173,36 @@ pub fn error_log(log: &[String], n: usize) -> String {
 
 // ------------------------------------------------------------------ the Luminos Client jar in <game dir>/mods
 
-/// A file that belongs to a Luminos Client install of any version: `luminos-client*`, `luminos_client*`, or any `luminos-*.jar`.
+/// A file that belongs to a Luminos Client install of any version: `luminos-client*`, `luminos_client*`, or ANY jar (or disabled jar)
+/// with "luminos" in its name (`*luminos*.jar`, `*luminos*.jar.disabled`).
 pub fn is_luminos_client_file(name: &str) -> bool {
     let n = name.to_ascii_lowercase();
-    n.starts_with("luminos-client") || n.starts_with("luminos_client") || (n.starts_with("luminos-") && n.ends_with(".jar"))
+    n.starts_with("luminos-client")
+        || n.starts_with("luminos_client")
+        || (n.contains("luminos") && (n.ends_with(".jar") || n.ends_with(".jar.disabled") || n.ends_with(".jar.part")))
+}
+
+/// Delete every `*luminos*.jar` under a Luminos cache folder (recursively), so no old client jar can be re-used from there.
+/// A missing folder is fine. Returns the file names removed.
+pub fn purge_cache_jars(dir: &Path) -> io::Result<Vec<String>> {
+    let mut removed = vec![];
+    let rd = match fs::read_dir(dir) {
+        Ok(r) => r,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(removed),
+        Err(e) => return Err(e),
+    };
+    for e in rd.flatten() {
+        let path = e.path();
+        let name = e.file_name().to_string_lossy().to_string();
+        if path.is_dir() {
+            removed.extend(purge_cache_jars(&path)?);
+        } else if is_luminos_client_file(&name) {
+            fs::remove_file(&path).map_err(|err| io::Error::new(err.kind(), format!("could not remove cached {name}: {err}")))?;
+            removed.push(name);
+        }
+    }
+    removed.sort();
+    Ok(removed)
 }
 
 /// Delete every Luminos Client file in `mods` so the game can never load a stale version next to the fresh one.
@@ -222,6 +248,25 @@ mod tests {
 
     fn lines(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn any_luminos_jar_is_stale_and_cache_is_purged() {
+        assert!(is_luminos_client_file("Luminos-Client-1.jar"));
+        assert!(is_luminos_client_file("my-luminos-thing.jar"));
+        assert!(is_luminos_client_file("luminos-client-4.1.0-mc1.21.11.jar.disabled"));
+        assert!(!is_luminos_client_file("sodium.jar") && !is_luminos_client_file("fabric-api.jar"));
+        let dir = std::env::temp_dir().join(format!("luminos-cachepurge-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join("client/old")).unwrap();
+        for n in ["luminos-client-4.0.0.jar", "client/luminos-client-4.1.0-mc1.21.11.jar", "client/old/Luminos_X.jar", "client/keep.txt", "sodium.jar"] {
+            fs::write(dir.join(n), b"x").unwrap();
+        }
+        let gone = purge_cache_jars(&dir).unwrap();
+        assert_eq!(gone.len(), 3, "{gone:?}");
+        assert!(dir.join("client/keep.txt").exists() && dir.join("sodium.jar").exists());
+        assert!(purge_cache_jars(&dir.join("does-not-exist")).unwrap().is_empty());
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

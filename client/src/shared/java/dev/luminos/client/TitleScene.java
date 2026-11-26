@@ -29,25 +29,21 @@ public final class TitleScene {
 	static final int COBALT = 0xFF2B4BFF, COBALT_EDGE = 0xFF60A5FA, CRIMSON = 0xFFEF4444;
 	static final int FILL = 0xE6141822, TEXT = 0xFFFFFFFF, MUTED = 0xFF8A94A6, FOOT = 0xFF64748B;
 
-	/** The vertical anchor of the centre stack; kept inside the window so a short window never pushes the buttons off-screen. */
-	public static int centerY(int h) {
-		int top = 104 + 30;                    // logo + room above it for the chrome row
-		int bottom = h - (99 + 30);            // last button row + room for the footer
-		return Math.max(Math.min(h / 2, bottom), top);
-	}
+	/** Anchor of the brand block: the first button row is {@code centerY - 18} = height/4 + 48, vanilla's own menu position. */
+	public static int centerY(int h) { return h / 4 + 48 + 18; }
 
+	/**
+	 * The five menu buttons, positioned exactly like the vanilla menu: x = width/2 - 100 (width 200) and y = height/4 + 48, 72, 96;
+	 * Options and Quit Game share the last row (98 wide) at y = height/4 + 124.
+	 */
 	public static List<Btn> layout(int w, int h) {
 		List<Btn> l = new ArrayList<>();
-		int cx = w / 2, cy = centerY(h), y0 = cy - 18, x0 = cx - BTN_W / 2;
-		l.add(new Btn("single", "Singleplayer", x0, y0, BTN_W, BTN_H, Kind.PRIMARY));
-		l.add(new Btn("multi", "Multiplayer", x0, y0 + 31, BTN_W, BTN_H, Kind.PRIMARY));
-		l.add(new Btn("mods", "Luminos Mods & HUD", x0, y0 + 62, BTN_W, BTN_H, Kind.ACCENT));
-		l.add(new Btn("options", "Options", x0, y0 + 93, HALF_W, BTN_H, Kind.SECONDARY));
-		l.add(new Btn("quit", "Quit Game", cx + 3, y0 + 93, HALF_W, BTN_H, Kind.DANGER));
-		int capes = 54, hud = 72;
-		l.add(new Btn("capes", "Capes", w - 14 - capes, 12, capes, 22, Kind.CHIP));
-		l.add(new Btn("hud", "HUD Studio", w - 14 - capes - 6 - hud, 12, hud, 22, Kind.CHIP));
-		l.add(new Btn("vanilla", "Vanilla title screen", w / 2 - 55, y0 + 93 + BTN_H + 12, 110, 12, Kind.LINK));
+		int x0 = w / 2 - 100, y0 = h / 4 + 48;
+		l.add(new Btn("single", "Singleplayer", x0, y0, 200, 20, Kind.PRIMARY));
+		l.add(new Btn("multi", "Multiplayer", x0, y0 + 24, 200, 20, Kind.PRIMARY));
+		l.add(new Btn("mods", "Luminos Mods [Right Ctrl]", x0, y0 + 48, 200, 20, Kind.ACCENT));
+		l.add(new Btn("options", "Options...", x0, y0 + 76, 98, 20, Kind.SECONDARY));
+		l.add(new Btn("quit", "Quit Game", w / 2 + 2, y0 + 76, 98, 20, Kind.DANGER));
 		return l;
 	}
 

@@ -15,7 +15,7 @@ export type Settings = {
 export const DEFAULTS: Settings = {
   theme: "default", reduceMotion: false, compact: true,
   profile: "luminos-performance", renderer: "sodium", inputSampling: true, hudFps: 30, hudThrottle: true, startupCache: true, devProfiler: false,
-  memoryMb: 4096, allowBeta: false, offlineSkins: true, checkUpdates: true, closeOnLaunch: false, compliance: false,
+  memoryMb: 2048, allowBeta: false, offlineSkins: true, checkUpdates: true, closeOnLaunch: false, compliance: false,
   keystrokes: "A", crosshair: "dot-ring", fogOverworld: false, fogNether: true, fogEnd: false, lowFire: true, lowShield: true,
   presenceOn: true, presenceName: true, presenceServer: false,
 };

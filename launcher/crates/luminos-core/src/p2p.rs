@@ -46,14 +46,22 @@ pub struct Bridge {
 
 impl Bridge {
     pub fn new(on_data: DataCb, on_close: IdCb) -> Arc<Bridge> {
-        Arc::new(Bridge { conns: Mutex::default(), next: AtomicU32::new(1), on_data, on_close })
+        Arc::new(Bridge {
+            conns: Mutex::default(),
+            next: AtomicU32::new(1),
+            on_data,
+            on_close,
+        })
     }
 
     fn adopt(self: &Arc<Self>, s: TcpStream) -> Result<u32> {
         let _ = s.set_nodelay(true);
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         let mut r = s.try_clone()?;
-        self.conns.lock().unwrap_or_else(|e| e.into_inner()).insert(id, s);
+        self.conns
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, s);
         let me = self.clone();
         std::thread::spawn(move || {
             let mut buf = vec![0u8; 16 * 1024];
@@ -63,7 +71,13 @@ impl Bridge {
                     Ok(n) => (me.on_data)(id, buf[..n].to_vec()),
                 }
             }
-            if me.conns.lock().unwrap_or_else(|e| e.into_inner()).remove(&id).is_some() {
+            if me
+                .conns
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&id)
+                .is_some()
+            {
                 (me.on_close)(id);
             }
         });
@@ -87,8 +101,9 @@ impl Bridge {
 
     /// Host side: connect to the local LAN world.
     pub fn dial(self: &Arc<Self>, port: u16) -> Result<u32> {
-        let s = TcpStream::connect(("127.0.0.1", port))
-            .with_context(|| format!("p2p: nothing is listening on 127.0.0.1:{port} (open the world to LAN first)"))?;
+        let s = TcpStream::connect(("127.0.0.1", port)).with_context(|| {
+            format!("p2p: nothing is listening on 127.0.0.1:{port} (open the world to LAN first)")
+        })?;
         self.adopt(s)
     }
 
@@ -99,7 +114,12 @@ impl Bridge {
     }
 
     pub fn close(&self, id: u32) {
-        if let Some(s) = self.conns.lock().unwrap_or_else(|e| e.into_inner()).remove(&id) {
+        if let Some(s) = self
+            .conns
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&id)
+        {
             let _ = s.shutdown(Shutdown::Both);
         }
     }
@@ -116,7 +136,9 @@ mod tests {
         for _ in 0..50 {
             assert!(valid_room_code(&new_room_code()));
         }
-        assert!(!valid_room_code("ABC0EF") && !valid_room_code("abcdef") && !valid_room_code("ABCDE"));
+        assert!(
+            !valid_room_code("ABC0EF") && !valid_room_code("abcdef") && !valid_room_code("ABCDE")
+        );
     }
 
     /// guest socket -> guest bridge -> (stands in for the data channel) -> host bridge -> LAN world (an echo server).
@@ -139,8 +161,18 @@ mod tests {
         let (g2h, h_rx) = mpsc::channel::<(u32, Vec<u8>)>();
         let (h2g, g_rx) = mpsc::channel::<(u32, Vec<u8>)>();
         let (g2h, h2g) = (Mutex::new(g2h), Mutex::new(h2g));
-        let guest = Bridge::new(Arc::new(move |id, d| { let _ = g2h.lock().unwrap().send((id, d)); }), Arc::new(|_| {}));
-        let host = Bridge::new(Arc::new(move |id, d| { let _ = h2g.lock().unwrap().send((id, d)); }), Arc::new(|_| {}));
+        let guest = Bridge::new(
+            Arc::new(move |id, d| {
+                let _ = g2h.lock().unwrap().send((id, d));
+            }),
+            Arc::new(|_| {}),
+        );
+        let host = Bridge::new(
+            Arc::new(move |id, d| {
+                let _ = h2g.lock().unwrap().send((id, d));
+            }),
+            Arc::new(|_| {}),
+        );
         let port = guest.listen(Arc::new(|_| {})).unwrap();
         let mut mc = TcpStream::connect(("127.0.0.1", port)).unwrap();
         mc.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
@@ -153,6 +185,9 @@ mod tests {
         let mut got = [0u8; 9];
         mc.read_exact(&mut got).unwrap();
         assert_eq!(&got, b"hello lan");
-        assert!(host.dial(1).is_err(), "no LAN world open: clear error, not a hang");
+        assert!(
+            host.dial(1).is_err(),
+            "no LAN world open: clear error, not a hang"
+        );
     }
 }

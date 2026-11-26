@@ -98,7 +98,10 @@ pub fn registry_signals(entries: &[String]) -> Vec<String> {
         if e.starts_with("data/") {
             for d in REGISTRY_DIRS {
                 if e.contains(d) {
-                    out.insert(format!("data{d}*(adds {})", d.trim_matches('/').replace('_', " ")));
+                    out.insert(format!(
+                        "data{d}*(adds {})",
+                        d.trim_matches('/').replace('_', " ")
+                    ));
                 }
             }
         }
@@ -120,10 +123,14 @@ pub fn classify(f: &Facts) -> Verdict {
     if !signals.is_empty() {
         reasons.push(format!("Adds game content ({}): the running game cannot remove blocks, items, entities, biomes or dimensions.", signals.join(", ")));
     } else if common_entry && !client_only {
-        reasons.push("Has a common/server entrypoint, which normally registers content at startup.".into());
+        reasons.push(
+            "Has a common/server entrypoint, which normally registers content at startup.".into(),
+        );
     }
     if f.has_mixins {
-        reasons.push("Uses mixins merged into game classes at launch; they cannot be unloaded.".into());
+        reasons.push(
+            "Uses mixins merged into game classes at launch; they cannot be unloaded.".into(),
+        );
     }
     let live_candidate = client_only && !registry && !f.has_mixins && keep.is_none();
     reasons.push(if live_candidate {
@@ -165,12 +172,20 @@ pub fn classify_kind(kind: Kind) -> Verdict {
 }
 
 pub fn facts_from_json(meta: &Value, entries: Vec<String>) -> Facts {
-    let s = |k: &str| meta.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    let s = |k: &str| {
+        meta.get(k)
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    };
     let mut f = Facts {
         id: s("id"),
         name: s("name"),
         version: s("version"),
-        environment: meta.get("environment").and_then(Value::as_str).map(String::from),
+        environment: meta
+            .get("environment")
+            .and_then(Value::as_str)
+            .map(String::from),
         entries,
         ..Default::default()
     };
@@ -178,9 +193,16 @@ pub fn facts_from_json(meta: &Value, entries: Vec<String>) -> Facts {
         f.name = f.id.clone();
     }
     if let Some(e) = meta.get("entrypoints").and_then(Value::as_object) {
-        f.entrypoints = e.iter().filter(|(_, v)| v.as_array().is_some_and(|a| !a.is_empty())).map(|(k, _)| k.clone()).collect();
+        f.entrypoints = e
+            .iter()
+            .filter(|(_, v)| v.as_array().is_some_and(|a| !a.is_empty()))
+            .map(|(k, _)| k.clone())
+            .collect();
     }
-    f.has_mixins = meta.get("mixins").and_then(Value::as_array).is_some_and(|a| !a.is_empty());
+    f.has_mixins = meta
+        .get("mixins")
+        .and_then(Value::as_array)
+        .is_some_and(|a| !a.is_empty());
     if let Some(d) = meta.get("depends").and_then(Value::as_object) {
         for k in d.keys() {
             let k = k.as_str();
@@ -188,7 +210,11 @@ pub fn facts_from_json(meta: &Value, entries: Vec<String>) -> Facts {
                 continue;
             }
             // Fabric API's modules (fabric-resource-loader-v0 ...) all come from the one fabric-api jar.
-            let k = if k.starts_with("fabric-") && k != "fabric-api" { "fabric-api" } else { k };
+            let k = if k.starts_with("fabric-") && k != "fabric-api" {
+                "fabric-api"
+            } else {
+                k
+            };
             if !f.requires.iter().any(|r| r == k) {
                 f.requires.push(k.to_string());
             }
@@ -200,10 +226,17 @@ pub fn facts_from_json(meta: &Value, entries: Vec<String>) -> Facts {
 pub fn facts_from_jar(path: &Path) -> Result<Facts> {
     let file = fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
     let mut zip = zip::ZipArchive::new(file).with_context(|| format!("read {}", path.display()))?;
-    let entries: Vec<String> = zip.file_names().filter_map(|n| n.ok()).map(|c| c.into_owned()).collect();
+    let entries: Vec<String> = zip
+        .file_names()
+        .filter_map(|n| n.ok())
+        .map(|c| c.into_owned())
+        .collect();
     let mut text = String::new();
-    zip.by_name("fabric.mod.json").context("no fabric.mod.json (not a Fabric mod)")?.read_to_string(&mut text)?;
-    let meta: Value = serde_json::from_str(text.trim_start_matches('\u{feff}')).context("fabric.mod.json is not valid JSON")?;
+    zip.by_name("fabric.mod.json")
+        .context("no fabric.mod.json (not a Fabric mod)")?
+        .read_to_string(&mut text)?;
+    let meta: Value = serde_json::from_str(text.trim_start_matches('\u{feff}'))
+        .context("fabric.mod.json is not valid JSON")?;
     Ok(facts_from_json(&meta, entries))
 }
 
@@ -222,11 +255,17 @@ pub struct ModInfo {
 pub fn list_mods(game_dir: &Path) -> Vec<ModInfo> {
     let dir = game_dir.join("mods");
     let mut out = vec![];
-    let Ok(rd) = fs::read_dir(&dir) else { return out };
+    let Ok(rd) = fs::read_dir(&dir) else {
+        return out;
+    };
     let mut paths: Vec<PathBuf> = rd.flatten().map(|e| e.path()).collect();
     paths.sort();
     for p in paths {
-        let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+        let name = p
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
         let (file, enabled) = if let Some(b) = name.strip_suffix(".jar.disabled") {
             (format!("{b}.jar"), false)
         } else if name.ends_with(".jar") {
@@ -236,7 +275,15 @@ pub fn list_mods(game_dir: &Path) -> Vec<ModInfo> {
         };
         let Ok(f) = facts_from_jar(&p) else { continue };
         let verdict = classify(&f);
-        out.push(ModInfo { id: f.id, file, name: f.name, version: f.version, enabled, requires: f.requires, verdict });
+        out.push(ModInfo {
+            id: f.id,
+            file,
+            name: f.name,
+            version: f.version,
+            enabled,
+            requires: f.requires,
+            verdict,
+        });
     }
     out
 }
@@ -252,15 +299,28 @@ mod tests {
 
     #[test]
     fn client_only_hud_mod_is_a_live_candidate_but_still_queues() {
-        let f = facts(json!({"id":"appleskin","environment":"client","entrypoints":{"client":["a.B"]}}), &["assets/appleskin/lang/en_us.json"]);
+        let f = facts(
+            json!({"id":"appleskin","environment":"client","entrypoints":{"client":["a.B"]}}),
+            &["assets/appleskin/lang/en_us.json"],
+        );
         let v = classify(&f);
         assert!(v.live_candidate && v.client_only && !v.registry_content);
-        assert_eq!(v.disposition, Disposition::Queued, "third-party code is never unloaded");
+        assert_eq!(
+            v.disposition,
+            Disposition::Queued,
+            "third-party code is never unloaded"
+        );
     }
 
     #[test]
     fn registry_content_blocks_live_candidacy() {
-        let f = facts(json!({"id":"cool","entrypoints":{"main":["a.B"]}}), &["assets/cool/blockstates/x.json", "data/cool/worldgen/biome/y.json"]);
+        let f = facts(
+            json!({"id":"cool","entrypoints":{"main":["a.B"]}}),
+            &[
+                "assets/cool/blockstates/x.json",
+                "data/cool/worldgen/biome/y.json",
+            ],
+        );
         let v = classify(&f);
         assert!(v.registry_content && !v.live_candidate);
         assert!(v.reasons.iter().any(|r| r.contains("blockstates")));
@@ -269,7 +329,10 @@ mod tests {
 
     #[test]
     fn mixins_and_keep_on_are_reported() {
-        let f = facts(json!({"id":"sodium","environment":"client","mixins":["sodium.mixins.json"],"entrypoints":{"client":["a.B"]}}), &[]);
+        let f = facts(
+            json!({"id":"sodium","environment":"client","mixins":["sodium.mixins.json"],"entrypoints":{"client":["a.B"]}}),
+            &[],
+        );
         let v = classify(&f);
         assert!(v.keep_on && v.mixins && !v.live_candidate);
         assert!(v.reasons[0].starts_with("Keep-on list"));
@@ -277,8 +340,14 @@ mod tests {
 
     #[test]
     fn only_owned_kinds_are_live() {
-        assert_eq!(classify_kind(Kind::LuminosModule).disposition, Disposition::Live);
-        assert_eq!(classify_kind(Kind::ResourcePack).disposition, Disposition::Live);
+        assert_eq!(
+            classify_kind(Kind::LuminosModule).disposition,
+            Disposition::Live
+        );
+        assert_eq!(
+            classify_kind(Kind::ResourcePack).disposition,
+            Disposition::Live
+        );
         assert_eq!(classify_kind(Kind::DataPack).disposition, Disposition::Live);
         assert_eq!(classify_kind(Kind::Shader).disposition, Disposition::Queued);
         assert_eq!(classify_kind(Kind::Mod).disposition, Disposition::Queued);
@@ -286,15 +355,29 @@ mod tests {
 
     #[test]
     fn depends_filter_maps_fabric_modules_to_fabric_api() {
-        let f = facts(json!({"id":"x","depends":{"minecraft":"*","fabricloader":"*","fabric-resource-loader-v0":"*","fabric-api-base":"*","sodium":"*"}}), &[]);
-        assert_eq!(f.requires, vec!["fabric-api".to_string(), "sodium".to_string()]);
+        let f = facts(
+            json!({"id":"x","depends":{"minecraft":"*","fabricloader":"*","fabric-resource-loader-v0":"*","fabric-api-base":"*","sodium":"*"}}),
+            &[],
+        );
+        assert_eq!(
+            f.requires,
+            vec!["fabric-api".to_string(), "sodium".to_string()]
+        );
     }
 
     #[test]
     fn keep_on_list_matches_the_typescript_planner() {
-        let ts = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../app/src/livepanel/plan.ts")).expect("plan.ts");
+        let ts = fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../app/src/livepanel/plan.ts"
+        ))
+        .expect("plan.ts");
         for (id, why) in KEEP_ON {
-            assert!(ts.contains(&format!("\"{id}\": \"{why}\"")) || ts.contains(&format!("{id}: \"{why}\"")), "keep-on entry {id} differs between livemod.rs and plan.ts");
+            assert!(
+                ts.contains(&format!("\"{id}\": \"{why}\""))
+                    || ts.contains(&format!("{id}: \"{why}\"")),
+                "keep-on entry {id} differs between livemod.rs and plan.ts"
+            );
         }
     }
 
@@ -306,12 +389,19 @@ mod tests {
         fs::create_dir_all(&mods).unwrap();
         let mk = |name: &str, json: &str| {
             let mut z = zip::ZipWriter::new(fs::File::create(mods.join(name)).unwrap());
-            z.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default()).unwrap();
+            z.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default())
+                .unwrap();
             z.write_all(json.as_bytes()).unwrap();
             z.finish().unwrap();
         };
-        mk("a.jar", r#"{"id":"a","version":"1","environment":"client","entrypoints":{"client":["x.Y"]}}"#);
-        mk("b.jar.disabled", r#"{"id":"b","version":"2","depends":{"a":"*"}}"#);
+        mk(
+            "a.jar",
+            r#"{"id":"a","version":"1","environment":"client","entrypoints":{"client":["x.Y"]}}"#,
+        );
+        mk(
+            "b.jar.disabled",
+            r#"{"id":"b","version":"2","depends":{"a":"*"}}"#,
+        );
         let l = list_mods(&dir);
         assert_eq!(l.len(), 2);
         assert!(l[0].enabled && l[0].id == "a");

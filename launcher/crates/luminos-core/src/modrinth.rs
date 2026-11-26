@@ -59,7 +59,10 @@ pub fn search_facets(q: &SearchQuery, categories: &[String]) -> Result<SearchRes
     if let Some(v) = &q.game_version {
         facets.push(vec![format!("versions:{v}")]);
     }
-    for c in categories.iter().filter(|c| c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-')) {
+    for c in categories
+        .iter()
+        .filter(|c| c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-'))
+    {
         facets.push(vec![format!("categories:{c}")]);
     }
     let query = vec![
