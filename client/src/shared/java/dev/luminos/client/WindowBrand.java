@@ -32,53 +32,79 @@ public final class WindowBrand {
 			.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
 	}
 
-	/** Called once the client has started, on the thread that owns the window. */
-	public static void apply() {
-		long win = GLFW.glfwGetCurrentContext();
-		if (win == 0L) return;
-		title = "Luminos Client " + mcVersion();
-		GLFW.glfwSetWindowTitle(win, title);
-		if (!iconSet) {
-			iconSet = true;   // one attempt: a missing resource must never be retried every tick
-			try { setIcons(win); }
-			catch (Throwable t) { LuminosClient.LOGGER.warn("Could not set the Luminos window icon: {}", t.toString()); }
-		}
+	/**
+	 * Minecraft 1.21.x creates its window with GLFW; 26.x creates it with SDL and ships no GLFW classes at all (the 26.3 smoke job
+	 * crashed with NoClassDefFoundError: org/lwjgl/glfw/GLFW). Every GLFW call therefore lives in {@link Glfw}, which is only loaded
+	 * when GLFW is really on the class path.
+	 */
+	private static boolean glfwPresent() {
+		try { Class.forName("org.lwjgl.glfw.GLFW", false, WindowBrand.class.getClassLoader()); return true; }
+		catch (Throwable t) { return false; }
 	}
+
+	private static Boolean glfw;
+
+	private static boolean glfw() {
+		if (glfw == null) {
+			glfw = glfwPresent();
+			if (!glfw) LuminosClient.LOGGER.info("[luminos] no GLFW on this Minecraft line (SDL window): skipping the native window icon");
+		}
+		return glfw;
+	}
+
+	/** Called once the client has started, on the thread that owns the window. */
+	public static void apply() { if (glfw()) Glfw.apply(); }
 
 	/** Keeps the title ours after Minecraft renames the window (joining or leaving a world). */
-	public static void tick() {
-		if (title == null || ++ticks % 40 != 0) return;
-		long win = GLFW.glfwGetCurrentContext();
-		if (win != 0L) GLFW.glfwSetWindowTitle(win, title);
-	}
+	public static void tick() { if (glfw()) Glfw.tick(); }
 
-	private static void setIcons(long win) throws Exception {
-		GLFWImage.Buffer images = GLFWImage.malloc(SIZES.length);
-		ByteBuffer[] pixels = new ByteBuffer[SIZES.length];
-		int n = 0;
-		try (MemoryStack stack = MemoryStack.stackPush()) {
-			for (int size : SIZES) {
-				byte[] png;
-				try (InputStream in = WindowBrand.class.getResourceAsStream("/assets/luminos_client/icons/icon_" + size + "x" + size + ".png")) {
-					if (in == null) continue;
-					png = in.readAllBytes();
+	private static final class Glfw {
+		static void apply() {
+			long win = GLFW.glfwGetCurrentContext();
+			if (win == 0L) return;
+			title = "Luminos Client " + mcVersion();
+			GLFW.glfwSetWindowTitle(win, title);
+			if (!iconSet) {
+				iconSet = true;   // one attempt: a missing resource must never be retried every tick
+				try { setIcons(win); }
+				catch (Throwable t) { LuminosClient.LOGGER.warn("Could not set the Luminos window icon: {}", t.toString()); }
+			}
+		}
+
+		static void tick() {
+			if (title == null || ++ticks % 40 != 0) return;
+			long win = GLFW.glfwGetCurrentContext();
+			if (win != 0L) GLFW.glfwSetWindowTitle(win, title);
+		}
+
+		private static void setIcons(long win) throws Exception {
+			GLFWImage.Buffer images = GLFWImage.malloc(SIZES.length);
+			ByteBuffer[] pixels = new ByteBuffer[SIZES.length];
+			int n = 0;
+			try (MemoryStack stack = MemoryStack.stackPush()) {
+				for (int size : SIZES) {
+					byte[] png;
+					try (InputStream in = WindowBrand.class.getResourceAsStream("/assets/luminos_client/icons/icon_" + size + "x" + size + ".png")) {
+						if (in == null) continue;
+						png = in.readAllBytes();
+					}
+					ByteBuffer raw = MemoryUtil.memAlloc(png.length).put(png).flip();
+					IntBuffer w = stack.mallocInt(1), h = stack.mallocInt(1), c = stack.mallocInt(1);
+					ByteBuffer px = STBImage.stbi_load_from_memory(raw, w, h, c, 4);
+					MemoryUtil.memFree(raw);
+					if (px == null) continue;
+					pixels[n] = px;
+					images.get(n).set(w.get(0), h.get(0), px);
+					n++;
 				}
-				ByteBuffer raw = MemoryUtil.memAlloc(png.length).put(png).flip();
-				IntBuffer w = stack.mallocInt(1), h = stack.mallocInt(1), c = stack.mallocInt(1);
-				ByteBuffer px = STBImage.stbi_load_from_memory(raw, w, h, c, 4);
-				MemoryUtil.memFree(raw);
-				if (px == null) continue;
-				pixels[n] = px;
-				images.get(n).set(w.get(0), h.get(0), px);
-				n++;
+				if (n > 0) {
+					images.limit(n);
+					GLFW.glfwSetWindowIcon(win, images);   // the OS copies the pixels during this call
+				}
+			} finally {
+				for (ByteBuffer px : pixels) if (px != null) STBImage.stbi_image_free(px);
+				images.free();
 			}
-			if (n > 0) {
-				images.limit(n);
-				GLFW.glfwSetWindowIcon(win, images);   // the OS copies the pixels during this call
-			}
-		} finally {
-			for (ByteBuffer px : pixels) if (px != null) STBImage.stbi_image_free(px);
-			images.free();
 		}
 	}
 }
