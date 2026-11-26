@@ -6,9 +6,9 @@
         "26.3"
       ],
       "loader": "fabric",
-      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/luminos-client-2.1.0-mc26.3.jar",
-      "sha256": "c35db432680ecf894238b23bc49742548221dd6ec1e41e6bc66e0864c1434290",
-      "client_version": "2.1.0",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v4.0.0/luminos-client-4.0.0-mc26.3.jar",
+      "sha256": "fa15af98bfe347dc4ec9441013eca1c8edc047b1eeca4b3327fe5e7e92620ad7",
+      "client_version": "4.0.0",
       "java": 25,
       "required_mods": [
         "fabric-api"
@@ -20,9 +20,9 @@
         "1.21.11"
       ],
       "loader": "fabric",
-      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/luminos-client-2.1.0-mc1.21.11.jar",
-      "sha256": "9c718b40ae87825cbdb90071e70831cdd2b4e9f849db481e5a3237e43c4d7fae",
-      "client_version": "2.1.0",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v4.0.0/luminos-client-4.0.0-mc1.21.11.jar",
+      "sha256": "abd67d3ede3c6e244d14acf5942544f3c0961031e92499bfa2722ea555d11557",
+      "client_version": "4.0.0",
       "java": 21,
       "required_mods": [
         "fabric-api"
