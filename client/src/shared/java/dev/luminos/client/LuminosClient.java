@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /** Entry point, shared by every Minecraft line (version-specific names are behind {@link Nav}). */
 public final class LuminosClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("LuminosClient");
-	public static final String VERSION = "2.1.0";
+	public static final String VERSION = "4.0.0";
 	public static final List<KeyMapping> KEYS = new ArrayList<>();
 	public static KeyMapping panelKey, searchKey, zoomKey, sprintKey;
 	private static boolean sprintLatched, zooming, customShown;
@@ -60,6 +60,7 @@ public final class LuminosClient implements ClientModInitializer {
 		searchKey = bind("key.luminos.search", InputConstants.KEY_RSHIFT, cat);   // Right Shift = jump to search
 		zoomKey = bind("key.luminos.zoom", InputConstants.KEY_C, cat);
 		sprintKey = bind("key.luminos.toggle_sprint", InputConstants.KEY_V, cat);
+		if (Nav.hasEngine()) Nav.engineInit(cat);   // native Mixin engine (1.21.x line): culling, fog, freelook, zoom, ...
 
 		// first layer of the frame: sample input (and wait for the GPU if the frame guard is on); last layer: the HUD, then the fence
 		HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("luminos", "input"), (g, delta) -> InputSampler.frame(Minecraft.getInstance()));
@@ -231,7 +232,7 @@ public final class LuminosClient implements ClientModInitializer {
 			if (mc.options.keyUp.isDown()) { sprintLatched = true; mc.options.keySprint.setDown(true); }
 			else if (sprintLatched) { sprintLatched = false; mc.options.keySprint.setDown(false); }
 		}
-		boolean want = zoomKey.isDown() && cur == null && Config.flag("zoom.on", true) && !Compliance.restricted(mc);
+		boolean want = !Nav.hasEngine() && zoomKey.isDown() && cur == null && Config.flag("zoom.on", true) && !Compliance.restricted(mc);
 		if (want && !zooming) { savedFov = mc.options.fov().get(); zooming = true; }
 		if (zooming) {
 			if (want) mc.options.fov().set(Math.max(30, Math.min(110, Config.get().zoomFov)));

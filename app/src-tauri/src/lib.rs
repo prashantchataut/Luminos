@@ -537,7 +537,7 @@ fn update_json(current: &str, r: Option<update::Release>) -> Value {
     }
 }
 
-/// Ask GitHub (`/releases/latest`, then the release list; the shared HTTP agent sends `User-Agent: Luminos-Launcher/2.3.0`).
+/// Ask GitHub (`/releases/latest`, then the release list; the shared HTTP agent sends `User-Agent: Luminos-Launcher/4.0.0`).
 /// ALWAYS returns the latest release's download URL, even when this build is already current, so the UI can offer
 /// "Reinstall / Test Auto-Updater". Errors are returned to the UI as text, never swallowed.
 #[tauri::command]

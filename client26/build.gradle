@@ -26,6 +26,12 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// The shared WindowBrand calls GLFW and STB directly. Minecraft 26.x does not put its LWJGL libraries on the compile classpath
+	// the way the 1.21 remap line does, so they are compile-only here (the game supplies the real ones at runtime).
+	compileOnly "org.lwjgl:lwjgl:3.3.3"
+	compileOnly "org.lwjgl:lwjgl-glfw:3.3.3"
+	compileOnly "org.lwjgl:lwjgl-stb:3.3.3"
 }
 
 processResources {

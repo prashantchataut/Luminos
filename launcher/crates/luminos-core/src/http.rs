@@ -7,7 +7,7 @@ use anyhow::{bail, Context, Result};
 use serde::de::DeserializeOwned;
 use std::{sync::OnceLock, time::Duration};
 
-pub const USER_AGENT: &str = "Luminos-Launcher/2.3.0 (+https://github.com/prashantchataut/Luminos)";
+pub const USER_AGENT: &str = "Luminos-Launcher/4.0.0 (+https://github.com/prashantchataut/Luminos)";
 const MAX_HOPS: usize = 6;
 
 /// Shared agent. Redirects are disabled on purpose (see module docs); callers that need to follow

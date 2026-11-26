@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.0.0
+- **CI:** removed the tracked file `docs/<0x1A>` that broke checkout on every Windows job; added compile-only LWJGL to `client26` so the 26.x client builds.
+- **Client engine (1.21.11):** `Engine` plus 14 Mixins (`WorldRenderer`, `EntityRenderDispatcher`, `BlockEntityRenderDispatcher`, `ParticleManager`, `BackgroundRenderer`, `LightmapTextureManager`, `Camera`, `GameRenderer`, `Mouse`, `FramerateLimitTracker`, `HeldItemRenderer`, `InGameOverlayRenderer`, `ClientWorld`, `LevelWeather`), `MinecraftTitleMixin` renamed `MinecraftClientMixin` (title "Luminos Client 4.0"). New panel rows only on the 1.21 line.
+- **Launcher core:** `perfconfig.rs` (write-if-missing Sodium / ImmediatelyFast / ModernFix configs, run at every launch), JVM preset with `MaxGCPauseMillis=30` and `AlwaysPreTouch`, User-Agent `Luminos-Launcher/4.0.0`.
+- **Docs and checks:** `docs/architecture/V4_ENGINE_AND_SKILLS_AUDIT.md`, `scripts/verify-v4.0.mjs`.
+- **Not done:** UI redesign, InGameHud/waypoint/minimap, voxel cape mesh. In-game visuals unverified on a GPU.
+
 ## 2.3.0
 - **Website:** the approved dithered-moon hero is first on the page again (v2.2.0 had put a Capes section above it; `Hero.tsx`/`Sky.tsx` are byte-identical to pre-v2.1.0). Capes moved below the tour.
 - **Capes:** ten HD 512x256 capes (`scripts/gen-hd-3d-capes.mjs`). Cards are real skinview3d renders of the cape worn from a 3/4 back view with an extruded voxel relief layer; the Showdown stage shows the same relief live. In-game: `CapeSkin` + `PlayerSkinMixin` swap the local player's cape texture (compiled, not yet run in a real game; no extra relief mesh in-game).

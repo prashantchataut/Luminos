@@ -304,6 +304,8 @@ pub fn build_command_ext(
 
     let mem = inst.memory_mb.unwrap_or(settings.memory_mb).max(512);
     let _ = fs::create_dir_all(&game_dir);
+    // pre-tuned Sodium / ImmediatelyFast / ModernFix configs; only written when the player has none yet
+    let _ = crate::perfconfig::write_defaults(&game_dir);
     let mut cmd = Command::new(branded_java(&prep.java));
     crate::sys::quiet(&mut cmd);
     cmd.current_dir(&game_dir);

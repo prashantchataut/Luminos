@@ -3,5 +3,6 @@
   "key.luminos.search": "Open quick panel (search)",
   "key.luminos.zoom": "Zoom (hold)",
   "key.luminos.toggle_sprint": "Toggle sprint on/off",
-  "key.categories.luminos": "Luminos Client"
+  "key.categories.luminos": "Luminos Client",
+  "key.luminos.freelook": "Freelook (hold)"
 }

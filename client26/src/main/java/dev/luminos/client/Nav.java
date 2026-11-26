@@ -30,4 +30,6 @@ final class Nav {
 		for (var t : b.items()) out.add(t.create());
 		return out;
 	}
+	static boolean hasEngine() { return false; }
+	static void engineInit(KeyMapping.Category cat) {}
 }

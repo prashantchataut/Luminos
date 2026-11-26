@@ -30,6 +30,7 @@ pub mod news;
 pub mod paths;
 pub mod playtime;
 pub mod presence;
+pub mod perfconfig;
 pub mod preset;
 pub mod quickplay;
 pub mod redact;

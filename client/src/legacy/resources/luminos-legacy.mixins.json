@@ -3,6 +3,25 @@
   "minVersion": "0.8",
   "package": "dev.luminos.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["MinecraftTitleMixin", "PlayerSkinMixin"],
-  "injectors": { "defaultRequire": 1 }
+  "client": [
+    "MinecraftClientMixin",
+    "PlayerSkinMixin",
+    "WorldRendererMixin",
+    "EntityRenderDispatcherMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "ParticleManagerMixin",
+    "BackgroundRendererMixin",
+    "LightmapTextureManagerMixin",
+    "CameraMixin",
+    "GameRendererMixin",
+    "MouseMixin",
+    "FramerateLimitTrackerMixin",
+    "HeldItemRendererMixin",
+    "InGameOverlayRendererMixin",
+    "ClientWorldMixin",
+    "LevelWeatherMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }

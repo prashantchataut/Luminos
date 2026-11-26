@@ -10,6 +10,9 @@ import net.minecraft.network.chat.Component;
 /** Everything whose name differs between Minecraft lines lives here, so shared code stays identical. (1.21.x) */
 final class Nav {
 	private Nav() {}
+	/** True on the line that ships the native Mixin engine (1.21.x). */
+	static boolean hasEngine() { return true; }
+	static void engineInit(KeyMapping.Category cat) { Engine.init(cat); }
 	static Screen screen(Minecraft mc) { return mc.screen; }
 	static void open(Minecraft mc, Screen s) { mc.setScreen(s); }
 	static KeyMapping register(KeyMapping k) { return KeyBindingHelper.registerKeyBinding(k); }
