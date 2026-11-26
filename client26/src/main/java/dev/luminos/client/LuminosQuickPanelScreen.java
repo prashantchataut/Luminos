@@ -13,6 +13,9 @@ public final class LuminosQuickPanelScreen extends Screen {
 	private final Screen parent;
 	private final Panel panel;
 
+	/** The 26.x line only has the classic panel; {@code legacy} exists so shared code (the CI smoke tour) compiles on both lines. */
+	public LuminosQuickPanelScreen(Panel.Tab tab, boolean focusSearch, Screen parent, boolean legacy) { this(tab, focusSearch, parent); }
+
 	public LuminosQuickPanelScreen(Panel.Tab tab, boolean focusSearch, Screen parent) {
 		super(Component.literal("Luminos quick panel"));
 		this.parent = parent;
