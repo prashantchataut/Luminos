@@ -42,7 +42,7 @@ export default memo(function Sidebar({ page, go, name, skin, version, onAccount 
           </span>
           <Icon n="chev" s={13} />
         </button>
-        <button onClick={() => void quitLauncher()} className="w-full h-9 rounded-[9px] text-[12.5px] font-medium t hover:bg-[#161B26]" style={{ color: "var(--mute)" }}>Quit</button>
+        <button onClick={() => void quitLauncher()} className="w-full h-9 rounded-[9px] text-[12.5px] font-medium t hover:bg-[#161B26]" style={{ color: "var(--mute)" }}>Quit Luminos</button>
       </div>
     </nav>
   );

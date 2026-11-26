@@ -112,7 +112,7 @@ function useFreeRam() {
   return free;
 }
 
-/** OneClient-style row: 62px, icon + title/subtitle on the left, exactly one control on the right. */
+/** Settings row: 62px, icon + title/subtitle on the left, exactly one control on the right. */
 function PRow({ icon, title, sub, children }: { icon: string; title: string; sub: ReactNode; children: ReactNode }) {
   return (
     <div className="h-[62px] px-5 rounded-[10px] flex items-center justify-between gap-6" style={{ background: "#141821" }}>
