@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * HUD presets. Minimal is the default and follows Lunar's own advice (a quiet HUD with space around it): FPS, CPS, ping, armor and
+ * HUD presets. Minimal is the default and keeps the HUD quiet, with space around it: FPS, CPS, ping, armor and
  * potions, nothing else. Everything else stays available in the panel but off.
  */
 public final class HudPresets {

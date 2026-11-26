@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The HUD editor view (Badlion's pen-icon editor and Lunar's HUD layout, simplified). The world stays visible: no blur, a light
+ * The HUD editor view (a pen-icon editor with a snapping HUD layout). The world stays visible: no blur, a light
  * scrim and a dot grid. Drag a module to move it (snaps), scroll over it to scale, right-click to switch it on or off. A glass
  * toolbar holds Done, Snap, Preset and Reset. Version screens only forward events here.
  */

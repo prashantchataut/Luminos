@@ -10,12 +10,13 @@ use luminos_core::{
 };
 mod discord;
 mod engine;
+mod game;
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 type R<T> = Result<T, String>;
 
@@ -244,13 +245,20 @@ async fn create_instance(name: String, mc: String, with_preset: bool) -> R<Value
     .await
 }
 
-/// Starts the game on its own thread and streams `launch` events: preparing -> launching -> running -> exited.
+/// Starts the game on its own thread and streams `launch` events (preparing -> launching -> running -> exited) plus
+/// `game-state` events (idle | preparing | running) that the window uses for the Launch / Stop Game button.
 #[tauri::command]
-async fn launch_instance(app: AppHandle, id: String, quick: Option<String>) -> R<()> {
+async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProcessState>, id: String, quick: Option<String>, world_path: Option<String>) -> R<()> {
     let inst = instances::list().into_iter().find(|i| i.id == id).ok_or("That instance no longer exists")?;
+    let gen = state.begin(&inst.id)?;
+    let _ = app.emit("game-state", json!({ "status": "preparing", "pid": null, "instance": inst.id }));
     std::thread::spawn(move || {
         let emit = |v: Value| {
             let _ = app.emit("launch", v);
+        };
+        let fail = |msg: String| {
+            game::finish(&app, gen, None);
+            emit(json!({ "id": inst.id, "phase": "failed", "error": msg }));
         };
         let settings = Settings::load();
         let account = AccountStore::load().active().cloned().unwrap_or_else(|| Account::offline("Player"));
@@ -268,19 +276,44 @@ async fn launch_instance(app: AppHandle, id: String, quick: Option<String>) -> R
         // Queued switches ("applies next launch") are applied now, before the game starts.
         match luminos_core::pending::apply_all(&inst.game_dir()) {
             Ok(log) if !log.is_empty() => emit(json!({ "id": inst.id, "phase": "pending-applied", "log": log })),
-            Err(e) => return emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
+            Err(e) => {
+                stop.store(true, Ordering::Relaxed);
+                return fail(err(e));
+            }
             _ => {}
+        }
+        // The Luminos Client (title screen, Right Ctrl quick panel, HUD) only exists if its jar is in mods/ before Fabric starts.
+        let client = game::ensure_client(&app, &inst);
+        emit(json!({ "id": inst.id, "phase": "client", "client": client }));
+        // A world from the vanilla Minecraft folder is linked (not copied) into this instance so quick play can open it.
+        if let Some(wp) = world_path.as_deref() {
+            if let Err(e) = luminos_core::worlds::link_world(&inst.game_dir(), std::path::Path::new(wp)) {
+                emit(json!({ "id": inst.id, "phase": "notice", "note": format!("Could not open that world directly: {e:#}") }));
+            }
         }
         let prep = launch::prepare(&inst, &settings, &progress);
         stop.store(true, Ordering::Relaxed);
         let prep = match prep {
             Ok(p) => p,
-            Err(e) => return emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
+            Err(e) => return fail(err(e)),
         };
+        if !state_is_current(&app, gen) {
+            return; // Stop Game was pressed while files were downloading
+        }
+        // Never start vanilla by accident: a Fabric instance must boot through Fabric Loader's KnotClient.
+        if inst.loader == Loader::Fabric && !prep.version.main_class.contains("KnotClient") {
+            return fail(format!("Fabric Loader was not set up for this instance (main class {}). Luminos will not start plain Minecraft instead.", prep.version.main_class));
+        }
         emit(json!({ "id": inst.id, "phase": "launching", "mods": serde_json::to_value(&prep.mod_report).unwrap_or(Value::Null) }));
         match launch::spawn_ext(&inst, &settings, &account, &prep, quick.as_deref()) {
             Ok(h) => {
-                emit(json!({ "id": inst.id, "phase": "running" }));
+                if !app.state::<game::GameProcessState>().set_running(h.child.clone(), gen) {
+                    h.kill();
+                    return;
+                }
+                let pid = app.state::<game::GameProcessState>().snapshot().pid;
+                emit(json!({ "id": inst.id, "phase": "running", "pid": pid }));
+                let _ = app.emit("game-state", json!({ "status": "running", "pid": pid, "instance": inst.id }));
                 // Keep Discord's state in step with the game: ask the in-game agent for its world/server every few seconds.
                 let watching = Arc::new(AtomicBool::new(true));
                 {
@@ -301,8 +334,11 @@ async fn launch_instance(app: AppHandle, id: String, quick: Option<String>) -> R
                         discord::clear_world();
                     });
                 }
+                // Polls `try_wait` every 400 ms: returns the moment Minecraft quits, whether the player closed the window or pressed Stop Game.
                 let code = launch::wait_and_record(&h);
                 watching.store(false, Ordering::Relaxed);
+                // Tell the window first. Syncing settings below can take a moment and must not keep the button on "Running".
+                game::finish(&app, gen, Some(code));
                 // Push whatever the player changed in this session (keybinds, HUD layout, servers) to the shared store.
                 let synced = if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
                     luminos_core::sync::Syncer::new(Default::default()).reconcile(&inst.id, &inst.game_dir()).ok()
@@ -311,10 +347,14 @@ async fn launch_instance(app: AppHandle, id: String, quick: Option<String>) -> R
                 };
                 emit(json!({ "id": inst.id, "phase": "exited", "code": code, "log": h.log_tail(60), "sync": serde_json::to_value(&synced).unwrap_or(Value::Null) }));
             }
-            Err(e) => emit(json!({ "id": inst.id, "phase": "failed", "error": err(e) })),
+            Err(e) => fail(err(e)),
         }
     });
     Ok(())
+}
+
+fn state_is_current(app: &AppHandle, gen: u64) -> bool {
+    app.state::<game::GameProcessState>().is_current(gen)
 }
 
 /// Empty path means the default `sync-export` folder inside the Luminos data directory.
@@ -457,6 +497,7 @@ fn app_ready() {
 pub fn run() {
     let _ = STARTED.set(std::time::Instant::now());
     tauri::Builder::default()
+        .manage(game::GameProcessState::default())
         .setup(|_| {
             discord::start();
             Ok(())
@@ -476,6 +517,14 @@ pub fn run() {
             mojang_skin_apply,
             create_instance,
             launch_instance,
+            game::get_game_status,
+            game::stop_game,
+            game::quit_launcher,
+            game::scan_local_worlds_and_servers,
+            game::add_saved_server,
+            game::open_minecraft_folder,
+            game::write_luminos_config,
+            game::read_luminos_config,
             sync_run,
             sync_export,
             sync_import,

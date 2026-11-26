@@ -1,4 +1,4 @@
-/* OneClient Cobalt (default): flat carbon-navy surfaces, one electric cobalt accent. Colours only. */
+/* Luminos Cobalt (Default): flat carbon-navy surfaces, one electric cobalt accent. Colours only. */
 :root, :root[data-theme="default"] {
   color-scheme: dark;
   --bg: #0b0d12; --side: #0f1218; --surface: #141821; --surface-2: #1b202c; --hover: #191e2a;

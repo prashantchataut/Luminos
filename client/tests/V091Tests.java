@@ -9,7 +9,7 @@ public final class V091Tests {
 	public static void main(String[] a) {
 		// json + settings reader
 		ClientFile f = ClientFile.parse("{\"theme\":\"lunar\",\"classicClient\":true,\"keystrokes\":\"B\",\"fogNether\":false,\"crosshair\":{\"shape\":\"cross\",\"thickness\":3,\"gap\":4,\"length\":99,\"color\":\"#ff8800\",\"opacity\":0.5},\"hudFonts\":{\"fps\":\"Monocraft\"}}");
-		check("reader: theme", f.theme.equals("lunar")); check("reader: classic client", f.classicClient); check("reader: keystrokes B", f.keystrokes.equals("B"));
+		check("reader: theme", f.theme.equals("cobalt")); check("reader: classic client", f.classicClient); check("reader: keystrokes B", f.keystrokes.equals("B"));
 		check("reader: crosshair length is clamped", f.crosshair.length == 24); check("reader: colour parsed", f.crosshair.color == 0xFF8800); check("reader: per-HUD font", "Monocraft".equals(f.hudFonts.get("fps")));
 		check("reader: nether fog off means 0", f.fogFor("minecraft:the_nether") == 1.0 && ClientFile.parse("{\"fogNether\":true}").fogFor("ResourceKey[minecraft:dimension / minecraft:the_nether]") == 0.0);
 		check("reader: garbage gives defaults", ClientFile.parse("not json").theme.equals("clean") && ClientFile.parse("[1,2]").keystrokes.equals("A"));

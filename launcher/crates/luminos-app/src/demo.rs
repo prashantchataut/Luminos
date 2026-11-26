@@ -317,7 +317,7 @@ pub fn app(ctx: &egui::Context) -> App {
     a.servers.status.insert(
         "mc.hypixel.net".into(),
         st(
-            "Hypixel Network [1.8-1.21]",
+            "Example Network [1.8-1.21]",
             24_660,
             200_000,
             "Requires MC 1.8 / 1.21",

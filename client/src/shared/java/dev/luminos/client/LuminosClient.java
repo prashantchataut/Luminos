@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /** Entry point, shared by every Minecraft line (version-specific names are behind {@link Nav}). */
 public final class LuminosClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("LuminosClient");
-	public static final String VERSION = "0.5.0";
+	public static final String VERSION = "2.1.0";
 	public static final List<KeyMapping> KEYS = new ArrayList<>();
 	public static KeyMapping panelKey, searchKey, zoomKey, sprintKey;
 	private static boolean sprintLatched, zooming, customShown;
@@ -31,6 +31,18 @@ public final class LuminosClient implements ClientModInitializer {
 	/** CI: counts client ticks after the title screen is first seen; -1 when not in smoke mode. */
 	private static int smokeTick = -1;
 	private static int ticksSinceSave;
+
+	/** True when the Luminos title screen should replace the vanilla one (used by TitleScreenMixin and the tick fallback). */
+	public static boolean wantCustomTitle() {
+		boolean smokeHolds = smokeTick >= 0 && smokeIdx == 0 && !stepOpened;
+		return Config.get().customTitle && System.getenv("LUMINOS_VANILLA_TITLE") == null && !smokeHolds;
+	}
+
+	/** Swaps the vanilla title screen for the Luminos one if it is the screen showing right now (Nav hides the per-version API names). */
+	public static void replaceTitleScreen() {
+		Minecraft mc = Minecraft.getInstance();
+		if (Nav.screen(mc) instanceof TitleScreen && wantCustomTitle()) Nav.open(mc, new LuminosTitleScreen());
+	}
 
 	private static KeyMapping bind(String id, int key, KeyMapping.Category cat) {
 		KeyMapping k = Nav.register(new KeyMapping(id, key, cat));
@@ -44,7 +56,7 @@ public final class LuminosClient implements ClientModInitializer {
 		Config.load();
 		Agent.start();   // no-op unless the launcher started the game with -Dluminos.agent
 		KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("luminos", "main"));
-		panelKey = bind("key.luminos.panel", InputConstants.KEY_RCONTROL, cat);   // Wurst convention: Right Ctrl = menu
+		panelKey = bind("key.luminos.panel", InputConstants.KEY_RCONTROL, cat);   // Right Ctrl = open the quick panel
 		searchKey = bind("key.luminos.search", InputConstants.KEY_RSHIFT, cat);   // Right Shift = jump to search
 		zoomKey = bind("key.luminos.zoom", InputConstants.KEY_C, cat);
 		sprintKey = bind("key.luminos.toggle_sprint", InputConstants.KEY_V, cat);
@@ -60,6 +72,7 @@ public final class LuminosClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(LuminosClient::tick);
 		ClientLifecycleEvents.CLIENT_STOPPING.register(c -> { restoreFov(c); restoreGamma(c); Config.save(); });
 		ShulkerTooltip.register();
+		Hotkeys.register();   // Right Ctrl / Right Shift on the title screen and pause menu
 
 		// CI hook: the smoke job looks for this exact line, then runs a short scripted tour and exits.
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
@@ -74,14 +87,14 @@ public final class LuminosClient implements ClientModInitializer {
 
 	private static void openPanel(Minecraft mc, boolean search, String via) {
 		LOGGER.info("[luminos] quick panel opened via {}", via);
-		Nav.open(mc, new PanelScreen(Panel.Tab.MODULES, search, null));
+		Nav.open(mc, new LuminosQuickPanelScreen(Panel.Tab.MODULES, search, null));
 	}
 
 	// ------------------------------------------------------------------ CI smoke tour (no effect unless LUMINOS_SMOKE drives it)
 	private record Step(String name, Consumer<Minecraft> open) {}
 
-	private static PanelScreen panelScreen(Minecraft mc, Panel.Tab tab) {
-		PanelScreen ps = new PanelScreen(tab, true, null);
+	private static LuminosQuickPanelScreen panelScreen(Minecraft mc, Panel.Tab tab) {
+		LuminosQuickPanelScreen ps = new LuminosQuickPanelScreen(tab, true, null);
 		Nav.open(mc, ps);
 		return ps;
 	}

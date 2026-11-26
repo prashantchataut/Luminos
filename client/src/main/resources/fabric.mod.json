@@ -13,6 +13,7 @@
   "icon": "assets/luminos_client/icon.png",
   "environment": "client",
   "accessWidener": "luminos.accesswidener",
+  "mixins": ["luminos.mixins.json"],
   "entrypoints": {
     "client": ["dev.luminos.client.LuminosClient"]
   },

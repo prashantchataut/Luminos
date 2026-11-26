@@ -52,4 +52,5 @@ pub mod offlineskin;
 pub mod resolve;
 pub mod storage;
 pub mod update;
+pub mod worlds;
 pub mod yggdrasil;

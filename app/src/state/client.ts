@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { MODULES, modById, type Setting } from "../data/modules";
 import { BINDS } from "../data/keybinds";
-import { safeWrite } from "../lib/tauri-bridge";
+import { safeInvoke, safeWrite } from "../lib/tauri-bridge";
 import { set as setEngine } from "../store";
 
 export type Preset = "Competitive PvP" | "Survival Plus";
@@ -21,7 +21,7 @@ const fresh = (): State => ({
   on: Object.fromEntries(MODULES.map((m) => [m.id, m.on])),
   cfg: {}, favs: ["waypoints", "minimap", "zoom"],
   keys: Object.fromEntries(BINDS.map((b) => [b.id, { key: b.key, mode: b.mode }])),
-  prefs: { resolution: "1280 × 800 (Default)", launcherVis: "Keep Open", engine: "Balanced", preset: "Competitive PvP", gameVersion: "1.21.4", tab: "general", hudPos: {}, hudLock: false, hudGui: true },
+  prefs: { resolution: "1280 × 800 (Default)", launcherVis: "Keep Open", engine: "Balanced", preset: "Competitive PvP", gameVersion: "1.21.11", tab: "general", hudPos: {}, hudLock: false, hudGui: true },
 });
 let state: State = fresh();
 try {
@@ -35,7 +35,26 @@ function commit(next: State) {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* quota or private mode */ }
   // The game reads this file. Failures (plain browser, missing command) fall back silently in safeWrite.
   safeWrite("write_client_settings", { json: JSON.stringify({ modules: state.on, moduleSettings: state.cfg, keybinds: state.keys, profile: state.prefs.preset, engine: state.prefs.engine }) });
+  pushGameConfig();
   subs.forEach((f) => f());
+}
+/** The file the in-game client reads: <game dir>/config/luminos/config.json (module toggles, hotkeys, HUD layout). */
+function gameConfigJson() {
+  const hot: Record<string, string> = { open_mod_menu: state.keys.menu?.key ?? "RCTRL", open_search: "RSHIFT" };
+  for (const [id, k] of Object.entries(state.keys)) hot[id] = k.key;
+  return JSON.stringify({ version: 2, writtenBy: "launcher", modules: state.on, moduleSettings: state.cfg, hotkeys: hot, hudPositions: state.prefs.hudPos, preset: state.prefs.preset });
+}
+function pushGameConfig() { safeWrite("write_luminos_config", { json: gameConfigJson() }); }
+/** Write it right now (Launch Game does this first, so the game starts with exactly what the launcher shows). */
+export async function writeGameConfigNow() { await safeInvoke("write_luminos_config", { json: gameConfigJson() }, null); }
+/** After a session: take the module toggles the player changed in game back into the launcher. */
+export async function pullGameConfig() {
+  const j = await safeInvoke<{ modules?: Record<string, boolean> } | null>("read_luminos_config", {}, null);
+  if (!j?.modules) return;
+  const on = { ...state.on };
+  let changed = false;
+  for (const m of MODULES) if (typeof j.modules[m.id] === "boolean" && on[m.id] !== j.modules[m.id]) { on[m.id] = j.modules[m.id]; changed = true; }
+  if (changed) commit({ ...state, on });
 }
 export const useClient = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => state);
 export const getClient = () => state;

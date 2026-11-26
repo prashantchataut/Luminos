@@ -37,7 +37,7 @@ function Storage() {
   const clear = async () => { await safeInvoke("clear_cache", {}, null); setNote("Cache cleared."); };
   return (
     <>
-      <Row title="Shard Content-Addressed Storage" desc="Identical game files across instances are stored once and linked.">
+      <Row title="Luminos Content-Addressed Storage" desc="Identical game files across instances are stored once and linked.">
         <span className="h-[30px] px-3 rounded-full text-[12px] font-semibold grid place-items-center num" style={{ background: "var(--surface-2)", color: "var(--ok)" }}>{saved == null ? "…" : `${gb(saved)} Saved`}</span>
         <button className="btn-quiet !h-[34px]" onClick={run} disabled={busy}>{busy ? "Working…" : "Verify & Optimize"}</button>
       </Row>

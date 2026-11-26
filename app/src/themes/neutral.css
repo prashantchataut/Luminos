@@ -1,4 +1,4 @@
-/* Luminos Neutral Dark: obsidian greys, crisp white text, cobalt accent. */
+/* Luminos Obsidian: obsidian greys, crisp white text, cobalt accent. */
 :root[data-theme="neutral"] {
   color-scheme: dark;
   --bg: #0d0d0f; --side: #111114; --surface: #17171b; --surface-2: #1f1f24; --hover: #26262c;

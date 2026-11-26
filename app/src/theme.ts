@@ -1,9 +1,9 @@
 /** Themes are token files (themes/*.css): colours only. Import/export is one JSON file of those colours. */
 export const THEMES = [
-  { id: "default", name: "OneClient Cobalt", note: "Carbon navy, cobalt accent" },
-  { id: "neutral", name: "Luminos Neutral Dark", note: "Obsidian grey" },
-  { id: "minecraft", name: "Minecraft Dark", note: "Slate, grass green, hard edges" },
-  { id: "light", name: "Clean Light", note: "Cool white daytime" },
+  { id: "default", name: "Luminos Cobalt (Default)", note: "Carbon navy, cobalt accent" },
+  { id: "neutral", name: "Luminos Obsidian", note: "Obsidian grey" },
+  { id: "minecraft", name: "Luminos Slate", note: "Slate, grass green, hard edges" },
+  { id: "light", name: "Luminos Light", note: "Cool white daytime" },
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"] | "custom";
 export const TOKEN_KEYS = ["bg", "side", "surface", "surface-2", "hover", "line", "line-strong", "fg", "mute", "accent", "accent-fg", "accent-soft", "ok", "warn", "bad"] as const;

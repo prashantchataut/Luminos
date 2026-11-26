@@ -16,7 +16,7 @@ const rows: { name: string; text: string; status: Status }[] = [
   { name: "Live apply (Luminos modules, resource packs)", text: "Toggling a Luminos module and a resource pack in the running 1.21.11 game, through the game’s own reload. Third-party mods are queued for the next launch.", status: "Verified" },
   { name: "Crash doctor", text: "Reads logs for out of memory, wrong Java, missing dependency, mixin owner and GPU driver. Unit tests.", status: "Verified" },
   { name: "World backups", text: "Zip, list, prune and restore, with path-traversal checks. The round trip is a test.", status: "Verified" },
-  { name: "Themes", text: "Default, Lunar, Light: colour files only, with a contrast test and a layout regression job.", status: "Verified" },
+  { name: "Themes", text: "Cobalt, Obsidian, Slate, Light: colour files only, with a contrast test and a layout regression job.", status: "Verified" },
   { name: "Tauri app compiles", text: "The desktop app builds on Windows, Linux and macOS runners. The installer was installed and launched on a clean Windows runner.", status: "Verified" },
   { name: "Dependency tracking, dedup, redaction, Quick Play links", text: "Engine commands are wired to the interface and covered by tests. Quick Play has no button yet. Reflinks have not run on a filesystem that supports them.", status: "Built" },
   { name: "Mod library and store", text: "Modrinth search, required dependencies, toggle, unlink, update all, .mrpack export. Real Modrinth results were seen in a browser capture.", status: "Built" },

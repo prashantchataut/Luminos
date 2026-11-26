@@ -9,11 +9,11 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /** Thin shell around {@link Panel}. Opened by Right Ctrl (or Right Shift for search) only when no other screen is open. */
-public final class PanelScreen extends Screen {
+public final class LuminosQuickPanelScreen extends Screen {
 	private final Screen parent;
 	private final Panel panel;
 
-	public PanelScreen(Panel.Tab tab, boolean focusSearch, Screen parent) {
+	public LuminosQuickPanelScreen(Panel.Tab tab, boolean focusSearch, Screen parent) {
 		super(Component.literal("Luminos quick panel"));
 		this.parent = parent;
 		this.panel = new Panel(tab, focusSearch, () -> Nav.open(Minecraft.getInstance(), new HudEditorScreen(this)));

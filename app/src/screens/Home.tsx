@@ -1,26 +1,53 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Page from "../components/Page";
 import { Icon } from "../components/Icon";
 import { Modal } from "../components/ui";
 import { MODULES } from "../data/modules";
-import { applyPreset, PRESETS, setPref, useClient, type Preset } from "../state/client";
-import { onLaunch, SEED } from "../api";
-import { safeInvoke } from "../lib/tauri-bridge";
+import { applyPreset, PRESETS, setPref, useClient, writeGameConfigNow, type Preset } from "../state/client";
+import { markIdle, markPreparing, notify, stopGame, useGame } from "../state/game";
+import { isTauri, safeInvoke } from "../lib/tauri-bridge";
 import type { Boot } from "../App";
 
-const QUICK = [
-  { id: "hideout", title: "Mira's Hideout", sub: "Survival • Played today", tag: "Singleplayer", img: "/art/hud-backdrop.jpg" },
-  { id: "hearth", title: "Hearthstone SMP", sub: "play.hearthstone.example", tag: "24ms • Online", img: "/art/hero-day.jpg", pos: "88% 30%" },
-  { id: "lab", title: "Redstone Lab", sub: "Creative • 3 days ago", tag: "Singleplayer", img: "/art/hero-day.jpg", pos: "8% 85%" },
-];
+/** What is really on this PC: worlds from saves/ (level.dat + icon.png) and servers from servers.dat. */
+type World = { name: string; folder: string; path: string; last_played: number; game_mode: string; hardcore: boolean; version?: string | null; icon?: string | null; source: string; source_dir: string; instance_id?: string | null };
+type Server = { name: string; ip: string; icon?: string | null; source: string };
+type Local = { worlds: World[]; servers: Server[]; minecraft_dir?: string | null; minecraft_dir_exists?: boolean };
+type Target = { label: string; quick?: string; worldPath?: string; instanceId?: string | null };
 
-const QCard = memo(function QCard({ q, onPlay }: { q: (typeof QUICK)[number]; onPlay: (t: string) => void }) {
+const EMPTY: Local = { worlds: [], servers: [] };
+/** Screenshot-only sample data. It is reachable only with ?demo=1 in a plain browser, never inside the desktop app. */
+const DEMO: Local = {
+  worlds: [{ name: "Sample world (demo)", folder: "sample", path: "", last_played: 0, game_mode: "Survival", hardcore: false, source: "demo", source_dir: "" }],
+  servers: [{ name: "Sample server (demo)", ip: "play.example.net", source: "demo" }],
+};
+const demoMode = () => !isTauri() && typeof location !== "undefined" && location.search.includes("demo=1");
+
+function ago(ms: number) {
+  if (!ms) return "Never played";
+  const d = Date.now() - ms, m = Math.round(d / 60000);
+  if (m < 2) return "Just now";
+  if (m < 60) return `${m} min ago`;
+  if (m < 60 * 24) return `${Math.round(m / 60)} h ago`;
+  const days = Math.round(m / 1440);
+  return days < 30 ? `${days} day${days === 1 ? "" : "s"} ago` : new Date(ms).toLocaleDateString();
+}
+// A procedural voxel-biome tile for worlds that have no icon.png yet. Deterministic per name.
+function biome(seed: string) {
+  let h = 7; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const hue = h % 360;
+  return `linear-gradient(180deg, hsl(${hue} 55% 38%) 0 46%, hsl(${(hue + 30) % 360} 40% 24%) 46% 100%), repeating-linear-gradient(90deg, rgba(0,0,0,.14) 0 12px, transparent 12px 24px)`;
+}
+
+const QCard = memo(function QCard({ title, sub, tag, icon, seed, onPlay }: { title: string; sub: string; tag: string; icon?: string | null; seed: string; onPlay: () => void }) {
   return (
-    <button onClick={() => onPlay(q.title)} aria-label={`Quickplay ${q.title}`} className="group card h-[184px] rounded-[14px] overflow-hidden flex flex-col justify-between text-left">
-      <div className="relative h-[124px] w-full overflow-hidden"><img src={q.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" style={{ objectPosition: (q as { pos?: string }).pos }} /><span className="absolute top-3 right-3 h-6 px-2.5 rounded-full text-[11px] font-medium grid place-items-center" style={{ background: "rgba(11,13,18,.72)", color: "#E2E8F0" }}>{q.tag}</span></div>
+    <button onClick={onPlay} aria-label={`Play ${title}`} className="group card h-[184px] rounded-[14px] overflow-hidden flex flex-col justify-between text-left">
+      <div className="relative h-[124px] w-full overflow-hidden" style={icon ? undefined : { background: biome(seed), backgroundBlendMode: "multiply" }}>
+        {icon && <img src={icon} alt="" decoding="async" className="w-full h-full object-cover" style={{ imageRendering: "pixelated" }} />}
+        <span className="absolute top-3 right-3 h-6 px-2.5 rounded-full text-[11px] font-medium grid place-items-center" style={{ background: "rgba(11,13,18,.72)", color: "#E2E8F0" }}>{tag}</span>
+      </div>
       <div className="h-[60px] px-5 flex items-center justify-between gap-3">
-        <div className="min-w-0"><div className="text-[14px] font-semibold truncate">{q.title}</div><div className="text-[12px] truncate mute">{q.sub}</div></div>
-        <span className="grid place-items-center w-[34px] h-[34px] rounded-[8px] shrink-0 t group-hover:!bg-[var(--accent)] group-hover:!text-[var(--accent-fg)]" style={{ background: "var(--surface-2)" }}><Icon n="play" s={13} fill /></span>
+        <div className="min-w-0"><div className="text-[14px] font-semibold truncate">{title}</div><div className="text-[12px] truncate mute">{sub}</div></div>
+        <span className="grid place-items-center h-[34px] px-3 gap-1.5 rounded-[8px] shrink-0 t text-[12px] font-semibold flex-row group-hover:!bg-[var(--accent)] group-hover:!text-[var(--accent-fg)]" style={{ background: "var(--surface-2)" }}><Icon n="play" s={11} fill />Play</span>
       </div>
     </button>
   );
@@ -37,49 +64,146 @@ function Menu({ label, items, value, onPick }: { label: string; items: string[];
   );
 }
 
+/** The red button shown whenever Minecraft is starting or running. Kills the game and restores Launch Game at once. */
+export function StopGameButton({ compact = false }: { compact?: boolean }) {
+  const g = useGame();
+  if (g.status === "idle") return null;
+  return (
+    <button onClick={() => void stopGame()} aria-label={g.status === "running" ? "Stop Game: quit Minecraft now" : "Cancel launch"}
+      className={`${compact ? "h-9 px-4 text-[12.5px] w-full justify-center" : "h-[46px] px-6 text-[14px]"} rounded-[10px] bg-[#EF4444] hover:bg-[#DC2626] text-white font-semibold flex items-center gap-2 t press`}>
+      <span aria-hidden className="block w-[11px] h-[11px] rounded-[2px] bg-white" />{g.status === "running" ? "Stop Game" : "Cancel"}
+    </button>
+  );
+}
+
 export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void }) {
-  const c = useClient();
-  const [phase, setPhase] = useState<"idle" | "launching" | "playing">("idle"), [host, setHost] = useState(false), [toast, setToast] = useState("");
-  const inst = boot.instances[0], inst_id = inst?.id ?? "luminos";
-  const versions = [...new Set([c.prefs.gameVersion, ...SEED.instances.map((i) => i.mc), ...boot.instances.map((i) => i.mc)])].filter((v) => /^\d/.test(v)).slice(0, 6);
-  useEffect(() => { let un = () => {}; void onLaunch((e) => { if (e?.state === "running") setPhase("playing"); else if (e?.state === "exited" || e?.state === "idle") setPhase("idle"); }).then((f) => { un = f; }).catch(() => undefined); return un; }, []);
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3200); return () => clearTimeout(t); }, [toast]);
-  const launch = async (target?: string) => {
-    if (phase !== "idle") return;
-    setPhase("launching");
-    const r = await safeInvoke<string | null | undefined>("launch_instance", { id: inst_id }, "__failed__", 20000);
-    if (r === "__failed__") { setPhase("idle"); setToast(target ? `Quickplay ${target} runs in the desktop app.` : "Launch runs in the desktop app."); return; }
-    setPhase("playing"); setToast(target ? `Starting ${target}…` : "Starting Minecraft…");
+  const c = useClient(), g = useGame();
+  const [host, setHost] = useState(false), [addOpen, setAddOpen] = useState(false), [toast, setToast] = useState("");
+  const [local, setLocal] = useState<Local>(EMPTY), [scanned, setScanned] = useState(false), [scanning, setScanning] = useState(false);
+  const [sName, setSName] = useState(""), [sIp, setSIp] = useState(""), [sErr, setSErr] = useState("");
+  const versions = [...new Set([c.prefs.gameVersion, ...boot.instances.map((i) => i.mc)])].filter((v) => /^\d/.test(v)).slice(0, 6);
+
+  const refresh = useCallback(async () => {
+    setScanning(true);
+    if (demoMode()) { setLocal(DEMO); setScanned(true); setScanning(false); return; }
+    const r = await safeInvoke<Local | null>("scan_local_worlds_and_servers", {}, null, 8000);
+    setLocal(r ?? EMPTY); setScanned(true); setScanning(false);
+  }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { if (g.status === "idle") void refresh(); }, [g.status === "idle"]); // a session may have created worlds
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 4200); return () => clearTimeout(t); }, [toast]);
+  useEffect(() => { if (g.message) setToast(g.message); }, [g.msgSeq]);
+
+  const launch = async (t?: Target) => {
+    if (g.status !== "idle") return;
+    if (!isTauri()) { setToast("Launching runs in the desktop app."); return; }
+    markPreparing();
+    await writeGameConfigNow(); // the game starts with exactly the modules and keys shown in the launcher
+    const fabric = boot.instances.filter((i) => i.loader === "Fabric");
+    let id = t?.instanceId ?? (fabric.find((i) => i.mc === c.prefs.gameVersion) ?? fabric[0] ?? boot.instances[0])?.id;
+    if (!id) {
+      setToast(`Setting up Luminos for Minecraft ${c.prefs.gameVersion}…`);
+      const made = await safeInvoke<{ instance?: { id: string } } | null>("create_instance", { name: "Luminos", mc: c.prefs.gameVersion, withPreset: true }, null, 180000);
+      id = made?.instance?.id;
+      if (!id) { markIdle(); setToast("Could not create a Luminos instance. Check your connection and try again."); return; }
+    }
+    const r = await safeInvoke<unknown>("launch_instance", { id, quick: t?.quick ?? null, worldPath: t?.worldPath ?? null }, "__failed__", 20000);
+    if (r === "__failed__") { markIdle(); notify("Minecraft did not start. If it is already running, use Stop Game first."); return; }
+    setToast(t ? `Starting ${t.label}…` : "Starting Minecraft…");
   };
+  const playWorld = (w: World) => void launch({ label: w.name, quick: `world:${w.folder}`, instanceId: w.instance_id ?? undefined, worldPath: w.instance_id ? undefined : w.path });
+  const playServer = (s: Server) => void launch({ label: s.name, quick: s.ip });
+  const addServer = async () => {
+    setSErr("");
+    if (!sIp.trim()) { setSErr("Enter a server address, for example play.example.net."); return; }
+    if (!isTauri()) { setSErr("Saving a server writes servers.dat, which the desktop app does it."); return; }
+    const r = await safeInvoke<boolean | "__failed__">("add_saved_server", { name: sName, ip: sIp }, "__failed__");
+    if (r === "__failed__") { setSErr("Could not save it. Launch Minecraft once so its folder exists, then try again."); return; }
+    setAddOpen(false); setSName(""); setSIp(""); setToast(r ? "Server saved to servers.dat." : "That server is already in your list."); void refresh();
+  };
+  const browse = async () => { const r = await safeInvoke<string | "__failed__">("open_minecraft_folder", {}, "__failed__"); if (r === "__failed__") setToast(isTauri() ? "The .minecraft folder does not exist yet. Launch Minecraft once and it will be created." : "Opening folders works in the desktop app."); };
+
+  const running = g.status === "running", preparing = g.status === "preparing";
+  const cards = local.worlds.length + local.servers.length;
   return (
     <Page>
       <div className="space-y-8">
         <section className="relative h-[310px] rounded-[18px] overflow-hidden flex items-end p-10" style={{ background: "var(--surface)" }}>
           <img src="/art/hero-day.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" decoding="async" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0B0D12 0%, rgba(11,13,18,0.78) 50%, rgba(11,13,18,0.15) 100%)" }} />
-          <div className="relative max-w-[520px] space-y-3">
-            <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#6882FF" }}>Fabric {c.prefs.gameVersion} • Built-in performance engine</span>
+          <div className="relative max-w-[560px] space-y-3">
+            <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "#6882FF" }}>Fabric {c.prefs.gameVersion} • Luminos Client Engine</span>
             <h1 className="m-0 text-[34px] font-bold leading-tight text-white">Luminos Client</h1>
-            <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and Shard asset verification already inside.</p>
+            <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>
             <div className="pt-3 flex items-center gap-3 flex-wrap">
-              <button onClick={() => launch()} disabled={phase === "launching"} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: phase === "playing" ? "#16A34A" : "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
-                <Icon n="play" s={14} fill />{phase === "launching" ? "Launching…" : phase === "playing" ? "Playing" : "Launch Game"}
-              </button>
+              {g.status === "idle" || preparing ? (
+                <button onClick={() => void launch()} disabled={preparing} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)", opacity: preparing ? 0.8 : 1 }}>
+                  <Icon n="play" s={14} fill />{preparing ? (g.stage ? `${g.stage.slice(0, 28)}${g.fraction > 0 ? ` ${Math.round(g.fraction * 100)}%` : ""}` : "Launching…") : "Launch Game"}
+                </button>
+              ) : (
+                <span role="status" className="h-[46px] px-5 rounded-[10px] text-[14px] font-semibold flex items-center gap-2.5 text-white" style={{ background: "#16A34A" }}>
+                  <span className="w-2 h-2 rounded-full bg-white" />Running{g.pid ? ` • PID ${g.pid}` : ""}
+                </span>
+              )}
+              {(running || preparing) && <StopGameButton />}
               <Menu label="Version and preset" value={`${c.prefs.gameVersion} • ${c.prefs.preset}`} items={[...versions, ...(Object.keys(PRESETS) as Preset[])]} onPick={(v) => (v in PRESETS ? applyPreset(v as Preset) : setPref("gameVersion", v))} />
-              <button onClick={() => setHost(true)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium t hover:!text-white" style={{ background: "rgba(22,27,38,.9)", color: "#94A3B8" }}>Host World</button>
+              {g.status === "idle" && <button onClick={() => setHost(true)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium t hover:!text-white" style={{ background: "rgba(22,27,38,.9)", color: "#94A3B8" }}>Host World</button>}
             </div>
           </div>
         </section>
+
         <section className="space-y-4">
-          <div className="flex items-center justify-between"><h2 className="m-0 text-[16px] font-semibold">Quickplay</h2><button className="text-[13px] t hover:underline" style={{ color: "var(--accent-text)" }} onClick={() => go("profiles")}>Manage Worlds & Servers →</button></div>
-          <div className="grid grid-cols-3 gap-6">{QUICK.map((q) => <QCard key={q.id} q={q} onPlay={launch} />)}</div>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="m-0 text-[16px] font-semibold">Quickplay</h2>
+            <div className="flex items-center gap-4">
+              <button onClick={() => void refresh()} aria-label="Refresh worlds and servers" className="h-8 px-3 rounded-[8px] text-[12.5px] flex items-center gap-1.5 t hover:bg-[var(--surface)]" style={{ color: "var(--mute)" }}>
+                <span aria-hidden className={scanning ? "inline-block animate-spin" : "inline-block"}>↻</span>Refresh
+              </button>
+              <button onClick={() => setAddOpen(true)} className="h-8 px-3 rounded-[8px] text-[12.5px] font-medium t hover:bg-[var(--surface)]" style={{ color: "var(--accent-text)" }}>+ Add Server</button>
+              <button className="text-[13px] t hover:underline" style={{ color: "var(--accent-text)" }} onClick={() => go("profiles")}>Manage Worlds &amp; Servers →</button>
+            </div>
+          </div>
+          {scanned && cards === 0 ? (
+            <div className="card rounded-[14px] p-8 flex items-center justify-between gap-8" data-testid="quickplay-empty">
+              <div className="max-w-[560px] space-y-2">
+                <h3 className="m-0 text-[16px] font-semibold">No Local Worlds or Saved Servers Yet</h3>
+                <p className="m-0 text-[13px] leading-relaxed mute">Worlds created in Singleplayer (.minecraft/saves) and servers added in Multiplayer (.minecraft/servers.dat) will appear here automatically for one-click Quickplay.</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+                <button onClick={() => void launch()} disabled={g.status !== "idle"} className="h-[42px] px-5 rounded-[10px] text-white text-[13px] font-semibold flex items-center gap-2 t press" style={{ background: "#2B4BFF" }}><Icon n="play" s={12} fill />Launch Minecraft</button>
+                <button onClick={() => setAddOpen(true)} className="h-[42px] px-4 rounded-[10px] text-[13px] font-medium t press card">+ Add Server</button>
+                <button onClick={() => void browse()} className="h-[42px] px-4 rounded-[10px] text-[13px] font-medium t press card">Browse .minecraft Folder</button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-6">
+              {local.worlds.slice(0, 6).map((w) => <QCard key={w.path || w.folder} title={w.name} sub={`${w.game_mode}${w.hardcore ? " • Hardcore" : ""} • ${ago(w.last_played)}`} tag="Singleplayer" icon={w.icon} seed={w.name} onPlay={() => playWorld(w)} />)}
+              {local.servers.slice(0, 6).map((s) => <QCard key={s.ip} title={s.name} sub={s.ip} tag="Multiplayer" icon={s.icon} seed={s.ip} onPlay={() => playServer(s)} />)}
+            </div>
+          )}
         </section>
       </div>
-      {toast && <div role="status" className="pop fixed bottom-6 left-1/2 -translate-x-1/2 h-10 px-5 rounded-full text-[13px] flex items-center z-50" style={{ background: "var(--side)", boxShadow: "0 8px 30px rgba(0,0,0,.5)" }}>{toast}</div>}
+      {toast && <div role="status" className="pop fixed bottom-6 left-1/2 -translate-x-1/2 min-h-10 py-2 px-5 rounded-full text-[13px] flex items-center z-50 max-w-[80vw]" style={{ background: "var(--side)", boxShadow: "0 8px 30px rgba(0,0,0,.5)" }}>{toast}</div>}
       {host && (
         <Modal title="Host World" onClose={() => setHost(false)} w={440}>
           <p className="m-0 mb-4 text-[13px] leading-relaxed mute">Open one of your worlds to friends on your network. Online invite codes need the Luminos relay, which is not live yet.</p>
-          <div className="space-y-2">{SEED.worlds.map((w) => <button key={w.name} className="w-full h-[52px] px-4 rounded-[10px] flex items-center justify-between text-left card" onClick={() => { setHost(false); void launch(w.name); }}><span><span className="block text-[13.5px] font-medium">{w.name}</span><span className="block text-[11.5px] mute">{w.mode} • {w.played}</span></span><Icon n="play" s={13} fill /></button>)}</div>
+          {local.worlds.length === 0 ? <p className="m-0 text-[13px] mute">You have no worlds yet. Create one in Singleplayer first.</p> : (
+            <div className="space-y-2">{local.worlds.slice(0, 8).map((w) => <button key={w.path || w.folder} className="w-full h-[52px] px-4 rounded-[10px] flex items-center justify-between text-left card" onClick={() => { setHost(false); playWorld(w); }}><span><span className="block text-[13.5px] font-medium">{w.name}</span><span className="block text-[11.5px] mute">{w.game_mode} • {ago(w.last_played)}</span></span><Icon n="play" s={13} fill /></button>)}</div>
+          )}
+        </Modal>
+      )}
+      {addOpen && (
+        <Modal title="Add Server" onClose={() => setAddOpen(false)} w={440}>
+          <p className="m-0 mb-4 text-[13px] leading-relaxed mute">Saved to your real servers.dat, so it also shows in Minecraft's Multiplayer list.</p>
+          <div className="space-y-3">
+            <input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="Name (optional)" aria-label="Server name" className="w-full h-[42px] px-4 rounded-[10px] text-[13px] outline-none" style={{ background: "var(--surface-2)", color: "var(--fg)" }} />
+            <input value={sIp} onChange={(e) => setSIp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void addServer()} placeholder="Address, e.g. play.example.net" aria-label="Server address" autoFocus className="w-full h-[42px] px-4 rounded-[10px] text-[13px] outline-none" style={{ background: "var(--surface-2)", color: "var(--fg)" }} />
+            {sErr && <div role="alert" className="text-[12.5px]" style={{ color: "var(--bad)" }}>{sErr}</div>}
+            <div className="flex justify-end gap-3 pt-1">
+              <button onClick={() => setAddOpen(false)} className="h-[40px] px-4 rounded-[10px] text-[13px] card t">Cancel</button>
+              <button onClick={() => void addServer()} className="h-[40px] px-5 rounded-[10px] text-[13px] font-semibold text-white t press" style={{ background: "#2B4BFF" }}>Save Server</button>
+            </div>
+          </div>
         </Modal>
       )}
     </Page>

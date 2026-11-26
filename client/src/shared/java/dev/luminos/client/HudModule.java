@@ -9,7 +9,7 @@ import java.util.function.Supplier;
  * A movable on-screen widget. Modules draw at (0,0); the host translates and scales them,
  * so a module only has to describe its own size and contents.
  *
- * Colour hierarchy (Lunar's HUD guidance: primary mods brighter, secondary darker): {@link #primary()} modules use the bright
+ * Colour hierarchy (primary mods brighter, secondary darker): {@link #primary()} modules use the bright
  * ink, the rest the softer one. Plates are neutral translucent glass, never blue.
  */
 public abstract class HudModule {

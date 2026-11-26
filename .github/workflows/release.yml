@@ -22,6 +22,8 @@ permissions:
 
 jobs:
   windows:
+    # needs the client jars: the installer bundles luminos-client-<version>-mc<minecraft>.jar and the launcher copies it into <game dir>/mods
+    needs: [client-jars]
     runs-on: windows-latest
     env:
       HAVE_AZURE_SIGNING: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
@@ -38,6 +40,16 @@ jobs:
           grep -m1 '^version' app/src-tauri/Cargo.toml
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: app/package-lock.json }
+      - name: Source gate (no reference strings, logo/icons, real worlds, Stop Game, in-game client wiring)
+        run: node scripts/verify-v2.1-fixes.mjs
+      - uses: actions/download-artifact@v4
+        with: { pattern: "jar-*", path: client-jars }
+      - name: Bundle the Luminos Client jars into the installer resources
+        shell: bash
+        run: |
+          mkdir -p app/src-tauri/resources/mods
+          cp client-jars/jar-*/*.jar app/src-tauri/resources/mods/
+          ls -l app/src-tauri/resources/mods
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "app/src-tauri" }

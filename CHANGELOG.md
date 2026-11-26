@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0
+
+### English
+Fixes the problems found on a real desktop with 2.0.0. The Rust and Fabric code compiles and its unit tests pass; none of it has been run on a real Windows desktop by the author yet (see docs/REAL_DESKTOP_CHECKLIST.md).
+
+- **Luminos logo and installer:** a new Luminos mark (crescent and cobalt prism) in the sidebar, the website and every icon. The Windows icon is a real multi-size .ico (256 to 16 px), and the installer has its own sidebar and header artwork.
+- **Real worlds and servers on Home:** Quickplay now lists the worlds in your `.minecraft/saves` (name, last played, icon) and the servers in your `servers.dat`. If you have none, Home says so and offers Launch Minecraft, Add Server and Browse .minecraft Folder. Add Server writes to `servers.dat`. No sample worlds or servers are shown in the app.
+- **Stop Game, and no more "Playing" forever:** Home now follows the real game process. The button returns to Launch Game as soon as Minecraft closes, and a red Stop Game button (also in the sidebar) ends the game. Quit Luminos closes the launcher.
+- **In-game client:** the installer carries the Luminos Client jars; Launch Game copies the one for your Minecraft version into `mods/` (and installs Fabric API if missing), and refuses to start plain Minecraft if Fabric did not resolve. The client replaces the title screen with the Luminos one (a mixin) and Right Ctrl or Right Shift opens the quick panel from the title screen, the pause menu and in game. Module toggles, hotkeys and HUD positions are exchanged through `config/luminos/config.json`.
+- **Names:** themes are now Luminos Cobalt (Default), Luminos Obsidian, Luminos Slate and Luminos Light; other products' names were removed from the app, client and website.
+
+### Español
+Corrige los problemas encontrados en un escritorio real con 2.0.0: nuevo logotipo e instalador, mundos y servidores reales en Inicio (sin datos de ejemplo), botón Detener juego y detección del cierre de Minecraft, y el cliente dentro del juego (pantalla de título de Luminos y panel rápido con Ctrl derecho o Mayús derecho). El código compila y sus pruebas unitarias pasan; no se ha ejecutado todavía en un Windows real.
+
 ## 2.0.0
 
 ### English

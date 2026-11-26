@@ -55,3 +55,11 @@ if [ "${1:-}" = "--ci" ]; then
 fi
 [ $fail = 0 ] && echo "RELEASE GATE: PASS" || echo "RELEASE GATE: FAIL"
 exit $fail
+
+# v2.1.0: build the Fabric client jars and stage them where the Tauri bundle picks them up (resources/mods/*).
+if [ -x client/gradlew ]; then
+  mkdir -p app/src-tauri/resources/mods
+  for d in client client26; do (cd "$d" && ./gradlew build --no-daemon -x test) && cp "$d"/build/libs/luminos-client-*-mc*.jar app/src-tauri/resources/mods/ 2>/dev/null || true; done
+  rm -f app/src-tauri/resources/mods/*-sources.jar
+  node scripts/verify-v2.1-fixes.mjs
+fi

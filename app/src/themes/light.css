@@ -1,4 +1,4 @@
-/* Clean Light: cool white canvas, white cards, cobalt accent. Every text pair is at least 4.5:1 (checked by `npm test`). */
+/* Luminos Light: cool white canvas, white cards, cobalt accent. Every text pair is at least 4.5:1 (checked by `npm test`). */
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f4f6fa; --side: #ebeef4; --surface: #ffffff; --surface-2: #f0f2f7; --hover: #e6eaf2;

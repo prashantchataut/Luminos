@@ -1,6 +1,5 @@
 package dev.luminos.client;
 
-import com.mojang.realmsclient.RealmsMainScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -22,16 +21,16 @@ public final class TitleView {
 	private final long born = System.currentTimeMillis();
 	private long frozen = -1;
 	private final String splash = SPLASHES[(int) ((System.currentTimeMillis() / 86400000L) % SPLASHES.length)];
-	private int ix, iy, iw = 150, ih = 18, pitch = 21;
+	private int ix, iy, iw = 190, ih = 18, pitch = 21;
 
 	public TitleView(Screen self, Minecraft mc) {
 		this.self = self;
 		items.add(new Item("Singleplayer", () -> Nav.open(mc, new SelectWorldScreen(self))));
 		items.add(new Item("Multiplayer", () -> Nav.open(mc, new JoinMultiplayerScreen(self))));
-		items.add(new Item("Realms", () -> Nav.open(mc, new RealmsMainScreen(self))));
-		items.add(new Item("Options", () -> Nav.open(mc, new OptionsScreen(self, mc.options))));
-		items.add(new Item("Cosmetics", () -> Nav.open(mc, new PanelScreen(Panel.Tab.COSMETICS, false, self))));
-		items.add(new Item("Quit", mc::stop));
+		items.add(new Item("Luminos Quick Panel (Right Ctrl)", () -> Nav.open(mc, new LuminosQuickPanelScreen(Panel.Tab.MODULES, false, self))));
+		items.add(new Item("HUD Studio & Cosmetics", () -> Nav.open(mc, new HudEditorScreen(self))));
+		items.add(new Item("Minecraft Options", () -> Nav.open(mc, new OptionsScreen(self, mc.options))));
+		items.add(new Item("Quit Game", mc::stop));
 	}
 
 	public void render(Gfx g, Minecraft mc, int mx, int my) {
@@ -64,10 +63,20 @@ public final class TitleView {
 		}
 		String inst = System.getenv("LUMINOS_INSTANCE") != null ? System.getenv("LUMINOS_INSTANCE") : "Default";
 		Glass.text(g, inst + "  -  Minecraft " + Nav.version(mc), lx, iy + rows * pitch + 4, Glass.LABEL, Glass.INK3);
-		Glass.text(g, "Right Ctrl opens the quick panel in game", lx, iy + rows * pitch + 14, Glass.LABEL, Glass.INK3);
+		Glass.text(g, "Right Ctrl or Right Shift opens the quick panel, here and in game", lx, iy + rows * pitch + 14, Glass.LABEL, Glass.INK3);
 		String use = "Use vanilla title screen";
 		boolean uh = mx >= 8 && mx < 8 + Glass.width(g, use, Glass.LABEL) && my >= h - 16 && my < h - 4;
 		Glass.text(g, use, 8, h - 13, Glass.LABEL, uh ? Glass.INK : Glass.INK2);
+		// header: LUMINOS CLIENT badge + Minecraft version, and the signed-in player on the right
+		String badge = "LUMINOS CLIENT  " + LuminosClient.VERSION + "  -  MC " + Nav.version(mc);
+		Glass.card(g, 10, 10, Glass.width(g, badge, Glass.LABEL) + 16, 16, 5, 0.4f);
+		Glass.text(g, badge, 18, 14, Glass.LABEL, Glass.INK);
+		String who = mc.getUser() == null ? "" : mc.getUser().getName();
+		if (!who.isEmpty()) {
+			int ww = Glass.width(g, who, Glass.LABEL) + 16;
+			Glass.card(g, w - ww - 10, 10, ww, 16, 5, 0.4f);
+			Glass.text(g, who, w - ww - 2, 14, Glass.LABEL, Glass.INK);
+		}
 		String v = "Luminos Client " + LuminosClient.VERSION;
 		Glass.text(g, v, w - Glass.width(g, v, Glass.LABEL) - 8, h - 13, Glass.LABEL, Glass.INK2);
 	}

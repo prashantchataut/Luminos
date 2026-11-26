@@ -1,7 +1,7 @@
 {
   "name": "luminos-desktop",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -25,6 +25,7 @@
     "@types/three": "^0.156.0",
     "@vitejs/plugin-react": "^5",
     "playwright": "^1.65.1",
+    "sharp": "^0.35.5",
     "skinview3d": "^3.4.2",
     "tailwindcss": "^4",
     "typescript": "^5",

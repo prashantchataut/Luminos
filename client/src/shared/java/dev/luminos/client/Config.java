@@ -93,6 +93,7 @@ public final class Config {
 					instance = c;
 				}
 			}
+			LauncherSync.apply();
 		} catch (Exception e) {
 			LuminosClient.LOGGER.warn("Could not read config, using defaults", e);
 		}
@@ -102,6 +103,7 @@ public final class Config {
 		try {
 			Files.createDirectories(file().getParent());
 			Files.writeString(file(), GSON.toJson(instance));
+			LauncherSync.write();
 		} catch (IOException e) {
 			LuminosClient.LOGGER.warn("Could not save config", e);
 		}

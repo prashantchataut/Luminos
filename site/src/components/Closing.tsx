@@ -12,7 +12,7 @@ const log = [
     v: "1.0.0-rc1",
     items: [
       "Release candidate, not stable: unsigned, and never run on a real desktop.",
-      "Themes (Default, Lunar, Light), five skins with a 3D preview, the locker, a live panel that separates what applies now from what waits for the next launch, and a real Modrinth store.",
+      "Themes (Cobalt, Obsidian, Slate, Light), five skins with a 3D preview, the locker, a live panel that separates what applies now from what waits for the next launch, and a real Modrinth store.",
       "Android launcher preview: installs and manages instances; Minecraft does not launch yet. Debug-signed, emulator-tested.",
       "Client jars for 1.21.11 and 26.3, SHA256SUMS.txt and build attestations on every release asset.",
     ],

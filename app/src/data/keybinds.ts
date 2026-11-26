@@ -4,7 +4,7 @@ export const KEY_CATS: { id: KeyCat | "all"; label: string }[] = [
   { id: "all", label: "All" }, { id: "ui", label: "Client UI" }, { id: "nav", label: "Navigation & Camera" }, { id: "toggle", label: "Module Toggles" },
 ];
 export const BINDS: Bind[] = [
-  { id: "menu", name: "Open Mod Menu", hint: "Open the in-game module list.", icon: "sliders", cat: "ui", key: "Right Shift" },
+  { id: "menu", name: "Open Client Quick Panel / Mod Menu", hint: "Opens the in-game panel, also from the title screen. Right Shift works as a second shortcut.", icon: "sliders", cat: "ui", key: "RCTRL" },
   { id: "hud", name: "Open HUD Editor", hint: "Drag and resize HUD elements in game.", icon: "hud", cat: "ui", key: "H" },
   { id: "emote", name: "Emote Wheel", hint: "Pick an equipped emote.", icon: "emote", cat: "ui", key: "V" },
   { id: "zoom", name: "Zoom", hint: "Look far away.", icon: "zoom", cat: "nav", key: "C", mode: "Hold" },
@@ -22,6 +22,6 @@ export function keyName(e: KeyboardEvent): string {
   const c = e.code;
   if (/^Key[A-Z]$/.test(c)) return c.slice(3);
   if (/^Digit\d$/.test(c)) return c.slice(5);
-  const map: Record<string, string> = { ShiftRight: "Right Shift", ShiftLeft: "Left Shift", ControlLeft: "Left Ctrl", ControlRight: "Right Ctrl", AltLeft: "Left Alt", AltRight: "Right Alt", Space: "Space", Tab: "Tab", Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backslash: "\\" };
+  const map: Record<string, string> = { ShiftRight: "RSHIFT", ShiftLeft: "Left Shift", ControlLeft: "Left Ctrl", ControlRight: "RCTRL", AltLeft: "Left Alt", AltRight: "Right Alt", Space: "Space", Tab: "Tab", Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backslash: "\\" };
   return map[c] || (/^(F\d+|Arrow\w+|Page\w+|Home|End|Insert|Delete)$/.test(c) ? c.replace("Arrow", "") : c);
 }

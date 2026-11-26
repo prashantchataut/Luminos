@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import AccountModal, { useAccounts } from "./components/AccountModal";
 import { skinById, skinSrc, useLocker } from "./locker/catalog";
 import { useSettings } from "./store";
+import { startGameWatch } from "./state/game";
 import Home from "./screens/Home";
 import Mods from "./screens/Mods";
 import Keybinds from "./screens/Keybinds";
@@ -38,9 +39,10 @@ export default function App() {
   useEffect(() => {
     bootstrap()
       .then((b: any) => { setBoot(b); if (!b.setupDone) setAcct(true); })
-      .catch(() => setBoot({ version: "2.0.0", setupDone: true, account: {}, instances: [] }));
+      .catch(() => setBoot({ version: "2.1.0", setupDone: true, account: {}, instances: [] }));
   }, []);
   useEffect(() => { if (boot) requestAnimationFrame(() => requestAnimationFrame(() => { void safeInvoke("app_ready", {}, null); })); }, [boot !== null]);
+  useEffect(() => { void startGameWatch(); }, []);
   useEffect(() => { document.documentElement.classList.toggle("reduce", s.reduceMotion); }, [s.reduceMotion]);
   const closeAccount = useCallback(() => { setAcct(false); void safeInvoke("set_setting", { key: "setup_done", value: true }, null); }, []);
 

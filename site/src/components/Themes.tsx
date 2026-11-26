@@ -3,9 +3,9 @@ import { Frame, SectionHead } from "./ui";
 
 // Skills applied (session 19): better-ui (equal-weight grouping, one caption per image), impeccable / taste-skill (no decorative filler).
 const themes = [
-  { name: "OneClient Cobalt", img: `${import.meta.env.BASE_URL}screenshots/themes-3.png`, note: "Carbon navy, cobalt accent." },
-  { name: "Minecraft Dark", img: `${import.meta.env.BASE_URL}screenshots/themes-minecraft-3.png`, note: "Slate surfaces, grass-green accent." },
-  { name: "Clean Light", img: `${import.meta.env.BASE_URL}screenshots/themes-light-3.png`, note: "Light surfaces, the same layout." },
+  { name: "Luminos Cobalt (Default)", img: `${import.meta.env.BASE_URL}screenshots/themes-3.png`, note: "Carbon navy, cobalt accent." },
+  { name: "Luminos Slate", img: `${import.meta.env.BASE_URL}screenshots/themes-minecraft-3.png`, note: "Slate surfaces, grass-green accent." },
+  { name: "Luminos Light", img: `${import.meta.env.BASE_URL}screenshots/themes-light-3.png`, note: "Light surfaces, the same layout." },
 ];
 
 export default function Themes() {

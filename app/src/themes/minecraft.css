@@ -1,4 +1,4 @@
-/* Minecraft Dark: deep slate with classic high-contrast edges and a grass-green accent. */
+/* Luminos Slate: deep slate with classic high-contrast edges and a grass-green accent. */
 :root[data-theme="minecraft"] {
   color-scheme: dark;
   --bg: #111315; --side: #15181a; --surface: #1b1e21; --surface-2: #25292d; --hover: #2e3338;
