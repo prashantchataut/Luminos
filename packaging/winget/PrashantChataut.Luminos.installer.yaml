@@ -1,5 +1,5 @@
 PackageIdentifier: PrashantChataut.Luminos
-PackageVersion: 2.0.0
+PackageVersion: 2.1.0
 InstallerType: nullsoft
 Scope: user
 InstallerSwitches:
@@ -7,7 +7,7 @@ InstallerSwitches:
   SilentWithProgress: /S
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/Luminos-Setup.exe
-    InstallerSha256: 745EDE9894DDC9720F5180D06D10DFBC414C9E35FC9EE07CF0B74CD6A112AB3E
+    InstallerUrl: https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/Luminos-Setup.exe
+    InstallerSha256: 5902D316DDEC43EFE7C297F028EB4F5A8936E72EF3B6CD2A506E9C6C9C702478
 ManifestType: installer
 ManifestVersion: 1.6.0

@@ -1,24 +1,24 @@
 {
   "published": true,
-  "tag": "v2.0.0",
-  "version": "2.0.0",
+  "tag": "v2.1.0",
+  "version": "2.1.0",
   "prerelease": false,
-  "releasePage": "https://github.com/prashantchataut/Luminos/releases/tag/v2.0.0",
+  "releasePage": "https://github.com/prashantchataut/Luminos/releases/tag/v2.1.0",
   "windows": {
     "name": "Luminos-Setup.exe",
-    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/Luminos-Setup.exe",
-    "sha256": "745ede9894ddc9720f5180d06d10dfbc414c9e35fc9ee07cf0b74cd6a112ab3e",
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/Luminos-Setup.exe",
+    "sha256": "5902d316ddec43efe7c297f028eb4f5a8936e72ef3b6cd2a506e9c6c9c702478",
     "portable": {
       "name": "Luminos-Portable.zip",
-      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/Luminos-Portable.zip",
-      "sha256": "526ad4185e3f697070339bcf862e35fc69f6379c73d9745bb30a0bc67c15c037"
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/Luminos-Portable.zip",
+      "sha256": "1e75daf6af6ed3eae5c76c2f5cae95bf268718107b451cbfa964793aa06be51e"
     },
     "signed": false
   },
   "android": {
-    "name": "Luminos-2.0.0.apk",
-    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/Luminos-2.0.0.apk",
-    "sha256": "36948944080d5429ad84ce3a88e6f9218dfb8ff5983070ee7571b5b6ab1baaba",
+    "name": "Luminos-2.1.0.apk",
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/Luminos-2.1.0.apk",
+    "sha256": "94d684928f489b1ca9d80b11a7479cf58d2b689d42a99f40d208872f1d976945",
     "status": "launcher-preview",
     "label": "Android launcher preview: installs and manages instances; Minecraft does not launch yet.",
     "minecraftLaunch": false,
@@ -33,18 +33,18 @@
   },
   "jars": [
     {
-      "name": "luminos-client-0.5.0-mc1.21.11.jar",
-      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/luminos-client-0.5.0-mc1.21.11.jar",
-      "sha256": "7877b06f32e868b45df156837554e99aeef44e9b7466fcb712a6d4b8635c9b59"
+      "name": "luminos-client-2.1.0-mc1.21.11.jar",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/luminos-client-2.1.0-mc1.21.11.jar",
+      "sha256": "9c718b40ae87825cbdb90071e70831cdd2b4e9f849db481e5a3237e43c4d7fae"
     },
     {
-      "name": "luminos-client-0.5.0-mc26.3.jar",
-      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/luminos-client-0.5.0-mc26.3.jar",
-      "sha256": "76d28dfe52d5bccfe98e366d98fbedc73b9a56f5001b3a24a46214081b29fbc4"
+      "name": "luminos-client-2.1.0-mc26.3.jar",
+      "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/luminos-client-2.1.0-mc26.3.jar",
+      "sha256": "c35db432680ecf894238b23bc49742548221dd6ec1e41e6bc66e0864c1434290"
     }
   ],
   "checksums": {
     "name": "SHA256SUMS.txt",
-    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.0.0/SHA256SUMS.txt"
+    "url": "https://github.com/prashantchataut/Luminos/releases/download/v2.1.0/SHA256SUMS.txt"
   }
 }
