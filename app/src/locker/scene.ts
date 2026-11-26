@@ -4,7 +4,7 @@ import { CrouchAnimation, HitAnimation, IdleAnimation, RunningAnimation, SkinVie
 export type Env = "moonlit" | "nether" | "daylight" | "studio";
 export type Pose = "idle" | "sprint" | "block" | "sneak" | "turntable";
 
-/** Light rigs for the Showdown stage. `css` is the backdrop behind the transparent canvas. */
+/** Light rigs for the character preview. `css` is the backdrop behind the transparent canvas. */
 export const ENVS: Record<Env, { label: string; global: number; camera: number; globalColor: number; cameraColor: number; css: string }> = {
   moonlit: { label: "Moonlit Arena", global: 0.55, camera: 0.5, globalColor: 0x7f9bff, cameraColor: 0xb7c9ff, css: "linear-gradient(180deg,#070c24 0%,#0e1b4a 70%,#16296a 100%)" },
   nether: { label: "Nether Glow", global: 0.5, camera: 0.75, globalColor: 0xff7a3d, cameraColor: 0xff4d2e, css: "linear-gradient(180deg,#1a0605 0%,#4a0f08 65%,#8a2a0c 100%)" },

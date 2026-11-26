@@ -72,7 +72,13 @@ public final class Config {
 	private static Config instance = new Config();
 
 	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve("luminos-client.json");
+		return configDir().resolve("luminos-client.json");
+	}
+
+	/** The Fabric config folder; without a running Fabric Loader (the offscreen preview renderer) the {@code luminos.config.dir} property is used. */
+	private static Path configDir() {
+		var loader = FabricLoader.getInstance();
+		return loader != null ? loader.getConfigDir() : Path.of(System.getProperty("luminos.config.dir", "config"));
 	}
 
 	public static Gson gson() { return GSON; }
@@ -139,7 +145,7 @@ public final class Config {
 	private static long launcherStamp = -1, launcherChecked;
 	private static Path settingsPath() {
 		String o = System.getProperty("luminos.settings");
-		return o != null ? Path.of(o) : FabricLoader.getInstance().getConfigDir().resolve("luminos-client-settings.json");
+		return o != null ? Path.of(o) : configDir().resolve("luminos-client-settings.json");
 	}
 	/** The launcher's settings, re-read when the file changes (checked at most once a second). */
 	public static synchronized dev.luminos.client.core.ClientFile launcher() {

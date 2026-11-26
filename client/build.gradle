@@ -51,3 +51,20 @@ java {
 jar {
 	from("LICENSE") { rename { "${it}_${project.base.archivesName.get()}" } }
 }
+
+// Offscreen preview of the in-game screens (docs/design/rounds/ingame-*.png): `./gradlew renderPreview -PpreviewOut=<dir>`.
+// Runs the real TitleScene / ModPanelView layout code through a Java2D Gfx. Not part of the shipped jar.
+sourceSets {
+	preview {
+		java.srcDirs = ['src/preview/java']
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+	}
+}
+tasks.register('renderPreview', JavaExec) {
+	dependsOn classes, 'previewClasses'
+	classpath = sourceSets.preview.output + sourceSets.preview.runtimeClasspath
+	mainClass = 'dev.luminos.client.preview.PreviewMain'
+	systemProperty 'java.awt.headless', 'true'
+	args(project.findProperty('previewOut') ?: "${buildDir}/preview")
+}

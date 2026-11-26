@@ -5,6 +5,7 @@ import { MODULES } from "../data/modules";
 import LuminosLogo from "./LuminosLogo";
 import { quitLauncher, useGame } from "../state/game";
 import { StopGameButton } from "../screens/Home";
+import { LaunchProgressMini } from "./LaunchProgress";
 
 export const GROUPS: { label: string; items: { id: string; label: string; icon: string }[] }[] = [
   { label: "Play", items: [{ id: "home", label: "Home", icon: "home" }, { id: "hud", label: "Edit HUD", icon: "hud" }] },
@@ -33,6 +34,7 @@ export default memo(function Sidebar({ page, go, name, skin, version, onAccount 
         </div>
       </div>
       <div className="space-y-2.5">
+        <LaunchProgressMini />
         {g.status !== "idle" && <StopGameButton compact />}
         <button onClick={onAccount} aria-label={`Account ${name}. Switch account`} className="p-2.5 rounded-[10px] flex items-center gap-3 text-left t card">
         <Head src={skin} size={32} />

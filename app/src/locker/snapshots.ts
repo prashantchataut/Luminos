@@ -12,6 +12,8 @@ const W = 260, H = 280, rad = (d: number) => (d * Math.PI) / 180;
 let viewer: SkinViewer | null = null;
 let chain: Promise<unknown> = Promise.resolve();
 const cache = new Map<string, Promise<string>>();
+/** Cheap FNV-1a hash of a whole data URL, so two different skins of equal length never share a cached render. */
+function h(str: string) { let x = 2166136261; for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return (x >>> 0).toString(36); }
 
 function get(): SkinViewer {
   if (!viewer) {
@@ -47,7 +49,7 @@ export function snapSkin(src: string, slim: boolean): Promise<string> {
   });
 }
 export function snapCape(capeSrc: string, skinSrc: string, slim: boolean): Promise<string> {
-  return enqueue(`c|${capeSrc}|${skinSrc.slice(0, 120)}|${skinSrc.length}|${slim}`, async () => {
+  return enqueue(`c|${capeSrc}|${h(skinSrc)}|${slim}`, async () => {
     const v = get(); clearCape(v);
     const [cc] = await Promise.all([image(capeSrc), v.loadSkin(skinSrc, { model: slim ? "slim" : "default" })]);
     await v.loadCape(cc.toDataURL(), { backEquipment: "cape" });

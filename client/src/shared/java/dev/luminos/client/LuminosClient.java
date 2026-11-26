@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /** Entry point, shared by every Minecraft line (version-specific names are behind {@link Nav}). */
 public final class LuminosClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("LuminosClient");
-	public static final String VERSION = "4.0.0";
+	public static final String VERSION = "4.1.0";
 	public static final List<KeyMapping> KEYS = new ArrayList<>();
 	public static KeyMapping panelKey, searchKey, zoomKey, sprintKey;
 	private static boolean sprintLatched, zooming, customShown;
@@ -97,14 +97,15 @@ public final class LuminosClient implements ClientModInitializer {
 	private record Step(String name, Consumer<Minecraft> open) {}
 
 	private static LuminosQuickPanelScreen panelScreen(Minecraft mc, Panel.Tab tab) {
-		LuminosQuickPanelScreen ps = new LuminosQuickPanelScreen(tab, true, null);
+		LuminosQuickPanelScreen ps = new LuminosQuickPanelScreen(tab, true, null, true);   // the classic Panel: the tour drives it directly
 		Nav.open(mc, ps);
 		return ps;
 	}
 
 	private static final List<Step> STEPS = List.of(
 			new Step("title", mc -> Nav.open(mc, new LuminosTitleScreen())),
-			new Step("panel", mc -> { Features.applyPreset("minimal"); panelScreen(mc, Panel.Tab.MODULES); }),
+			new Step("panel", mc -> { Features.applyPreset("minimal"); Nav.open(mc, new LuminosQuickPanelScreen(Panel.Tab.MODULES, false, null)); }),
+			new Step("panel-classic", mc -> { Features.applyPreset("minimal"); panelScreen(mc, Panel.Tab.MODULES); }),
 			new Step("panel-all", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeOpenAll()),
 			new Step("panel-search", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeSearch("key")),
 			new Step("panel-popover", mc -> panelScreen(mc, Panel.Tab.MODULES).panel().smokeContext("keystrokes")),

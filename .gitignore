@@ -18,3 +18,4 @@ client/.gradle/
 client/build/
 smoke-out/
 out-capture/
+app/src-tauri/resources/mods/*.jar

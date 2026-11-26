@@ -11,6 +11,7 @@ use luminos_core::{
 mod discord;
 mod engine;
 mod game;
+mod launch_watch;
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -268,8 +269,10 @@ async fn create_instance(name: String, mc: String, with_preset: bool) -> R<Value
     .await
 }
 
-/// Starts the game on its own thread and streams `launch` events (preparing -> launching -> running -> exited) plus
-/// `game-state` events (idle | preparing | running) that the window uses for the Launch / Stop Game button.
+/// Starts the game on its own thread. Three event streams reach the window:
+///  - `launch-progress` `{ stage, percent, detail, stepIndex, totalSteps, logLine? }` across six real stages (see `launch_watch`),
+///  - `launch` (preparing -> client -> launching -> running -> exited | failed), kept for the existing screens,
+///  - `game-state` (idle | preparing | running | crashed). "running" is sent only once Minecraft has really opened its window.
 #[tauri::command]
 async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProcessState>, id: String, quick: Option<String>, world_path: Option<String>) -> R<()> {
     let inst = instances::list().into_iter().find(|i| i.id == id).ok_or("That instance no longer exists")?;
@@ -279,19 +282,33 @@ async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProce
         let emit = |v: Value| {
             let _ = app.emit("launch", v);
         };
+        let step = |n: u8, pct: u8, detail: String, line: &str| {
+            let _ = app.emit("launch-progress", launch_watch::progress(n, pct, detail).with_log(line));
+        };
+        // A launch that cannot finish ends in the diagnostic dialog with the real reason, never in a silent reset.
         let fail = |msg: String| {
-            game::finish(&app, gen, None);
+            game::finish_crashed(&app, gen, None, msg.clone());
             emit(json!({ "id": inst.id, "phase": "failed", "error": msg }));
         };
         let settings = Settings::load();
         let account = AccountStore::load().active().cloned().unwrap_or_else(|| Account::offline("Player"));
+        let version = env!("CARGO_PKG_VERSION");
+
+        // Stage 1: Java. The managed runtime is resolved (and downloaded if missing) inside `launch::prepare`; say so honestly.
+        step(1, 10, format!("Checking Java runtime for Minecraft {} (the managed runtime is fetched if it is missing)...", inst.mc_version), "");
         let progress = Progress::new();
         let stop = Arc::new(AtomicBool::new(false));
+        let phase = Arc::new(std::sync::atomic::AtomicU8::new(1));
         {
-            let (p, stop, app2, id2) = (progress.clone(), stop.clone(), app.clone(), inst.id.clone());
+            let (p, stop, ph, app2, id2) = (progress.clone(), stop.clone(), phase.clone(), app.clone(), inst.id.clone());
             std::thread::spawn(move || {
                 while !stop.load(Ordering::Relaxed) {
                     let _ = app2.emit("launch", json!({ "id": id2, "phase": "preparing", "stage": p.stage(), "fraction": p.fraction() }));
+                    if ph.load(Ordering::Relaxed) == 3 {
+                        // Stage 3 spans 45% -> 60% while Minecraft, libraries and assets are verified or downloaded.
+                        let pct = 45 + (p.fraction().clamp(0.0, 1.0) * 15.0) as u8;
+                        let _ = app2.emit("launch-progress", launch_watch::progress(3, pct, "Verifying Minecraft and Fabric Loader libraries, assets and natives...").with_log(p.stage()));
+                    }
                     std::thread::sleep(std::time::Duration::from_millis(150));
                 }
             });
@@ -305,15 +322,31 @@ async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProce
             }
             _ => {}
         }
-        // The Luminos Client (title screen, Right Ctrl quick panel, HUD) only exists if its jar is in mods/ before Fabric starts.
+        // Stage 2: the Luminos Client (title screen, Right Ctrl panel, HUD) only exists if its jar is in mods/ before Fabric starts.
+        // Every older luminos-client* jar is deleted first, so a stale version can never be the one that boots.
+        step(2, 25, format!("Cleaning old client mods and injecting Luminos Client v{version}..."), "");
         let client = game::ensure_client(&app, &inst);
         emit(json!({ "id": inst.id, "phase": "client", "client": client }));
+        let client_jar = client["jar"].as_str().map(String::from);
+        let purged = client["purged"].as_array().map(|a| a.len()).unwrap_or(0);
+        step(
+            2,
+            30,
+            match &client_jar {
+                Some(j) => format!("Installed {j}{}", if purged > 0 { format!(" (removed {purged} older client file{})", if purged == 1 { "" } else { "s" }) } else { String::new() }),
+                None => client["note"].as_str().unwrap_or("Luminos Client not installed for this instance").to_string(),
+            },
+            "",
+        );
         // A world from the vanilla Minecraft folder is linked (not copied) into this instance so quick play can open it.
         if let Some(wp) = world_path.as_deref() {
             if let Err(e) = luminos_core::worlds::link_world(&inst.game_dir(), std::path::Path::new(wp)) {
                 emit(json!({ "id": inst.id, "phase": "notice", "note": format!("Could not open that world directly: {e:#}") }));
             }
         }
+        // Stage 3: Minecraft client, libraries, assets, Java.
+        phase.store(3, Ordering::Relaxed);
+        step(3, 45, format!("Verifying Minecraft {} & Fabric Loader libraries...", inst.mc_version), "");
         let prep = launch::prepare(&inst, &settings, &progress);
         stop.store(true, Ordering::Relaxed);
         let prep = match prep {
@@ -321,22 +354,72 @@ async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProce
             Err(e) => return fail(err(e)),
         };
         if !state_is_current(&app, gen) {
-            return; // Stop Game was pressed while files were downloading
+            return; // Cancel was pressed while files were downloading
         }
+        // Stage 4: the performance stack that sits in mods/ next to the client.
+        step(4, 65, format!("Syncing performance stack: {}", game::perf_stack(&inst)), "");
         // Never start vanilla by accident: a Fabric instance must boot through Fabric Loader's KnotClient.
         if inst.loader == Loader::Fabric && !prep.version.main_class.contains("KnotClient") {
             return fail(format!("Fabric Loader was not set up for this instance (main class {}). Luminos will not start plain Minecraft instead.", prep.version.main_class));
         }
+        // Last check before the JVM exists: exactly one Luminos Client jar, and it is the one we just installed.
+        if let Some(j) = &client_jar {
+            match game::enforce_single_client(&inst, j) {
+                Ok(strays) if !strays.is_empty() => emit(json!({ "id": inst.id, "phase": "notice", "note": format!("Removed stale client jar(s) before launch: {}", strays.join(", ")) })),
+                Ok(_) => {}
+                Err(e) => return fail(e),
+            }
+        }
         emit(json!({ "id": inst.id, "phase": "launching", "mods": serde_json::to_value(&prep.mod_report).unwrap_or(Value::Null) }));
+        // Stage 5: spawn the JVM with piped stdout/stderr (luminos-core's reader threads fill `h.log`).
+        step(5, 80, format!("Starting LuminosClient JVM process (Java {})...", prep.java_major), "");
         match launch::spawn_ext(&inst, &settings, &account, &prep, quick.as_deref()) {
             Ok(h) => {
-                if !app.state::<game::GameProcessState>().set_running(h.child.clone(), gen) {
+                // Remember the child now so Cancel can kill it, but stay in "preparing" until the window really opens.
+                if !app.state::<game::GameProcessState>().attach_child(h.child.clone(), gen) {
                     h.kill();
                     return;
                 }
                 let pid = app.state::<game::GameProcessState>().snapshot().pid;
-                emit(json!({ "id": inst.id, "phase": "running", "pid": pid }));
-                let _ = app.emit("game-state", json!({ "status": "running", "pid": pid, "instance": inst.id }));
+                step(5, 80, format!("Starting LuminosClient JVM process (PID {})...", pid.map(|p| p.to_string()).unwrap_or_else(|| "?".into())), "");
+                // Stage 6: follow the game's own output until its window is open (or it dies first).
+                let opened = Arc::new(AtomicBool::new(false));
+                let exited = Arc::new(AtomicBool::new(false));
+                {
+                    let (app2, log, child, opened, exited, id2) = (app.clone(), h.log.clone(), h.child.clone(), opened.clone(), exited.clone(), inst.id.clone());
+                    std::thread::spawn(move || {
+                        let mut tr = launch_watch::Tracker::new(80);
+                        let began = std::time::Instant::now();
+                        let go_running = |why: &str, detail: &str| {
+                            if app2.state::<game::GameProcessState>().mark_running(gen) {
+                                opened.store(true, Ordering::Relaxed);
+                                let _ = app2.emit("launch-progress", launch_watch::progress(6, 100, detail).with_log(why));
+                                let _ = app2.emit("launch", json!({ "id": id2, "phase": "running", "pid": pid }));
+                                let _ = app2.emit("game-state", json!({ "status": "running", "pid": pid, "instance": id2 }));
+                            }
+                        };
+                        while !exited.load(Ordering::Relaxed) && !opened.load(Ordering::Relaxed) {
+                            let tick = match log.lock() {
+                                Ok(l) => tr.feed(&l),
+                                Err(_) => break,
+                            };
+                            if tick.window_open {
+                                go_running(&tick.last_line, "Minecraft window is open");
+                                break;
+                            }
+                            if tick.changed {
+                                let _ = app2.emit("launch-progress", launch_watch::progress(6, tick.percent.min(99), tick.detail.clone()).with_log(tick.last_line.clone()));
+                            }
+                            // Safety net: a game that is alive after 3 minutes but never printed a window line (custom logging) is not left on a bar forever.
+                            if began.elapsed() > std::time::Duration::from_secs(180) && child.lock().map(|mut c| matches!(c.try_wait(), Ok(None))).unwrap_or(false) {
+                                go_running("no window line in the log; the process is alive", "Minecraft is running");
+                                break;
+                            }
+                            std::thread::sleep(std::time::Duration::from_millis(120));
+                        }
+                    });
+                }
+                emit(json!({ "id": inst.id, "phase": "starting", "pid": pid }));
                 // Keep Discord's state in step with the game: ask the in-game agent for its world/server every few seconds.
                 let watching = Arc::new(AtomicBool::new(true));
                 {
@@ -359,9 +442,15 @@ async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProce
                 }
                 // Polls `try_wait` every 400 ms: returns the moment Minecraft quits, whether the player closed the window or pressed Stop Game.
                 let code = launch::wait_and_record(&h);
+                exited.store(true, Ordering::Relaxed);
                 watching.store(false, Ordering::Relaxed);
                 // Tell the window first. Syncing settings below can take a moment and must not keep the button on "Running".
-                game::finish(&app, gen, Some(code));
+                if !opened.load(Ordering::Relaxed) && code != 0 {
+                    // Died before its window opened: show the real last lines, not a silent reset.
+                    game::finish_crashed(&app, gen, Some(code), launch_watch::error_log(&h.log_tail(300), 30));
+                } else {
+                    game::finish(&app, gen, Some(code));
+                }
                 // Push whatever the player changed in this session (keybinds, HUD layout, servers) to the shared store.
                 let synced = if std::env::var_os("LUMINOS_NO_SYNC").is_none() {
                     luminos_core::sync::Syncer::new(Default::default()).reconcile(&inst.id, &inst.game_dir()).ok()

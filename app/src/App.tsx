@@ -7,6 +7,7 @@ import AccountModal, { useAccounts } from "./components/AccountModal";
 import OnboardingModal from "./components/OnboardingModal";
 import UpdateBanner, { useAppUpdate } from "./components/UpdateBanner";
 import UpdateModal from "./components/UpdateModal";
+import { LaunchCrashModal } from "./components/LaunchProgress";
 import { skinById, skinSrc, useLocker } from "./locker/catalog";
 import { useSettings } from "./store";
 import { startGameWatch } from "./state/game";
@@ -83,6 +84,7 @@ export default function App() {
       {updOpen && <UpdateModal u={upd} onClose={() => setUpdOpen(false)} />}
       {wizard && <OnboardingModal onClose={closeWizard} />}
       {acct && <AccountModal onClose={closeAccount} />}
+      <LaunchCrashModal />
     </div>
   );
 }

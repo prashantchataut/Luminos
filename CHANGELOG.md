@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.1.0
+
+### English
+- **Launcher, game opening:** Launch now shows real progress across six stages (Java runtime, client injection, assets and libraries, performance stack, JVM spawn, waiting for the Minecraft window) with a percentage bar, the current stage, a one-line live log and Cancel. "Running" appears only after Minecraft prints its window lines (`Backend library: LWJGL`, `OpenAL initialized`, `Sound engine started`, `...-atlas`); if the JVM dies first, a diagnostic dialog shows the last 30 log lines with Copy Log.
+- **Stale client jars:** before every launch every `luminos-client*` / `luminos_client*` / `luminos-*.jar` in `<game dir>/mods` is deleted, then the bundled jar for this version is copied unconditionally, and a last check just before the JVM starts keeps exactly one. The release builds the client with `gradlew clean build` and empties `resources/mods` before bundling.
+- **Cosmetics:** removed the preset skin gallery and Skin Showdown. The screen is now your own character (sync from a Mojang or Ely.by username, or upload a 64x64 PNG; Classic or Slim arms) beside a 3D capes grid.
+- **In-game client:** new title screen (cover-fit artwork, floating centred buttons, account pill, footer) and a new Right Ctrl panel (category tabs, search, 3-column module cards with switch and settings popover). Both are drawn by code shared with `scripts/render-ingame-preview.mjs`, which renders the PNGs in `docs/design/rounds/`.
+- **Not verified:** nothing here has run inside a real Tauri window or a real Minecraft window on a GPU. The in-game PNGs are an offscreen render of the same layout code, not screenshots of the game.
+
+### Español
+- **Lanzador, apertura del juego:** Jugar muestra el progreso real en seis etapas (Java, inyección del cliente, recursos y bibliotecas, pila de rendimiento, arranque de la JVM, espera de la ventana de Minecraft) con barra de porcentaje, etapa actual, una línea de registro en vivo y Cancelar. "En ejecución" aparece solo cuando Minecraft imprime sus líneas de ventana; si la JVM termina antes, un diálogo muestra las últimas 30 líneas con Copiar registro.
+- **Jars antiguos del cliente:** antes de cada inicio se borran todos los `luminos-client*` / `luminos_client*` / `luminos-*.jar` de `mods`, se copia el jar incluido de esta versión y una última comprobación deja exactamente uno. La versión compila el cliente con `gradlew clean build`.
+- **Cosméticos:** se eliminaron la galería de skins predefinidas y Skin Showdown. Ahora ves tu propio personaje (sincroniza desde un usuario de Mojang o Ely.by, o sube un PNG de 64x64) junto a una cuadrícula de capas 3D.
+- **Cliente en el juego:** nueva pantalla de título y nuevo panel Ctrl derecho (pestañas, búsqueda, tarjetas de módulos con interruptor y ajustes). Las imágenes de `docs/design/rounds/` son un render fuera de pantalla del mismo código de diseño, no capturas del juego.
+- **Sin verificar:** nada se ha ejecutado dentro de una ventana real de Tauri ni de Minecraft con GPU.
+
 ## 4.0.0
 
 ### English

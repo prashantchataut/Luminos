@@ -16,7 +16,7 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::{blocking, err, R};
+use crate::{blocking, err, launch_watch, R};
 
 /// The one running (or starting) Minecraft process. `status` is "idle" | "preparing" | "running".
 pub struct GameProcessState {
@@ -73,7 +73,9 @@ impl GameProcessState {
         self.generation.load(Ordering::SeqCst) == gen
     }
 
-    pub fn set_running(&self, child: Arc<Mutex<Child>>, gen: u64) -> bool {
+    /// Remember the spawned child (so Cancel / Stop Game can kill it) WITHOUT claiming the game is running yet:
+    /// the window only flips to "running" once Minecraft has really opened its window (`mark_running`).
+    pub fn attach_child(&self, child: Arc<Mutex<Child>>, gen: u64) -> bool {
         if !self.is_current(gen) {
             return false;
         }
@@ -83,6 +85,14 @@ impl GameProcessState {
         }
         if let Ok(mut p) = self.pid.lock() {
             *p = pid;
+        }
+        true
+    }
+
+    /// Minecraft's window is open. Only the launch that still owns the slot may say so.
+    pub fn mark_running(&self, gen: u64) -> bool {
+        if !self.is_current(gen) {
+            return false;
         }
         if let Ok(mut s) = self.status.lock() {
             *s = "running".into();
@@ -112,6 +122,15 @@ pub fn finish(app: &AppHandle, gen: u64, code: Option<i32>) {
     if st.is_current(gen) {
         st.clear();
         let _ = app.emit("game-state", json!({ "status": "idle", "exitCode": code }));
+    }
+}
+
+/// The game died before its window opened (or a launch step failed): back to idle, and tell the window WHY with the real log.
+pub fn finish_crashed(app: &AppHandle, gen: u64, code: Option<i32>, error_log: String) {
+    let st = app.state::<GameProcessState>();
+    if st.is_current(gen) {
+        st.clear();
+        let _ = app.emit("game-state", json!({ "status": "crashed", "exitCode": code, "errorLog": error_log }));
     }
 }
 
@@ -284,10 +303,15 @@ fn bundled_client_jar(app: &AppHandle, mc: &str) -> Option<PathBuf> {
     }
     dirs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join("mods"));
     let suffix = format!("-mc{mc}.jar");
+    // The first folder that holds any client jar for this Minecraft version wins; inside it, the jar built for THIS app version.
     dirs.into_iter().find_map(|d| {
-        std::fs::read_dir(d).ok()?.flatten().map(|e| e.path()).find(|p| {
-            p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("luminos-client") && n.ends_with(&suffix) && !n.contains("sources"))
-        })
+        let found: Vec<PathBuf> = std::fs::read_dir(d)
+            .ok()?
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("luminos-client") && n.ends_with(&suffix) && !n.contains("sources")))
+            .collect();
+        launch_watch::pick_bundled(found, env!("CARGO_PKG_VERSION"))
     })
 }
 
@@ -310,36 +334,31 @@ pub fn ensure_client(app: &AppHandle, inst: &Instance) -> Value {
     let bundled = bundled_client_jar(app, &inst.mc_version);
     let mut source = "none";
     let mut jar_name = Value::Null;
+    let mut purged: Vec<String> = vec![];
     if let Some(src) = &bundled {
         let name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        let dest = mods.join(&name);
-        let same = std::fs::metadata(&dest).ok().zip(std::fs::metadata(src).ok()).is_some_and(|(a, b)| a.len() == b.len());
-        if !same {
-            if let Err(e) = std::fs::copy(src, &dest) {
-                return json!({ "ok": false, "source": "bundled", "note": format!("Could not copy the Luminos Client into mods: {e}") });
-            }
+        // Purge FIRST: every luminos-client* / luminos_client* / luminos-*.jar from any earlier version goes, so Minecraft can never
+        // boot a stale client. Then the bundled jar is copied unconditionally (no size-equals shortcut that could keep an old file).
+        match launch_watch::purge_stale_client_jars(&mods) {
+            Ok(v) => purged = v,
+            Err(e) => return json!({ "ok": false, "source": "bundled", "note": format!("Could not remove the old Luminos Client from mods: {e}") }),
         }
-        // one client jar at a time
-        if let Ok(rd) = std::fs::read_dir(&mods) {
-            for e in rd.flatten() {
-                let n = e.file_name().to_string_lossy().to_string();
-                if n.starts_with("luminos-client") && n != name {
-                    let _ = std::fs::remove_file(e.path());
-                }
-            }
+        if let Err(e) = std::fs::copy(src, mods.join(&name)) {
+            return json!({ "ok": false, "source": "bundled", "note": format!("Could not copy the Luminos Client into mods: {e}") });
         }
         source = "bundled";
         jar_name = json!(name);
-    } else if !has_jar(&mods, "luminos-client") {
+    } else {
+        // No bundled jar (a development checkout): fetch the published one for this Minecraft version. install_first_party replaces older
+        // copies; only when offline do we keep what is there, and the note says so.
         match preset::install_first_party(inst) {
             Ok(n) => {
                 source = "download";
                 jar_name = json!(n);
             }
+            Err(_) if has_jar(&mods, "luminos-client") => source = "existing",
             Err(e) => return json!({ "ok": false, "source": "none", "note": format!("No Luminos Client build for Minecraft {}: {e:#}", inst.mc_version) }),
         }
-    } else {
-        source = "existing";
     }
     // The client needs Fabric API. Install it (only it) when missing; the bundled jar is used so the client is not fetched again.
     if !has_jar(&mods, "fabric-api") {
@@ -356,5 +375,29 @@ pub fn ensure_client(app: &AppHandle, inst: &Instance) -> Value {
             return json!({ "ok": false, "source": source, "jar": jar_name, "note": format!("Fabric API could not be installed ({why}). The Luminos Client needs it.") });
         }
     }
-    json!({ "ok": true, "source": source, "jar": jar_name, "note": "Luminos Client is in the mods folder." })
+    json!({ "ok": true, "source": source, "jar": jar_name, "purged": purged, "appVersion": env!("CARGO_PKG_VERSION"), "note": "Luminos Client is in the mods folder." })
+}
+
+/// Last check before the JVM is spawned: exactly one Luminos Client jar may be in `<game dir>/mods`, and it is `expected`.
+/// Returns the names of any strays it had to remove. Errors only when a stray cannot be deleted.
+pub fn enforce_single_client(inst: &Instance, expected: &str) -> Result<Vec<String>, String> {
+    launch_watch::purge_except(&inst.game_dir().join("mods"), Some(expected)).map_err(err)
+}
+
+/// Which members of the performance stack are really in `<game dir>/mods` right now (what the window shows for stage 4).
+pub fn perf_stack(inst: &Instance) -> String {
+    let names: Vec<String> = std::fs::read_dir(inst.game_dir().join("mods"))
+        .map(|rd| rd.flatten().map(|e| e.file_name().to_string_lossy().to_lowercase()).collect())
+        .unwrap_or_default();
+    let has = |k: &str| names.iter().any(|n| n.contains(k) && n.ends_with(".jar"));
+    let found: Vec<&str> = [("sodium", "Sodium"), ("lithium", "Lithium"), ("ferritecore", "FerriteCore"), ("immediatelyfast", "ImmediatelyFast")]
+        .iter()
+        .filter(|(k, _)| has(k))
+        .map(|(_, n)| *n)
+        .collect();
+    if found.is_empty() {
+        "no performance mods installed for this instance".to_string()
+    } else {
+        format!("{} ready", found.join(", "))
+    }
 }

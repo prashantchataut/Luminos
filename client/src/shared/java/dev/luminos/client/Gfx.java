@@ -24,4 +24,8 @@ public interface Gfx {
 	/** Clip following drawing to a rectangle in the current (pushed) coordinate space; pair with {@link #unclip()}. */
 	void clip(int x0, int y0, int x1, int y1);
 	void unclip();
+	/** Draws {@code texture} (a path under assets/luminos_client) scaled to COVER the rectangle: the centre is cropped, the image is never stretched. False when unsupported or missing. */
+	default boolean cover(String texture, int texW, int texH, int x, int y, int w, int h) { return false; }
+	/** Draws the whole texture into the rectangle. False when unsupported or missing. */
+	default boolean texture(String texture, int x, int y, int w, int h, int texW, int texH) { return false; }
 }

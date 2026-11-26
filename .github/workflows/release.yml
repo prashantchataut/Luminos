@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p app/src-tauri/resources/mods
+          rm -f app/src-tauri/resources/mods/*.jar   # never ship an older client jar next to the fresh ones
           cp client-jars/jar-*/*.jar app/src-tauri/resources/mods/
           ls -l app/src-tauri/resources/mods
       - uses: dtolnay/rust-toolchain@stable
@@ -170,7 +171,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 25 }
       - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew build --no-daemon
+      - run: chmod +x gradlew && ./gradlew clean build --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: jar-${{ matrix.mc }}

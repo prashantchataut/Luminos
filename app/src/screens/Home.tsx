@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Page from "../components/Page";
 import { Icon } from "../components/Icon";
 import { Modal } from "../components/ui";
+import { LaunchProgressPanel } from "../components/LaunchProgress";
 import { MODULES } from "../data/modules";
 import { applyPreset, PRESETS, setPref, useClient, writeGameConfigNow, type Preset } from "../state/client";
 import { markIdle, markPreparing, notify, stopGame, useGame } from "../state/game";
@@ -64,14 +65,15 @@ function Menu({ label, items, value, onPick }: { label: string; items: string[];
   );
 }
 
-/** The red button shown whenever Minecraft is starting or running. Kills the game and restores Launch Game at once. */
+/** The red button shown while Minecraft is starting or running. Kills the game and restores Launch Game at once. */
 export function StopGameButton({ compact = false }: { compact?: boolean }) {
   const g = useGame();
   if (g.status === "idle") return null;
+  const running = g.status === "running";
   return (
-    <button onClick={() => void stopGame()} aria-label={g.status === "running" ? "Stop Game: quit Minecraft now" : "Cancel launch"}
+    <button onClick={() => void stopGame()} aria-label={running ? "Quit Game: close Minecraft now" : "Cancel launch"}
       className={`${compact ? "h-9 px-4 text-[12.5px] w-full justify-center" : "h-[46px] px-6 text-[14px]"} rounded-[10px] bg-[#EF4444] hover:bg-[#DC2626] text-white font-semibold flex items-center gap-2 t press`}>
-      <span aria-hidden className="block w-[11px] h-[11px] rounded-[2px] bg-white" />{g.status === "running" ? "Stop Game" : "Cancel"}
+      <span aria-hidden className="block w-[10px] h-[10px] rounded-[2px] bg-white" />{running ? "Quit Game" : "Cancel"}
     </button>
   );
 }
@@ -137,17 +139,21 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
             <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full text-[11.5px] font-medium" style={{ background: "rgba(22,27,38,.85)", color: "#BFD3FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#3B82F6" }} />Sodium + Lithium + ImmediatelyFast ready • Native Max FPS</span>
             <p className="m-0 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>
             <div className="pt-3 flex items-center gap-3 flex-wrap">
-              {g.status === "idle" || preparing ? (
-                <button onClick={() => void launch()} disabled={preparing} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)", opacity: preparing ? 0.8 : 1 }}>
-                  <Icon n="play" s={14} fill />{preparing ? (g.stage ? `${g.stage.slice(0, 28)}${g.fraction > 0 ? ` ${Math.round(g.fraction * 100)}%` : ""}` : "Launching…") : "Launch Game"}
+              {g.status === "idle" && (
+                <button onClick={() => void launch()} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
+                  <Icon n="play" s={14} fill />Launch Game
                 </button>
-              ) : (
-                <span role="status" className="h-[46px] px-5 rounded-[10px] text-[14px] font-semibold flex items-center gap-2.5 text-white" style={{ background: "#16A34A" }}>
-                  <span className="w-2 h-2 rounded-full bg-white" />Running{g.pid ? ` • PID ${g.pid}` : ""}
-                </span>
               )}
-              {(running || preparing) && <StopGameButton />}
-              <Menu label="Version and preset" value={`${c.prefs.gameVersion} • ${c.prefs.preset}`} items={[...versions, ...(Object.keys(PRESETS) as Preset[])]} onPick={(v) => (v in PRESETS ? applyPreset(v as Preset) : setPref("gameVersion", v))} />
+              {preparing && <LaunchProgressPanel />}
+              {running && (
+                <>
+                  <span role="status" className="h-[46px] px-5 rounded-[10px] text-[14px] font-semibold flex items-center gap-2.5 text-white" style={{ background: "#16A34A" }}>
+                    <span aria-hidden className="w-2 h-2 rounded-full bg-white" />In-Game (Luminos {boot.version}){g.pid ? ` • PID ${g.pid}` : ""}
+                  </span>
+                  <StopGameButton />
+                </>
+              )}
+              {g.status === "idle" && <Menu label="Version and preset" value={`${c.prefs.gameVersion} • ${c.prefs.preset}`} items={[...versions, ...(Object.keys(PRESETS) as Preset[])]} onPick={(v) => (v in PRESETS ? applyPreset(v as Preset) : setPref("gameVersion", v))} />}
               {g.status === "idle" && <button onClick={() => setHost(true)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium t hover:!text-white" style={{ background: "rgba(22,27,38,.9)", color: "#94A3B8" }}>Host World</button>}
             </div>
           </div>
