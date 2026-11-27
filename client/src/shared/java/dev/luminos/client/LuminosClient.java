@@ -73,7 +73,9 @@ public final class LuminosClient implements ClientModInitializer {
 
 		// CI hook: the smoke job looks for this exact line, then runs a short scripted tour and exits.
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-			if (screen instanceof TitleScreen) {
+			// Since 4.4.0 the first screen is LuminosMainMenuScreen (not a TitleScreen subclass); it counts as "title reached" too.
+			// Matched by name because this shared source set also compiles for the 26.x client, which has no such class.
+			if (screen instanceof TitleScreen || screen.getClass().getSimpleName().equals("LuminosMainMenuScreen")) {
 				StartupProbe.titleReached();
 				LOGGER.info("[luminos] title-screen reached (minecraft {})", Nav.version(Minecraft.getInstance()));
 				if (System.getenv("LUMINOS_SMOKE") != null && smokeTick < 0) smokeTick = 0;

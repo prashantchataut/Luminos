@@ -121,14 +121,16 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   return (
     <Page>
       <div className="space-y-8">
-        <section className="relative h-[300px] rounded-[16px] overflow-hidden flex items-end justify-start p-9" style={{ background: "var(--surface)" }}>
-          <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-right" decoding="async" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,0.95) 0%, rgba(11,13,18,0.65) 48%, rgba(11,13,18,0) 82%)" }} />
-          <div className="relative max-w-[560px] space-y-4">
+        <section className="relative min-h-[300px] rounded-[16px] flex items-end justify-start px-9 py-8" style={{ background: "var(--surface)" }}>
+          <div aria-hidden className="absolute inset-0 rounded-[16px] overflow-hidden">{/* only the art is clipped, so the pickers can open over the page */}
+            <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-right" decoding="async" />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,0.95) 0%, rgba(11,13,18,0.65) 48%, rgba(11,13,18,0) 82%)" }} />
+          </div>
+          <div className="relative max-w-[840px] space-y-3">
             <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase" style={{ color: "#8FA2FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />Luminos Client v{APP_VERSION} · MC {c.prefs.gameVersion} · {c.prefs.enginePreset}</span>
             <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client <span style={{ color: "#8FA2FF" }}>{APP_VERSION.split(".").slice(0, 2).join(".")}</span></h1>
-            {!preparing && <p className="m-0 !mt-3 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
-            <div className="pt-3 flex items-center gap-3 flex-wrap">
+            {!preparing && <p className="m-0 !mt-2 max-w-[560px] text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
+            <div className="pt-2 flex items-center gap-3 flex-wrap">
               {g.status === "idle" && (
                 <button onClick={() => void launch()} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
                   <span aria-hidden>▶</span>LAUNCH LUMINOS
@@ -143,8 +145,8 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
                   <StopGameButton />
                 </>
               )}
-              {g.status === "idle" && <VersionSelect />}
-              {g.status === "idle" && <PresetSelect />}
+              {g.status === "idle" && <VersionSelect up={false} />}
+              {g.status === "idle" && <PresetSelect up={false} />}
               {g.status === "idle" && <button onClick={() => setHost(true)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium t hover:!text-white" style={{ background: "rgba(22,27,38,.9)", color: "#94A3B8" }}>Host World</button>}
             </div>
             {g.status === "idle" && <div className="pt-1"><WindowModeToggle /></div>}

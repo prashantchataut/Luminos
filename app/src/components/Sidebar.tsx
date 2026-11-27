@@ -19,7 +19,7 @@ const KIND: Record<string, string> = { MICROSOFT: "Microsoft", "ELY.BY": "Ely.by
 export default memo(function Sidebar({ page, go, name, skin, kind, onAccount }: { page: string; go: (r: string) => void; name: string; skin: string; kind: string; version?: string; onAccount: () => void }) {
   const g = useGame(), gv = useClient().prefs.gameVersion;
   const pct = Math.max(0, Math.min(100, Math.round(g.progress?.percent ?? g.fraction * 100)));
-  const live = g.status === "running" ? { text: "In-Game", color: "#34D399" } : g.status === "preparing" ? { text: `Launching ${pct}%`, color: "#7C93FF" } : { text: `Ready · MC ${gv}`, color: "#8A94A6" };
+  const live = g.status === "running" ? { text: "In-Game", color: "#34D399" } : g.status === "preparing" ? { text: `Launching ${pct}%`, color: "#7C93FF" } : { text: `Ready · ${gv}`, color: "#8A94A6" };
   return (
     <nav aria-label="Main" className="w-[224px] shrink-0 px-4 pt-5 pb-4 flex flex-col justify-between min-h-0" style={{ background: "#0F1218" }}>
       <div className="min-h-0 overflow-y-auto">
@@ -49,8 +49,8 @@ export default memo(function Sidebar({ page, go, name, skin, kind, onAccount }: 
           </button>
           <div className="flex items-center gap-2 px-1.5 h-7 text-[11.5px] font-medium" aria-live="polite">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: live.color }} />
-            <span className="flex-1 truncate" style={{ color: live.color }}>{live.text}</span>
-            {g.status === "idle" && <button onClick={() => dispatchEvent(new Event("luminos:update"))} className="t hover:text-white" style={{ color: "var(--mute)" }} title="Check for a newer Luminos release" aria-label="Check for updates">v{APP_VERSION} · Update?</button>}
+            <span className="flex-1 min-w-0 truncate" style={{ color: live.color }} title={live.text}>{live.text}</span>
+            {g.status === "idle" && <button onClick={() => dispatchEvent(new Event("luminos:update"))} className="t hover:text-white" style={{ color: "var(--mute)" }} title={`Luminos v${APP_VERSION} — check for a newer release`} aria-label="Check for updates">↻</button>}
           </div>
           {g.status === "running" && <StopGameButton compact />}
         </div>

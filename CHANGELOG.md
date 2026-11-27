@@ -1,11 +1,22 @@
 # Changelog
 
 ## 4.5.0
+
+### English
 - Launcher window: no longer always-on-top and no longer taller than 88% of the monitor, so it cannot cover the Windows taskbar (default 1200x720, minimum 960x580). Own title bar with minimize, maximize/restore and close, drag region and double-click to maximize. Always-on-top is an opt-in switch in Preferences.
 - Launcher: Minecraft version (1.21.4 to 1.19.4), engine preset and window mode selectors on Home and in Preferences, saved at once. Launch uses (or creates) the Fabric instance for exactly the selected version.
 - In-game client: startup screen redesigned as one left column of seven actions with keyboard navigation and a live engine badge; quick panel tabs renamed (Render, FPS); the open/close rule for Right Ctrl is now a tested pure function.
 - Client tests: 9 headless JUnit tests (clicks, tabs, in-place toggles, inline drawer, slider drag, key routing, Mixin registration) plus 2560x1600 renders of the three in-game screens. Composed renders, not captures of a running game.
 - Not verified: nothing was launched in a real Minecraft or on a real Windows desktop in this release; the Luminos Client loads on Minecraft 1.21.11 only.
+- **Release pipeline:** the 4.4.0 and 4.5.0 releases failed to publish because this section had no English / Español headings, and the real-game agent test never saw the startup screen (its marker only matched vanilla's TitleScreen). Both are fixed; the 26.x client jar is now versioned 4.5.0 too.
+
+### Español
+- **Ventana del lanzador:** ya no está siempre encima ni supera el 88% del monitor, por lo que no puede tapar la barra de tareas de Windows (por defecto 1200x720, mínimo 960x580). Barra de título propia con minimizar, maximizar/restaurar y cerrar.
+- **Lanzador:** selectores de versión de Minecraft (1.21.4 a 1.19.4), preajuste del motor y modo de ventana en Inicio y en Preferencias, guardados al instante. Jugar usa (o crea) la instancia Fabric de la versión elegida.
+- **Cliente en el juego:** pantalla de inicio rediseñada con siete acciones, navegación por teclado e indicador del motor; el Ctrl derecho abre y cierra el panel con una regla probada.
+- **Pruebas del cliente:** 9 pruebas JUnit sin ventana (clics, pestañas, interruptores, cajón de ajustes, deslizadores, teclas, registro de Mixins) y renders de 2560x1600 de las tres pantallas. Son composiciones, no capturas del juego.
+- **Publicación:** 4.4.0 y 4.5.0 no se publicaron porque faltaban los encabezados English / Español, y la prueba real del agente no detectaba la pantalla de inicio de Luminos. Ambos puntos están corregidos.
+- **Sin verificar:** no se ejecutó en una ventana real de Minecraft ni en un escritorio real de Windows; el cliente solo carga en Minecraft 1.21.11.
 
 ## 4.4.0
 

@@ -7,7 +7,7 @@ export type Inst = { id: string; name: string; mc: string; loader: string; mods?
 export type AuditReport = { ok: boolean; checked: number; replaced: string[]; dropped: { name: string; reason: string }[]; notes: string[] };
 
 export const SEED = {
-  version: "0.6.0",
+  version: "4.5.0",
   account: { username: "Mira", uuid: "7f3a…c91e", kind: "Offline", cape: "luminos-moon-cape", skin: "luminos-pilot" },
   instances: [
     { id: "luminos-263", name: "Luminos", mc: "26.3", loader: "Fabric", mods: 31, playtime: 51720, last: "Today", java: 25 },
