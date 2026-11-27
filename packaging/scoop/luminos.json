@@ -1,10 +1,10 @@
 {
-  "version": "4.3.0",
+  "version": "4.5.0",
   "description": "A fast Minecraft Java launcher with its own performance client.",
   "homepage": "https://prashantchataut.github.io/Luminos/",
   "license": "Proprietary",
-  "url": "https://github.com/prashantchataut/Luminos/releases/download/v4.3.0/Luminos-Portable.zip",
-  "hash": "8358b0963e380ccb6e21373757672f2e4f1abb319641fbb2f413bbd193568675",
+  "url": "https://github.com/prashantchataut/Luminos/releases/download/v4.5.0/Luminos-Portable.zip",
+  "hash": "0ccf50fce4f564a080ac267a336994ffedacdc5a14c0c8e6baa7ba62882804ed",
   "bin": "luminos.exe",
   "shortcuts": [
     [
