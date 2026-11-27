@@ -3,12 +3,13 @@ import { MODULES, modById, type Setting } from "../data/modules";
 import { BINDS } from "../data/keybinds";
 import { safeInvoke, safeWrite } from "../lib/tauri-bridge";
 import { set as setEngine } from "../store";
+import type { EnginePreset, WindowMode } from "../data/launcher";
 import { ITEMS, getLocker, onLocker, setCapeFromGame } from "../locker/catalog";
 
 export type Preset = "Competitive PvP" | "Survival Plus";
 export type Prefs = {
   resolution: string; launcherVis: "Keep Open" | "Hide while Playing" | "Minimize to Tray"; engine: "Max FPS" | "Balanced"; preset: Preset;
-  gameVersion: string; tab: string; hudPos: Record<string, [number, number]>; hudLock: boolean; hudGui: boolean;
+  gameVersion: string; enginePreset: EnginePreset; windowMode: WindowMode; alwaysOnTop: boolean; tab: string; hudPos: Record<string, [number, number]>; hudLock: boolean; hudGui: boolean;
 };
 type State = { on: Record<string, boolean>; cfg: Record<string, Record<string, unknown>>; favs: string[]; keys: Record<string, { key: string; mode?: "Hold" | "Toggle" }>; prefs: Prefs };
 
@@ -22,7 +23,7 @@ const fresh = (): State => ({
   on: Object.fromEntries(MODULES.map((m) => [m.id, m.on])),
   cfg: {}, favs: ["waypoints", "minimap", "zoom"],
   keys: Object.fromEntries(BINDS.map((b) => [b.id, { key: b.key, mode: b.mode }])),
-  prefs: { resolution: "1280 × 800 (Default)", launcherVis: "Keep Open", engine: "Balanced", preset: "Competitive PvP", gameVersion: "1.21.11", tab: "general", hudPos: {}, hudLock: false, hudGui: true },
+  prefs: { resolution: "1280 × 800 (Default)", launcherVis: "Keep Open", engine: "Balanced", preset: "Competitive PvP", gameVersion: "1.21.4", enginePreset: "Max FPS Engine", windowMode: "Windowed (1280×720)", alwaysOnTop: false, tab: "general", hudPos: {}, hudLock: false, hudGui: true },
 });
 let state: State = fresh();
 try {
@@ -109,6 +110,17 @@ export const resetKeys = () => commit({ ...state, keys: fresh().keys });
 export function setPref<K extends keyof Prefs>(k: K, v: Prefs[K]) {
   commit({ ...state, prefs: { ...state.prefs, [k]: v } });
   if (k === "launcherVis") setEngine("closeOnLaunch", v === "Hide while Playing");
+}
+/** Version / engine preset / window mode: saved at once to localStorage AND to launcher.json through Rust (`save_launcher_config`). */
+export function setLaunchChoice(patch: Partial<Pick<Prefs, "gameVersion" | "enginePreset" | "windowMode">>) {
+  const prefs = { ...state.prefs, ...patch };
+  if (patch.enginePreset) prefs.engine = patch.enginePreset === "Max FPS Engine" ? "Max FPS" : "Balanced";
+  commit({ ...state, prefs });
+  void safeInvoke("save_launcher_config", { config: { selectedVersion: prefs.gameVersion, enginePreset: prefs.enginePreset, windowMode: prefs.windowMode } }, null);
+}
+export function setAlwaysOnTop(v: boolean) {
+  commit({ ...state, prefs: { ...state.prefs, alwaysOnTop: v } });
+  void safeInvoke("set_window_always_on_top", { alwaysOnTop: v }, null);
 }
 export function applyPreset(p: Preset) {
   const on = { ...state.on };

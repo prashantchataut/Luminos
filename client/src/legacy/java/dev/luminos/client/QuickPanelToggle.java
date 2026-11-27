@@ -19,12 +19,19 @@ public final class QuickPanelToggle {
 	/** Right Ctrl, Right Shift, or the key stored as "open_mod_menu" by the launcher. */
 	public static boolean isPanelKey(int key) { return Hotkeys.opensPanel(key); }
 
+	static PanelRouting.Where where(Minecraft mc) {
+		Screen s = mc.screen;
+		if (s == null) return PanelRouting.Where.WORLD;
+		if (s instanceof LuminosQuickPanelScreen) return PanelRouting.Where.PANEL;
+		if (s instanceof LuminosMainMenuScreen) return PanelRouting.Where.MAIN_MENU;
+		if (s instanceof LuminosTitleScreen || s instanceof TitleScreen) return PanelRouting.Where.TITLE;
+		if (s instanceof PauseScreen) return PanelRouting.Where.PAUSE;
+		return PanelRouting.Where.OTHER;
+	}
+
 	/** True when the panel can be opened from (or closed on) the screen the player is looking at. */
 	public static boolean applicable(Minecraft mc) {
-		Screen s = mc.screen;
-		if (s instanceof LuminosQuickPanelScreen) return true;
-		if (s == null) return mc.player != null && mc.level != null;   // bare in-game view only: never over chat or inventories
-		return s instanceof LuminosMainMenuScreen || s instanceof LuminosTitleScreen || s instanceof TitleScreen || s instanceof PauseScreen;
+		return PanelRouting.route(where(mc), mc.player != null && mc.level != null) != PanelRouting.Action.IGNORE;
 	}
 
 	/** @return true when this press was an open/close request for the panel (the caller may cancel the key event). */

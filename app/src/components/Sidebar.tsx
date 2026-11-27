@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Icon } from "./Icon";
 import Head from "./Head";
 import LuminosLogo from "./LuminosLogo";
+import { useClient } from "../state/client";
 import { quitLauncher, useGame } from "../state/game";
 import { StopGameButton } from "../screens/Home";
 import { APP_VERSION } from "./UpdateBanner";
@@ -16,9 +17,9 @@ export const NAV = NAV_GROUPS.flatMap((g) => g.items);
 const KIND: Record<string, string> = { MICROSOFT: "Microsoft", "ELY.BY": "Ely.by", OFFLINE: "Offline" };
 
 export default memo(function Sidebar({ page, go, name, skin, kind, onAccount }: { page: string; go: (r: string) => void; name: string; skin: string; kind: string; version?: string; onAccount: () => void }) {
-  const g = useGame();
+  const g = useGame(), gv = useClient().prefs.gameVersion;
   const pct = Math.max(0, Math.min(100, Math.round(g.progress?.percent ?? g.fraction * 100)));
-  const live = g.status === "running" ? { text: "In-Game", color: "#34D399" } : g.status === "preparing" ? { text: `Launching ${pct}%`, color: "#7C93FF" } : { text: "Ready", color: "#8A94A6" };
+  const live = g.status === "running" ? { text: "In-Game", color: "#34D399" } : g.status === "preparing" ? { text: `Launching ${pct}%`, color: "#7C93FF" } : { text: `Ready · MC ${gv}`, color: "#8A94A6" };
   return (
     <nav aria-label="Main" className="w-[224px] shrink-0 px-4 pt-5 pb-4 flex flex-col justify-between min-h-0" style={{ background: "#0F1218" }}>
       <div className="min-h-0 overflow-y-auto">

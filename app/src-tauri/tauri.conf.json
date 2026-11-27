@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Luminos",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "identifier": "dev.luminos.launcher",
   "build": {
     "frontendDist": "../dist",
@@ -15,15 +15,20 @@
       {
         "label": "main",
         "title": "Luminos",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 1100,
-        "minHeight": 720,
+        "width": 1200,
+        "height": 720,
+        "minWidth": 960,
+        "minHeight": 580,
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "decorations": true,
-        "backgroundColor": "#0B0D12"
+        "decorations": false,
+        "backgroundColor": "#0B0D12",
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "alwaysOnTop": false,
+        "shadow": true
       }
     ],
     "security": {

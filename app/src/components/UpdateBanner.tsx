@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { safeInvoke, isTauri } from "../lib/tauri-bridge";
 
-export const APP_VERSION = "4.3.0";
+export const APP_VERSION = "4.5.0";
 export type UpdateInfo = {
   updateAvailable: boolean; currentVersion: string; latestVersion: string; downloadUrl: string | null; assetName?: string | null; assetSize?: number;
   releaseNotes: string; publishedAt?: string; page: string | null; sizeBytes: number;

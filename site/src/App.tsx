@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Hero from "./components/Hero";
+import InsideV45 from "./components/InsideV45";
 import Tour from "./components/Tour";
 import Themes from "./components/Themes";
 import Android from "./components/Android";
@@ -96,6 +97,7 @@ export default function App() {
       ) : (
         <main id="main">
           <Hero release={release} />
+          <InsideV45 />
           <Tour />
           <Themes />
           <Capes />

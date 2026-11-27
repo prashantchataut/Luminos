@@ -2,10 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { bootstrap, type Inst } from "./api";
 import { safeInvoke } from "./lib/tauri-bridge";
 import ErrorBoundary from "./lib/ErrorBoundary";
+import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import AccountModal, { useAccounts } from "./components/AccountModal";
 import OnboardingModal from "./components/OnboardingModal";
-import UpdateBanner, { useAppUpdate } from "./components/UpdateBanner";
+import UpdateBanner, { APP_VERSION, useAppUpdate } from "./components/UpdateBanner";
 import UpdateModal from "./components/UpdateModal";
 import { LaunchCrashModal } from "./components/LaunchProgress";
 import { skinById, skinSrc, useLocker } from "./locker/catalog";
@@ -18,7 +19,7 @@ import Preferences from "./screens/Preferences";
 import Themes from "./screens/Themes";
 import Profiles from "./screens/Profiles";
 import HudStudio from "./screens/HudStudio";
-import { startGameConfigSync } from "./state/client";
+import { getClient, startGameConfigSync } from "./state/client";
 
 // The only screen that owns a WebGL context. Loaded on demand, unmounted (and its context released) on leaving.
 const Cosmetics = lazy(() => import("./screens/Cosmetics"));
@@ -44,11 +45,13 @@ export default function App() {
   useEffect(() => {
     bootstrap()
       .then((b: any) => { setBoot(b); if (!b.setupDone) setWizard(true); })
-      .catch(() => setBoot({ version: "4.3.0", setupDone: true, account: {}, instances: [] }));
+      .catch(() => setBoot({ version: "4.5.0", setupDone: true, account: {}, instances: [] }));
   }, []);
   useEffect(() => { if (boot) requestAnimationFrame(() => requestAnimationFrame(() => { void safeInvoke("app_ready", {}, null); })); }, [boot !== null]);
   useEffect(() => { void startGameWatch(); }, []);
   useEffect(() => startGameConfigSync(), []);
+  // Always-on-top is opt-in: the window starts normal (Rust re-asserts false) and only an explicit Preferences choice turns it on again.
+  useEffect(() => { if (getClient().prefs.alwaysOnTop) void safeInvoke("set_window_always_on_top", { alwaysOnTop: true }, null); }, []);
   useEffect(() => { document.documentElement.classList.toggle("reduce", s.reduceMotion); }, [s.reduceMotion]);
   const upd = useAppUpdate(s.checkUpdates);
   const [updOpen, setUpdOpen] = useState(false);
@@ -62,7 +65,9 @@ export default function App() {
   const version = inst?.mc ?? "1.21.4";
 
   return (
-    <div className="w-screen h-screen overflow-hidden flex select-none antialiased" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+    <div className="w-screen h-screen overflow-hidden flex flex-col select-none antialiased" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+      <TitleBar version={boot.version || APP_VERSION} />
+      <div className="flex-1 min-h-0 flex">
       <Sidebar page={page} go={go} name={accounts.current.name} skin={skinSrc(skinById(locker.skin))} kind={accounts.current.kind} version={version} onAccount={() => setAcct(true)} />
       <main className="flex-1 min-w-0 min-h-0 flex flex-col">
         <UpdateBanner u={upd} onOpen={() => setUpdOpen(true)} />
@@ -83,6 +88,7 @@ export default function App() {
         </div>
         </div>
       </main>
+      </div>
       {updOpen && <UpdateModal u={upd} onClose={() => setUpdOpen(false)} />}
       {wizard && <OnboardingModal onClose={closeWizard} />}
       {acct && <AccountModal onClose={closeAccount} />}

@@ -3,6 +3,8 @@ package dev.luminos.client;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 
@@ -26,18 +28,18 @@ import java.util.Locale;
  */
 public final class ModPanelView {
 	public enum Cat {
-		ALL("All"), HUD("HUD"), VISUALS("Visuals"), WORLD("World"), PVP("PvP"), MOVEMENT("Movement"), PERFORMANCE("Performance");
+		ALL("All"), HUD("HUD"), RENDER("Render"), WORLD("World"), PVP("PvP"), MOVEMENT("Movement"), FPS("FPS");
 		final String label;
 		Cat(String l) { label = l; }
 		boolean has(Feature f) {
 			return switch (this) {
 				case ALL -> true;
 				case HUD -> f.group == Feature.Group.HUD;
-				case VISUALS -> f.group == Feature.Group.VISUALS && !movement(f);
+				case RENDER -> f.group == Feature.Group.VISUALS && !movement(f);
 				case WORLD -> f.group == Feature.Group.UTILITY;
 				case PVP -> f.group == Feature.Group.PVP && !movement(f);
 				case MOVEMENT -> movement(f);
-				case PERFORMANCE -> f.group == Feature.Group.PERFORMANCE;
+				case FPS -> f.group == Feature.Group.PERFORMANCE;
 			};
 		}
 		private static boolean movement(Feature f) {
@@ -63,6 +65,8 @@ public final class ModPanelView {
 	private final Runnable close, openEditor, openAdvanced;
 	private Runnable clickSound = () -> {};
 	private final List<HitRegion> hitRegions = new ArrayList<>();
+	/** Named rectangles of the last frame ("tab:HUD", "card:keystrokes", "gear:keystrokes", "slider:@scale", ...): what the headless input tests aim at. */
+	private final Map<String, int[]> rects = new LinkedHashMap<>();
 	private float scrollOffset, maxScroll, drawerScroll, maxDrawerScroll;
 	private Feature expandedModule;
 	private boolean searchFocused = true;
@@ -105,6 +109,9 @@ public final class ModPanelView {
 	public Feature expanded() { return expandedModule; }
 	/** Last frame's regions, for the headless hit-test. */
 	java.util.List<HitRegion> regions() { return hitRegions; }
+	int[] rect(String key) { return rects.get(key); }
+	float scrollOffsetPx() { return scrollOffset; }
+	float maxScrollPx() { return maxScroll; }
 	int gridTopPx() { return gridTop; }
 	int gridBottomPx() { return gridBottom; }
 
@@ -128,6 +135,7 @@ public final class ModPanelView {
 	public void render(Gfx g, int mouseX, int mouseY) {
 		mx = mouseX; my = mouseY;
 		hitRegions.clear();
+		rects.clear();
 		int sw = g.width(), sh = g.height();
 		g.fill(0, 0, sw, sh, SCRIM);
 		int w = modalW(sw), h = modalH(sh), x = (sw - w) / 2, y = (sh - h) / 2;
@@ -201,6 +209,7 @@ public final class ModPanelView {
 			g.text(c.label, tx + pad, y + 6, sel ? INK : hot ? 0xFFCBD5E1 : MUTE);
 			if (sel) g.fill(tx + pad, y + th - 2, tx + tw - pad, y + th, COBALT);
 			final Cat cc = c;
+			rects.put("tab:" + c.name(), new int[] { tx, y, tw, th });
 			region(tx, y, tw, th, () -> { cat = cc; scrollOffset = 0; expandedModule = null; clickSound.run(); }, null, false);
 			tx += tw + 2;
 		}
@@ -222,6 +231,7 @@ public final class ModPanelView {
 		boolean hotE = over(ex, cy, ew, 20);
 		Glass.roundFill(g, ex, cy, ew, 20, 6, hotE ? COBALT : OFF);
 		g.text("Edit HUD", ex + 8, cy + 6, INK);
+		rects.put("editor", new int[] { ex, cy, ew, 20 });
 		region(ex, cy, ew, 20, () -> { clickSound.run(); openEditor.run(); }, null, false);
 	}
 
@@ -247,12 +257,15 @@ public final class ModPanelView {
 		// registration order = paint order: body first, the switch and the gear on top of it
 		Runnable flip = lock != null ? null : () -> { ff.toggle(); clickSound.run(); };   // toggle() saves the config; never opens a screen
 		Runnable expand = !gear ? null : () -> { expandedModule = expandedModule == ff ? null : ff; drawerScroll = 0; clickSound.run(); };
+		rects.put("card:" + f.id, new int[] { x, y, w, CARD_H });
+		rects.put("toggle:" + f.id, new int[] { toggleX - 4, y, 36, CARD_H });
 		region(x, y, w, CARD_H, flip, expand, true);
 		if (lock == null) region(toggleX - 4, y, 36, CARD_H, flip, expand, true);
 		if (gear) {
 			boolean hg = inGrid && over(gearX - 4, y + 8, 24, CARD_H - 16);
 			if (open || hg) Glass.roundFill(g, gearX - 2, y + 12, 20, 20, 6, OFF);
 			Icons.draw(g, "gear", gearX + 4, y + 18, open ? ON_TXT : hg ? INK : MUTE);
+			rects.put("gear:" + f.id, new int[] { gearX - 4, y + 8, 24, CARD_H - 16 });
 			region(gearX - 4, y + 8, 24, CARD_H - 16, expand, expand, true);
 		}
 	}
@@ -296,8 +309,9 @@ public final class ModPanelView {
 		g.fill(dx + 8, dy + 56, dx + dw - 8, dy + 57, 0x14FFFFFF);
 
 		int areaTop = dy + 60, areaBottom = dy + dh - 6;
+		java.util.List<Feature.Opt> opts = drawerOpts(f);
 		int content = 1;
-		for (Feature.Opt o : f.opts) content += o.slider() ? 30 : 22;
+		for (Feature.Opt o : opts) content += o.slider() ? 30 : 22;
 		maxDrawerScroll = Math.max(0, content - (areaBottom - areaTop));
 		drawerScroll = Math.max(0, Math.min(maxDrawerScroll, drawerScroll));
 		// the drawer's rows are a scrolling viewport too: clamp their hits to it, like the grid's
@@ -305,8 +319,8 @@ public final class ModPanelView {
 		gridTop = areaTop; gridBottom = areaBottom;
 		g.clip(dx + 1, areaTop, dx + dw - 1, areaBottom);
 		int cyRow = areaTop - Math.round(drawerScroll);
-		for (Feature.Opt o : f.opts) {
-			float v = Features.optGet(f, o);
+		for (Feature.Opt o : opts) {
+			float v = optValue(f, o);
 			if (o.slider()) {
 				String val = (Math.abs(v - Math.round(v)) < 0.001f ? String.valueOf(Math.round(v)) : String.format(Locale.ROOT, "%.1f", v)) + o.unit();
 				Glass.text(g, Glass.fit(g, o.label(), 0.75f, dw - 60), dx + 10, cyRow, 0.75f, MUTE);
@@ -317,6 +331,7 @@ public final class ModPanelView {
 				Glass.roundFill(g, tx, ty, Math.max(4, Math.round(tw * t)), 4, 2, COBALT);
 				Glass.roundFill(g, tx + Math.round((tw - 8) * t), ty - 2, 8, 8, 4, 0xFFFFFFFF);
 				final Slider s = new Slider(tx, tw, f, o);
+				rects.put("slider:" + o.key(), new int[] { tx - 4, ty - 8, tw + 8, 18 });
 				region(tx - 4, ty - 8, tw + 8, 18, () -> { dragging = s; setSlider(s, mx); }, null, true);
 				cyRow += 30;
 			} else {
@@ -341,8 +356,12 @@ public final class ModPanelView {
 		float t = (float) Math.max(0, Math.min(1, (x - s.x) / s.w));
 		float v = s.o.min() + t * (s.o.max() - s.o.min());
 		if (s.o.step() > 0) v = Math.max(s.o.min(), Math.min(s.o.max(), Math.round(v / s.o.step()) * s.o.step()));
-		Features.optSet(s.f, s.o, v);
+		optStore(s.f, s.o, v);
 	}
+
+	private static List<Feature.Opt> drawerOpts(Feature f) { return f.opts; }   // HUD widgets already carry a real "@scale" option (Features.java)
+	static float optValue(Feature f, Feature.Opt o) { return Features.optGet(f, o); }
+	private static void optStore(Feature f, Feature.Opt o, float v) { Features.optSet(f, o, v); }
 
 	// ------------------------------------------------------------------ input
 	/** Left (0) or right (1) click. The modal swallows every click so nothing underneath can react. */

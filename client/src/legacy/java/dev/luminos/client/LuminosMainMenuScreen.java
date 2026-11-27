@@ -73,6 +73,7 @@ public final class LuminosMainMenuScreen extends Screen {
 	@Override
 	public boolean keyPressed(KeyEvent e) {
 		if (Hotkeys.opensPanel(e.key())) { QuickPanelToggle.press(e.key()); return true; }   // normally handled earlier by KeyboardMixin
+		if (view.key(e.key())) return true;   // Up/Down/Tab/Enter/H
 		if (e.key() == InputConstants.KEY_ESCAPE) return true;   // nothing to go back to
 		return super.keyPressed(e);
 	}

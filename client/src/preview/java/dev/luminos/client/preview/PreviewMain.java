@@ -74,11 +74,14 @@ public final class PreviewMain {
 		static final Map<String, BufferedImage> glyphs = new HashMap<>();
 		static final Map<String, BufferedImage> tex = new HashMap<>();
 
-		public J2D(int w, int h) throws Exception {
-			this.w = w; this.h = h;
-			img = new BufferedImage(w * SCALE, h * SCALE, BufferedImage.TYPE_INT_ARGB);
+		final int scale;
+		public int blurCalls;
+		public J2D(int w, int h) throws Exception { this(w, h, SCALE); }
+		public J2D(int w, int h, int scale) throws Exception {
+			this.w = w; this.h = h; this.scale = scale;
+			img = new BufferedImage(w * scale, h * scale, BufferedImage.TYPE_INT_ARGB);
 			g = img.createGraphics();
-			g.scale(SCALE, SCALE);
+			g.scale(scale, scale);
 			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 			if (font == null) loadFont();
@@ -141,7 +144,9 @@ public final class PreviewMain {
 		public void pop() { g.setTransform(saved.pop()); }
 		final java.util.ArrayDeque<AffineTransform> saved = new java.util.ArrayDeque<>();
 		public void effectIcon(Holder<MobEffect> effect, int x, int y, int size) {}
-		public void blur(int level) {}
+		public void blur(int level) { blurCalls++; }
+		public boolean hasTexture(String path) { return load(path) != null; }
+		public BufferedImage image() { return img; }
 		public void clip(int x0, int y0, int x1, int y1) { g.setClip(x0, y0, x1 - x0, y1 - y0); }
 		public void unclip() { g.setClip(null); }
 

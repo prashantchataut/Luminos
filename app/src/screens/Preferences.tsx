@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import Page from "../components/Page";
 import { Icon } from "../components/Icon";
 import { PageHeader, Pills, Row, Select, Slider, Switch } from "../components/ui";
-import { setPref, useClient, type Prefs } from "../state/client";
+import { setAlwaysOnTop, setPref, useClient, type Prefs } from "../state/client";
+import { PresetSelect, VersionSelect, WindowModeToggle } from "../components/LaunchSelectors";
 import { set, useSettings } from "../store";
 import { engine } from "../engine";
 import { safeInvoke } from "../lib/tauri-bridge";
@@ -137,6 +138,18 @@ export default function Preferences() {
         <PRow icon="sliders" title="Allocated Memory (RAM)" sub={<><span data-testid="free-ram">Free System RAM: {freeGb ? `${freeGb} GB` : "unavailable"}</span>{free != null && effective < ram ? ` · game will start with ${effective} MB` : ""}</>}>
           <Slider label="Allocated memory" value={ram} min={1024} max={3072} step={256} onChange={(v) => set("memoryMb", v)} w={200} />
           <span className="mono text-[12px] w-[64px] text-right num">{ram} MB</span>
+        </PRow>
+        <PRow icon="home" title="Minecraft Version" sub="Same choice as the Home launch bar">
+          <VersionSelect up={false} />
+        </PRow>
+        <PRow icon="bolt" title="Engine Preset" sub="Max FPS, Competitive PvP or Balanced Quality">
+          <PresetSelect up={false} />
+        </PRow>
+        <PRow icon="hud" title="Window Mode" sub="How the game window opens">
+          <WindowModeToggle />
+        </PRow>
+        <PRow icon="gear" title="Keep Luminos above other windows" sub="Off by default. The launcher stays a normal window: Alt+Tab, the taskbar and other apps work as usual">
+          <Switch on={c.prefs.alwaysOnTop} onChange={(v) => setAlwaysOnTop(v)} label="Always on top" />
         </PRow>
         <PRow icon="hud" title="Resolution" sub="Size of the game window on launch">
           <Select label="Window resolution" value={c.prefs.resolution} options={RES} onChange={(v) => setPref("resolution", v)} />

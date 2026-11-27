@@ -32,10 +32,17 @@ public final class Hud {
 	static int py(int screenH, int h, Config.ModuleCfg c) { return Math.max(0, Math.min(c.y, screenH - h - MARGIN)); }
 
 	/** On-screen bounds of a module as {x, y, w, h}, scale applied. */
+	/** Headless preview/tests only: the GUI size to lay out against when there is no game window. Null in the game. */
+	private static int[] previewSize;
+	public static void previewSize(int w, int h) { previewSize = w <= 0 ? null : new int[] { w, h }; }
+
+	private static int guiW(Minecraft mc) { return previewSize != null ? previewSize[0] : mc.getWindow().getGuiScaledWidth(); }
+	private static int guiH(Minecraft mc) { return previewSize != null ? previewSize[1] : mc.getWindow().getGuiScaledHeight(); }
+
 	public static int[] bounds(Minecraft mc, HudModule m, Config.ModuleCfg c) {
 		int w = (int) (m.width(mc) * c.scale), h = (int) (m.height(mc) * c.scale);
-		if (!c.enabled) { w = Math.min(w, (int) (12 + (m.title().length() + 6) * 3.4)); h = Math.min(h, 14); }   // off modules are a label chip in the editor, not a ghost of their full size
-		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
+		if (!c.enabled) { w = HudModule.textWidth(m.title() + " (off)") + 10; h = 14; }   // off modules are a label chip in the editor, not a ghost of their full size
+		int sw = guiW(mc), sh = guiH(mc);
 		return new int[]{m.centered() ? (sw - w) / 2 : px(sw, w, c), m.centered() ? (sh - h) / 2 : py(sh, h, c), w, h};
 	}
 
@@ -76,7 +83,7 @@ public final class Hud {
 		if (dragging == null) return false;
 		Config.ModuleCfg c = Config.get().of(dragging);
 		int w = (int) (dragging.width(mc) * c.scale), h = (int) (dragging.height(mc) * c.scale);
-		int sw = mc.getWindow().getGuiScaledWidth(), sh = mc.getWindow().getGuiScaledHeight();
+		int sw = guiW(mc), sh = guiH(mc);
 		int nx = Math.max(0, (int) mx - grabX), ny = Math.max(0, (int) my - grabY);
 		guideX = -1;
 		guideY = -1;

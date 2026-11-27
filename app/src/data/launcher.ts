@@ -42,3 +42,22 @@ export const PRESETS = {
 } as const;
 
 
+
+/** Minecraft lines the launcher can start (Fabric). The in-game Luminos Client targets the newest line; older lines launch Fabric + the performance stack. */
+export const MC_VERSIONS = [
+  { id: "1.21.4", tag: "Latest · Recommended" },
+  { id: "1.21.3", tag: "Fabric Performance" },
+  { id: "1.21.1", tag: "Fabric Long-Term" },
+  { id: "1.20.6", tag: "Fabric Stable" },
+  { id: "1.20.4", tag: "Competitive SMP" },
+  { id: "1.20.1", tag: "Modded / Classic Fabric" },
+  { id: "1.19.4", tag: "Legacy Fabric" },
+] as const;
+export const ENGINE_PRESETS = [
+  { id: "Max FPS Engine", blurb: "Aggressive entity/particle culling + Sodium + FerriteCore" },
+  { id: "Competitive PvP", blurb: "Low input latency + raw mouse + clear visuals" },
+  { id: "Balanced Quality", blurb: "Smooth lighting + full particles + 3D capes" },
+] as const;
+export const WINDOW_MODES = ["Windowed (1280×720)", "Borderless Windowed", "Fullscreen"] as const;
+export type EnginePreset = (typeof ENGINE_PRESETS)[number]["id"];
+export type WindowMode = (typeof WINDOW_MODES)[number];

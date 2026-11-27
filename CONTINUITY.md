@@ -23,6 +23,14 @@ Luminos is a light, fast, **all-Rust** Minecraft Java launcher with a dithered-b
 ## Status legend
 ✅ done & verified · 🟡 written, not yet verified end-to-end · ⬜ planned
 
+## Session 4.5.0: window fix, version/preset switcher, headless client tests
+- Done and run: client `./gradlew build` on JDK 25 (9 JUnit tests pass, jar built), 3 render rounds in `docs/design/rounds/mc-*-{1,2,3}.png` (viewed, distinct hashes), app `tsc` + `vite build`, site `vite build`.
+- Launcher: custom title bar (decorations off) with minimize/maximize/close + drag region; window 1200x720 (min 960x580), always-on-top off and re-asserted, clamped to 88% of the monitor in Rust; Version (1.21.4..1.19.4) / Engine preset / Window mode selectors on Home and Preferences, saved via `save_launcher_config`; launch now resolves/creates the Fabric instance for the exact selected version.
+- 🟡 Not run: `app/src-tauri` was not compiled locally (no cargo/webkit; CI first), `cargo test` not run locally, launcher Playwright rounds not run (headless Chromium lacks system libs here), nothing launched in a real Minecraft, launcher window behaviour on real Windows not seen.
+- 🟡 The in-game client targets Minecraft 1.21.11; the launcher can start older Fabric versions but Luminos Client does not load there.
+- Engine preset and window mode are exported to the game as LUMINOS_ENGINE_PRESET / LUMINOS_WINDOW_MODE env vars; the client does not read them yet.
+- Safe-RAM slider unchanged (1024..3072, memguard rule); the brief's 512 MB floor was not applied.
+
 ## Session 4.2.0: memory crash, stale client jar, real title buttons, calmer launcher
 - Done and run: `memguard` (core, 5 unit tests, Windows branch type-checked with rustc), `launch_watch` purge tests (10), `perfconfig` test, Gradle build of `client` (1.21.11) and `client26` (26.3) on JDK 25, app `tsc` + `vite build`, 3 real Playwright rounds (`docs/design/rounds/`), `node scripts/verify-v4.2.mjs`.
 - 🟡 Not run: `app/src-tauri` was not compiled locally (no webkit here; CI first), the title mixin and buttons were never launched in a real game, Windows `GlobalMemoryStatusEx` path never executed, OneClient screenshots never seen.

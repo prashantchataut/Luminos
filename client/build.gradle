@@ -24,6 +24,9 @@ loom {
 }
 
 dependencies {
+	testImplementation platform('org.junit:junit-bom:5.11.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -77,3 +80,24 @@ tasks.register('hitTest', JavaExec) {
 	systemProperty 'java.awt.headless', 'true'
 	args(project.findProperty('hitOut') ?: "${buildDir}/hit-test.txt")
 }
+
+// Headless input + render tests: drive the REAL ModPanelView / MainMenuView / HudEditor (the code the in-game screens delegate to) through
+// the Java2D Gfx, assert clicks/keys/scrolls, and write 2560x1600 PNGs.  ./gradlew testAndRenderScreens -Pround=1 -PrendersDir=<dir>
+sourceSets {
+	test {
+		java.srcDirs = ['src/test/java']
+		compileClasspath += sourceSets.preview.output
+		runtimeClasspath += sourceSets.preview.output
+	}
+}
+test {
+	useJUnitPlatform()
+	dependsOn 'previewClasses'
+	maxHeapSize = '700m'
+	systemProperty 'java.awt.headless', 'true'
+	systemProperty 'luminos.rounds.dir', (project.findProperty('rendersDir') ?: "${buildDir}/renders").toString()
+	systemProperty 'luminos.round', (project.findProperty('round') ?: '1').toString()
+	systemProperty 'luminos.src.dir', projectDir.absolutePath
+	testLogging { events 'passed', 'failed', 'skipped'; showStandardStreams = true }
+}
+tasks.register('testAndRenderScreens') { dependsOn 'test' }

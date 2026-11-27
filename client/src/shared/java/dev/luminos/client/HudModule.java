@@ -56,7 +56,13 @@ public abstract class HudModule {
 
 	protected int ink() { return primary() ? Glass.INK : Glass.INK2; }
 
-	protected static int tw(String s) { return Minecraft.getInstance().font.width(s); }
+	/** Headless preview/tests only: measures text without a running game. Null in the game, where the real font is used. */
+	private static java.util.function.ToIntFunction<String> previewMeasure;
+	public static void previewMeasure(java.util.function.ToIntFunction<String> f) { previewMeasure = f; }
+
+	public static int textWidth(String s) { return tw(s); }
+
+	protected static int tw(String s) { return previewMeasure != null ? previewMeasure.applyAsInt(s) : Minecraft.getInstance().font.width(s); }
 
 	protected boolean opt(String key, boolean def) { return Config.flag(id() + "." + key, def); }
 

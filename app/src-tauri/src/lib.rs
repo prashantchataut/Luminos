@@ -274,8 +274,17 @@ async fn create_instance(name: String, mc: String, with_preset: bool) -> R<Value
 ///  - `launch` (preparing -> client -> launching -> running -> exited | failed), kept for the existing screens,
 ///  - `game-state` (idle | preparing | running | crashed). "running" is sent only once Minecraft has really opened its window.
 #[tauri::command]
-async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProcessState>, id: String, quick: Option<String>, world_path: Option<String>) -> R<()> {
+async fn launch_instance(app: AppHandle, state: tauri::State<'_, game::GameProcessState>, id: String, quick: Option<String>, world_path: Option<String>, mc_version: Option<String>, engine_preset: Option<String>, window_mode: Option<String>) -> R<()> {
     let inst = instances::list().into_iter().find(|i| i.id == id).ok_or("That instance no longer exists")?;
+    // The launcher resolves the instance for the selected version; refuse a mismatch instead of silently starting another Minecraft.
+    if let Some(want) = mc_version.as_deref() {
+        if !want.is_empty() && want != inst.mc_version {
+            return Err(format!("Instance \"{}\" is Minecraft {}, but {} is selected", inst.name, inst.mc_version, want));
+        }
+    }
+    // Exported for the game process (inherited): which engine preset and window mode the player picked in the launcher.
+    if let Some(p) = engine_preset.as_deref() { std::env::set_var("LUMINOS_ENGINE_PRESET", p); }
+    if let Some(m) = window_mode.as_deref() { std::env::set_var("LUMINOS_WINDOW_MODE", m); }
     let gen = state.begin(&inst.id)?;
     let _ = app.emit("game-state", json!({ "status": "preparing", "pid": null, "instance": inst.id }));
     std::thread::spawn(move || {
@@ -680,17 +689,81 @@ fn app_ready() {
     }
 }
 
+/// Largest share of the monitor the launcher window may take, so it never reaches the Windows taskbar (88%).
+const MAX_WORK_AREA_SHARE: f64 = 0.88;
+
+/// Pure sizing rule, unit-tested: a logical size that fits inside `share` of a monitor but never drops below the window minimum.
+pub fn clamp_to_monitor(want: (f64, f64), monitor_logical: (f64, f64), share: f64, min: (f64, f64)) -> (f64, f64) {
+    let w = want.0.min(monitor_logical.0 * share).max(min.0.min(monitor_logical.0));
+    let h = want.1.min(monitor_logical.1 * share).max(min.1.min(monitor_logical.1));
+    (w.floor(), h.floor())
+}
+
+/// Startup rules for the main window: never always-on-top, never fullscreen, never taller than 88% of the monitor, centered.
+/// (A 1080p laptop at 150% scaling has only 720 logical px of height; a fixed 800 px window used to cover the taskbar.)
+fn fit_main_window(app: &mut tauri::App) {
+    use tauri::{LogicalSize, Manager};
+    let Some(win) = app.get_webview_window("main") else { return };
+    let _ = win.set_always_on_top(false);
+    let _ = win.set_fullscreen(false);
+    if let Ok(Some(mon)) = win.current_monitor() {
+        let scale = mon.scale_factor().max(0.5);
+        let size = mon.size();
+        let logical = (size.width as f64 / scale, size.height as f64 / scale);
+        let (w, h) = clamp_to_monitor((1200.0, 720.0), logical, MAX_WORK_AREA_SHARE, (960.0, 580.0));
+        let _ = win.set_size(LogicalSize::new(w, h));
+    }
+    let _ = win.center();
+}
+
+/// Opt-in only (Preferences > "Keep Luminos above other windows"). Default is false and is re-asserted at every start.
+#[tauri::command]
+fn set_window_always_on_top(window: tauri::WebviewWindow, always_on_top: bool) -> R<()> {
+    window.set_always_on_top(always_on_top).map_err(|e| e.to_string())
+}
+
+/// Persists the launcher's own choices (selected Minecraft version, engine preset, window mode) next to settings.json.
+#[tauri::command]
+fn save_launcher_config(config: Value) -> R<()> {
+    let path = luminos_core::paths::root().join("launcher.json");
+    if let Some(dir) = path.parent() { let _ = std::fs::create_dir_all(dir); }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(&config).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, &path).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::clamp_to_monitor;
+    #[test]
+    fn fits_1080p_at_150_percent() {
+        // 1920x1080 @150% = 1280x720 logical: 88% -> 1126x633, still above the 960x580 minimum.
+        assert_eq!(clamp_to_monitor((1200.0, 720.0), (1280.0, 720.0), 0.88, (960.0, 580.0)), (1126.0, 633.0));
+    }
+    #[test]
+    fn leaves_big_monitors_alone() {
+        assert_eq!(clamp_to_monitor((1200.0, 720.0), (2560.0, 1440.0), 0.88, (960.0, 580.0)), (1200.0, 720.0));
+    }
+    #[test]
+    fn never_below_minimum_on_tiny_screens() {
+        assert_eq!(clamp_to_monitor((1200.0, 720.0), (1024.0, 600.0), 0.88, (960.0, 580.0)), (960.0, 580.0));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = STARTED.set(std::time::Instant::now());
     tauri::Builder::default()
         .manage(game::GameProcessState::default())
-        .setup(|_| {
+        .setup(|app| {
             discord::start();
+            fit_main_window(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             app_ready,
+            set_window_always_on_top,
+            save_launcher_config,
             bootstrap,
             set_setting,
             name_check,

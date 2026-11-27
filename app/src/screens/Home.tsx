@@ -4,7 +4,9 @@ import { Icon } from "../components/Icon";
 import { Modal } from "../components/ui";
 import { LaunchProgressPanel } from "../components/LaunchProgress";
 import { MODULES } from "../data/modules";
-import { applyPreset, PRESETS, setPref, useClient, writeGameConfigNow, type Preset } from "../state/client";
+import { useClient, writeGameConfigNow } from "../state/client";
+import { PresetSelect, VersionSelect, WindowModeToggle } from "../components/LaunchSelectors";
+import { APP_VERSION } from "../components/UpdateBanner";
 import { markIdle, markPreparing, notify, stopGame, useGame } from "../state/game";
 import { isTauri, safeInvoke } from "../lib/tauri-bridge";
 import type { Boot } from "../App";
@@ -54,17 +56,6 @@ const QCard = memo(function QCard({ title, sub, tag, icon, seed, onPlay }: { tit
   );
 });
 
-function Menu({ label, items, value, onPick }: { label: string; items: string[]; value: string; onPick: (v: string) => void }) {
-  const [open, setOpen] = useState(false), ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (!open) return; const f = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); }; addEventListener("mousedown", f); return () => removeEventListener("mousedown", f); }, [open]);
-  return (
-    <div ref={ref} className="relative">
-      <button aria-haspopup="listbox" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium flex items-center gap-2 t press" style={{ background: "rgba(22,27,38,.9)", color: "#E2E8F0" }}>{value}<Icon n="chev" s={14} /></button>
-      {open && <ul role="listbox" className="pop absolute bottom-[calc(100%+8px)] left-0 min-w-full w-max rounded-[12px] p-1.5 z-20 m-0 list-none" style={{ background: "var(--side)", boxShadow: "0 12px 40px rgba(0,0,0,.5)" }}>{items.map((i) => <li key={i}><button role="option" aria-selected={i === value} onClick={() => { onPick(i); setOpen(false); }} className="w-full h-9 px-3 rounded-[8px] text-left text-[13px] flex items-center justify-between gap-6 t hover:bg-[var(--surface)]">{i}{i === value && <Icon n="check" s={14} />}</button></li>)}</ul>}
-    </div>
-  );
-}
-
 /** The red button shown while Minecraft is starting or running. Kills the game and restores Launch Game at once. */
 export function StopGameButton({ compact = false }: { compact?: boolean }) {
   const g = useGame();
@@ -83,7 +74,6 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
   const [host, setHost] = useState(false), [addOpen, setAddOpen] = useState(false), [toast, setToast] = useState("");
   const [local, setLocal] = useState<Local>(EMPTY), [scanned, setScanned] = useState(false), [scanning, setScanning] = useState(false);
   const [sName, setSName] = useState(""), [sIp, setSIp] = useState(""), [sErr, setSErr] = useState("");
-  const versions = [...new Set([c.prefs.gameVersion, ...boot.instances.map((i) => i.mc)])].filter((v) => /^\d/.test(v)).slice(0, 6);
 
   const refresh = useCallback(async () => {
     setScanning(true);
@@ -101,15 +91,16 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
     if (!isTauri()) { setToast("Launching runs in the desktop app."); return; }
     markPreparing();
     await writeGameConfigNow(); // the game starts with exactly the modules and keys shown in the launcher
-    const fabric = boot.instances.filter((i) => i.loader === "Fabric");
-    let id = t?.instanceId ?? (fabric.find((i) => i.mc === c.prefs.gameVersion) ?? fabric[0] ?? boot.instances[0])?.id;
+    // The instance must be Fabric AND the exact Minecraft version selected in the launch bar; otherwise one is created for it.
+    const want = c.prefs.gameVersion;
+    let id = t?.instanceId ?? boot.instances.find((i) => i.loader === "Fabric" && i.mc === want)?.id;
     if (!id) {
-      setToast(`Setting up Luminos for Minecraft ${c.prefs.gameVersion}…`);
-      const made = await safeInvoke<{ instance?: { id: string } } | null>("create_instance", { name: "Luminos", mc: c.prefs.gameVersion, withPreset: true }, null, 180000);
+      setToast(`Setting up Luminos for Minecraft ${want}…`);
+      const made = await safeInvoke<{ instance?: { id: string } } | null>("create_instance", { name: `Luminos ${want}`, mc: want, withPreset: true }, null, 180000);
       id = made?.instance?.id;
       if (!id) { markIdle(); setToast("Could not create a Luminos instance. Check your connection and try again."); return; }
     }
-    const r = await safeInvoke<unknown>("launch_instance", { id, quick: t?.quick ?? null, worldPath: t?.worldPath ?? null }, "__failed__", 20000);
+    const r = await safeInvoke<unknown>("launch_instance", { id, quick: t?.quick ?? null, worldPath: t?.worldPath ?? null, mcVersion: t?.instanceId ? null : want, enginePreset: c.prefs.enginePreset, windowMode: c.prefs.windowMode }, "__failed__", 20000);
     if (r === "__failed__") { markIdle(); notify("Minecraft did not start. If it is already running, use Stop Game first."); return; }
     setToast(t ? `Starting ${t.label}…` : "Starting Minecraft…");
   };
@@ -134,13 +125,13 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
           <img src="/art/hero-blue-hour.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-right" decoding="async" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(11,13,18,0.95) 0%, rgba(11,13,18,0.65) 48%, rgba(11,13,18,0) 82%)" }} />
           <div className="relative max-w-[560px] space-y-4">
-            <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase" style={{ color: "#8FA2FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />Fabric {c.prefs.gameVersion} • Sodium + Lithium + Native Mixins Ready</span>
-            <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client <span style={{ color: "#8FA2FF" }}>4.3</span></h1>
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase" style={{ color: "#8FA2FF" }}><span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: "#34D399" }} />Luminos Client v{APP_VERSION} · MC {c.prefs.gameVersion} · {c.prefs.enginePreset}</span>
+            <h1 className="m-0 !mt-2 text-[32px] font-bold leading-tight text-white">Luminos Client <span style={{ color: "#8FA2FF" }}>{APP_VERSION.split(".").slice(0, 2).join(".")}</span></h1>
             {!preparing && <p className="m-0 !mt-3 text-[13.5px] leading-relaxed" style={{ color: "#94A3B8" }}>{MODULES.length} built-in PvP and survival modules, with the performance stack and the Luminos Asset Verifier already inside. Press Right Ctrl in game for the quick panel.</p>}
             <div className="pt-3 flex items-center gap-3 flex-wrap">
               {g.status === "idle" && (
                 <button onClick={() => void launch()} className="h-[46px] px-8 rounded-[10px] text-white text-[14px] font-semibold flex items-center gap-2.5 t press" style={{ background: "#2B4BFF", boxShadow: "0 4px 20px rgba(43,75,255,0.35)" }}>
-                  <span aria-hidden>▶</span>Launch {c.prefs.gameVersion}
+                  <span aria-hidden>▶</span>LAUNCH LUMINOS
                 </button>
               )}
               {preparing && <LaunchProgressPanel />}
@@ -152,9 +143,11 @@ export default function Home({ boot, go }: { boot: Boot; go: (r: string) => void
                   <StopGameButton />
                 </>
               )}
-              {g.status === "idle" && <Menu label="Version and preset" value={`${c.prefs.gameVersion} • ${c.prefs.preset}`} items={[...versions, ...(Object.keys(PRESETS) as Preset[])]} onPick={(v) => (v in PRESETS ? applyPreset(v as Preset) : setPref("gameVersion", v))} />}
+              {g.status === "idle" && <VersionSelect />}
+              {g.status === "idle" && <PresetSelect />}
               {g.status === "idle" && <button onClick={() => setHost(true)} className="h-[46px] px-4 rounded-[10px] text-[13px] font-medium t hover:!text-white" style={{ background: "rgba(22,27,38,.9)", color: "#94A3B8" }}>Host World</button>}
             </div>
+            {g.status === "idle" && <div className="pt-1"><WindowModeToggle /></div>}
           </div>
         </section>
 

@@ -28,7 +28,20 @@ public final class MainMenuView {
 	private static final int PARTICLES = 35;
 	private static final String SEP = "\u0001";
 
+	private record Row(String id, String label, String hint, Kind kind) {}
+	/** The seven startup actions, top to bottom. */
+	private static final Row[] ROWS = {
+		new Row(SINGLE, "Singleplayer", "", Kind.PRIMARY),
+		new Row(MULTI, "Multiplayer", "", Kind.PRIMARY),
+		new Row(PANEL, "Luminos Mod Panel", "R-CTRL", Kind.ACCENT),
+		new Row(HUD, "HUD Design Studio", "H", Kind.SECONDARY),
+		new Row(CAPES, "3D Capes & Cosmetics", "", Kind.SECONDARY),
+		new Row(OPTIONS, "Minecraft Options", "", Kind.SECONDARY),
+		new Row(QUIT, "Quit Game", "", Kind.DANGER),
+	};
 	private final List<HitRegion> hitRegions = new ArrayList<>();
+	private final Map<String, int[]> rects = new HashMap<>();
+	private int focus = -1;
 	private final Map<String, Float> hover = new HashMap<>();
 	private final Consumer<String> action;
 	private Runnable clickSound = () -> {};
@@ -39,6 +52,8 @@ public final class MainMenuView {
 
 	/** What the last frame registered, for tests. */
 	List<HitRegion> regions() { return hitRegions; }
+	int[] rect(String id) { return rects.get(id); }
+	int focusIndex() { return focus; }
 
 	private static int lerp(int a, int b, float t) {
 		t = Math.max(0f, Math.min(1f, t));
@@ -54,28 +69,29 @@ public final class MainMenuView {
 	 */
 	public void render(Gfx g, int mx, int my, long timeMs, String user, int fps, String mcVersion, String engine) {
 		hitRegions.clear();
-		int w = g.width(), h = g.height(), cx = w / 2, cy = h / 2;
+		rects.clear();
+		int w = g.width(), h = g.height();
 		backdrop(g, w, h);
 		particles(g, w, h, timeMs);
+		leftScrim(g, w, h);
 		vignette(g, w, h);
-		topBar(g, mx, my, w, user, fps, engine);
+		topBar(g, mx, my, w, user, fps, mcVersion, engine);
 
-		// hero
-		int logo = 44;
-		if (!g.texture(TitleScene.LOGO, cx - logo / 2, cy - 94, logo, logo, 64, 64)) Glass.roundFill(g, cx - logo / 2, cy - 94, logo, logo, 22, COBALT);
-		spaced(g, "LUMINOS", cx, cy - 44, 2f, 4, INK);
-		String sub = "HIGH-PERFORMANCE MINECRAFT CLIENT  |  " + mcVersion;
-		Glass.text(g, sub, cx - Glass.width(g, sub, 1f) / 2f, cy - 22, 1f, MUTED);
+		// brand block, left column
+		boolean tight = h < 300;
+		int x = Math.max(22, Math.min(58, w / 11)), bw = Math.max(150, Math.min(236, w / 2 - x));
+		int y = tight ? 56 : 68, logo = tight ? 28 : 40;
+		if (!g.texture(TitleScene.LOGO, x, y, logo, logo, 64, 64)) Glass.roundFill(g, x, y, logo, logo, logo / 2, COBALT);
+		spacedLeft(g, "LUMINOS", x + logo + 10, y + (logo - 16) / 2, 2f, 3, INK);
+		Glass.text(g, "HIGH-PERFORMANCE MINECRAFT CLIENT", x, y + logo + 8, 1f, MUTED);
 
-		// primary stack
-		int bw = 220, bx = cx - bw / 2;
-		button(g, mx, my, SINGLE, "SINGLEPLAYER", bx, cy + 8, bw, 26, Kind.PRIMARY);
-		button(g, mx, my, MULTI, "MULTIPLAYER", bx, cy + 40, bw, 26, Kind.PRIMARY);
-		button(g, mx, my, PANEL, "LUMINOS MOD PANEL [R-CTRL]", bx, cy + 72, bw, 26, Kind.ACCENT);
-		// split row: 70 + 72 + 70 across 220 with 4 px gaps
-		button(g, mx, my, HUD, "HUD Studio", bx, cy + 104, 70, 22, Kind.SECONDARY);
-		button(g, mx, my, OPTIONS, "Options", bx + 74, cy + 104, 72, 22, Kind.SECONDARY);
-		button(g, mx, my, QUIT, "Quit", bx + 150, cy + 104, 70, 22, Kind.DANGER);
+		// seven actions: one column, one hit rectangle each, registered where it is drawn
+		int by = y + logo + (tight ? 22 : 30), gap = tight ? 3 : 5, foot = 30;
+		int bh = Math.max(15, Math.min(24, (h - by - foot - gap * (ROWS.length - 1)) / ROWS.length));
+		for (int i = 0; i < ROWS.length; i++) {
+			Row r = ROWS[i];
+			row(g, mx, my, r, x, by + i * (bh + gap), bw, bh, i == focus);
+		}
 
 		String left = "Luminos Engine v" + LuminosClient.VERSION + "  |  Entity/Particle Culling + Fast Render Pipeline";
 		String right = "Minecraft " + mcVersion + " / Mojang AB";
@@ -85,9 +101,27 @@ public final class MainMenuView {
 		g.text(right, w - 16 - Glass.width(g, right, 1f), fy, FOOT);
 	}
 
+	/** Darkens the left ~60% so the controls stay legible over any artwork, and leaves the right side of the picture alone. */
+	private static void leftScrim(Gfx g, int w, int h) {
+		int span = (int) (w * 0.62f);
+		for (int x = 0; x < span; x += 2) {
+			float t = 1f - x / (float) span;
+			g.fill(x, 0, x + 2, h, ((int) (0x90 * t * t) << 24) | 0x06080E);
+		}
+	}
+
+	private static void spacedLeft(Gfx g, String s, int x0, int y, float scale, int track, int color) {
+		float x = x0;
+		for (char c : s.toCharArray()) {
+			String t = String.valueOf(c);
+			Glass.text(g, t, Math.round(x), y, scale, color);
+			x += Glass.width(g, t, scale) + track;
+		}
+	}
+
 	private void backdrop(Gfx g, int w, int h) {
 		if (g.cover(TitleScene.BG, TitleScene.BG_W, TitleScene.BG_H, 0, 0, w, h)) {
-			g.fill(0, 0, w, h, 0x9907090E);   // quiet the artwork so the controls own the screen
+			g.fill(0, 0, w, h, 0x4D07090E);   // a light veil: the left scrim and vignette protect the controls, the artwork keeps its colour
 			return;
 		}
 		// fallback: a midnight-cobalt aurora, drawn with fills only
@@ -126,36 +160,40 @@ public final class MainMenuView {
 		}
 	}
 
-	private void topBar(Gfx g, int mx, int my, int w, String user, int fps, String engine) {
+	private void topBar(Gfx g, int mx, int my, int w, String user, int fps, String mcVersion, String engine) {
 		int y = 14, hh = 26;
-		// right pills, right-aligned at w - 16, built right to left
+		// right: Right Ctrl hint pill (a label: the Mod Panel row is the clickable control), then the account pill, built right to left
+		String hint = "Right Ctrl: Mod Panel";
+		int hw = Glass.width(g, hint, 1f) + 20, x = w - 16 - hw;
+		Glass.roundFill(g, x, y, hw, hh, hh / 2, 0xE62B4BFF);
+		Glass.roundOutline(g, x, y, hw, hh, hh / 2, 0x66FFFFFF);
+		g.text(hint, x + 10, y + 9, INK);
 		String name = (user == null || user.isEmpty()) ? "Offline" : user;
-		String[][] chips = { { CAPES, "Capes" }, { HUD, "HUD Studio" }, { PANEL, "Mod Panel [R-Ctrl]" } };
-		int x = w - 16;
-		for (String[] c : chips) {
-			int cw = Glass.width(g, c[1], 1f) + 20;
-			x -= cw;
-			button(g, mx, my, c[0], c[1], x, y, cw, hh, c[0].equals(PANEL) ? Kind.CHIP_ACCENT : Kind.CHIP);
-			x -= 6;
-		}
 		int aw = 8 + 6 + 8 + Glass.width(g, name, 1f) + 12;
-		x -= aw;
+		x -= 6 + aw;
 		int acc = x;
 		Glass.roundFill(g, x, y, aw, hh, hh / 2, 0xB0141822);
 		Glass.roundOutline(g, x, y, aw, hh, hh / 2, 0x26FFFFFF);
 		Glass.roundFill(g, x + 10, y + 10, 6, 6, 3, 0xFF22C55E);
 		g.text(name, x + 22, y + 9, INK);
 
-		// left pill: logo, name, engine, fps; degrade gracefully when the right side needs the room
-		String live = fps + " FPS", brand = "LUMINOS " + shortVersion();
+		// left: emblem, "LUMINOS CLIENT v4.5.0", then the live engine badge; the badge degrades to fit the room the right side leaves
+		String brand = "LUMINOS CLIENT v" + LuminosClient.VERSION, live = fps + " FPS";
+		String badge = "MC " + mcVersion + SEP + live;
 		int avail = acc - 12 - 16;
-		String[] tiers = { brand + SEP + engine + SEP + live, brand + SEP + live, brand };
+		String[] tiers = { brand + SEP + badge, brand + SEP + live, brand };
 		String text = tiers[tiers.length - 1];
 		for (String t : tiers) if (8 + 16 + 6 + Glass.width(g, t.replace(SEP, "     "), 1f) + 12 <= avail) { text = t; break; }
 		int pw = 8 + 16 + 6 + Glass.width(g, text.replace(SEP, "     "), 1f) + 12;
 		Glass.roundFill(g, 16, y, pw, hh, hh / 2, 0xB0141822);
 		Glass.roundOutline(g, 16, y, pw, hh, hh / 2, 0x26FFFFFF);
 		if (!g.texture(TitleScene.LOGO, 24, y + 5, 16, 16, 64, 64)) Glass.roundFill(g, 24, y + 5, 16, 16, 8, COBALT);
+		// the live engine badge: its own pill under the brand pill (what is really loaded, as decided by the caller)
+		int ew = 8 + 8 + Glass.width(g, engine, 1f) + 14, ey = y + hh + 5;
+		Glass.roundFill(g, 16, ey, ew, 16, 8, 0xA00B1226);
+		Glass.roundOutline(g, 16, ey, ew, 16, 8, 0x552B4BFF);
+		Glass.roundFill(g, 24, ey + 6, 4, 4, 2, 0xFF60A5FA);
+		g.text(engine, 34, ey + 4, SKY);
 		int tx = 46;
 		String[] parts = text.split(SEP);
 		for (int i = 0; i < parts.length; i++) {
@@ -164,6 +202,29 @@ public final class MainMenuView {
 			tx += Glass.width(g, parts[i], 1f);
 			if (i < parts.length - 1) { g.fill(tx + 6, y + 12, tx + 8, y + 14, FOOT); tx += 14; }   // a drawn dot: the bitmap font has no bullet glyph
 		}
+	}
+
+	/** One action row: left-aligned label, shortcut on the right, and the hit rectangle registered with the identical (x, y, w, h). */
+	private void row(Gfx g, int mx, int my, Row r, int x, int y, int w, int h, boolean focused) {
+		boolean over = mx >= x && mx < x + w && my >= y && my < y + h;
+		float hot = hover.getOrDefault(r.id, 0f);
+		hot = Math.max(0f, Math.min(1f, hot + (over || focused ? 0.25f : -0.25f)));
+		hover.put(r.id, hot);
+		int fill, edge;
+		switch (r.kind) {
+			case DANGER -> { fill = lerp(FILL, 0xFF3A1519, hot); edge = lerp(0x33FFFFFF, CRIMSON, hot); }
+			case ACCENT -> { fill = lerp(0xE60F1A44, COBALT, hot); edge = lerp(0x802B4BFF, EDGE, hot); }
+			default -> { fill = lerp(FILL, 0xFF1B2440, hot); edge = lerp(0x33FFFFFF, EDGE, hot); }
+		}
+		Glass.roundFill(g, x, y, w, h, 6, fill);
+		Glass.roundOutline(g, x, y, w, h, 6, edge);
+		g.fill(x + 1, y + 5, x + 3, y + h - 5, r.kind == Kind.DANGER ? CRIMSON : COBALT);   // the cobalt bar on the left of every row
+		int ty = y + (h - 8) / 2 + 1;
+		g.text(r.label, x + 12, ty, INK);
+		if (!r.hint.isEmpty()) g.text(r.hint, x + w - 10 - Glass.width(g, r.hint, 1f), ty, hot > 0.5f ? 0xFFBFD4FF : FOOT);
+		if (focused) Glass.roundOutline(g, x - 2, y - 2, w + 4, h + 4, 7, 0xFFFFFFFF);
+		rects.put(r.id, new int[] { x, y, w, h });
+		hitRegions.add(new HitRegion(x, y, w, h, r.id));
 	}
 
 	private static String shortVersion() {
@@ -185,32 +246,6 @@ public final class MainMenuView {
 		}
 	}
 
-	/** Draws one button and registers its hit rectangle with the identical (x, y, w, h). */
-	private void button(Gfx g, int mx, int my, String id, String label, int x, int y, int w, int h, Kind kind) {
-		boolean over = mx >= x && mx < x + w && my >= y && my < y + h;
-		float hot = hover.getOrDefault(id, 0f);
-		hot = Math.max(0f, Math.min(1f, hot + (over ? 0.25f : -0.25f)));
-		hover.put(id, hot);
-		int fill, edge;
-		switch (kind) {
-			case DANGER -> { fill = lerp(FILL, 0xFF3A1519, hot); edge = lerp(0x33FFFFFF, CRIMSON, hot); }
-			case CHIP -> { fill = lerp(0xB0141822, 0xFF1E2433, hot); edge = lerp(0x26FFFFFF, 0x66FFFFFF, hot); }
-			case CHIP_ACCENT -> { fill = lerp(0xE62B4BFF, 0xFF3B5BFF, hot); edge = lerp(0x66FFFFFF, EDGE, hot); }
-			case SECONDARY -> { fill = lerp(FILL, 0xFF1E2433, hot); edge = lerp(0x33FFFFFF, 0x80FFFFFF, hot); }
-			default -> { fill = lerp(FILL, COBALT, hot); edge = lerp(kind == Kind.ACCENT ? 0x802B4BFF : 0x33FFFFFF, EDGE, hot); }
-		}
-		int r = kind == Kind.CHIP || kind == Kind.CHIP_ACCENT ? h / 2 : 6;
-		Glass.roundFill(g, x, y, w, h, r, fill);
-		Glass.roundOutline(g, x, y, w, h, r, edge);
-		if (kind == Kind.ACCENT) {   // the glowing cobalt bar on the left of the panel button
-			g.fill(x + 1, y + 5, x + 3, y + h - 5, COBALT);
-			g.fill(x + 3, y + 7, x + 4, y + h - 7, 0x552B4BFF);
-		}
-		int tw = Glass.width(g, label, 1f);
-		g.text(label, x + (w - tw) / 2, y + (h - 8) / 2 + 1, INK);
-		hitRegions.add(new HitRegion(x, y, w, h, id));
-	}
-
 	// ------------------------------------------------------------------ input
 	/** Left click only. Returns true when a button took it. */
 	public boolean click(double mx, double my, int button) {
@@ -224,5 +259,22 @@ public final class MainMenuView {
 			}
 		}
 		return false;
+	}
+
+	/** Keyboard navigation: Up/Down/Tab move the focus ring, Enter/Space activates, H opens the HUD studio. */
+	public boolean key(int code) {
+		int n = ROWS.length;
+		switch (code) {
+			case 265 -> focus = focus <= 0 ? n - 1 : focus - 1;          // Up
+			case 264, 258 -> focus = (focus + 1) % n;                     // Down, Tab
+			case 257, 335, 32 -> {                                        // Enter, keypad Enter, Space
+				if (focus < 0) return false;
+				clickSound.run();
+				action.accept(ROWS[focus].id);
+			}
+			case 72 -> { clickSound.run(); action.accept(HUD); }          // H
+			default -> { return false; }
+		}
+		return true;
 	}
 }
