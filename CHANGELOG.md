@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.4.0
+
+### English
+- **New standalone startup screen.** `LuminosMainMenuScreen` replaces vanilla's TitleScreen at the root: `Minecraft.setScreen` swaps any `TitleScreen` for it, and `TitleScreen.init` redirects to it as a safety net. It draws its own scene (artwork or midnight-cobalt aurora, 35 drifting motes, vignette, account/engine bar, hero dock) with no vanilla widgets; every button is a rectangle registered in one `HitRegion` list at the moment it is drawn. The engine pill says "Sodium + Native Engine Active" only when Sodium is loaded.
+- **Right Ctrl / Right Shift work everywhere.** Two hooks (raw `KeyboardHandler.keyPress`, plus a per-frame GLFW edge detector in `Minecraft.runTick`) feed one debounced `QuickPanelToggle`, so the panel opens and closes over the world, the pause menu, and both title screens, and never over chat or inventories.
+- **Quick panel: fixed the click bugs.** Root cause: a card scrolled partly under the header kept a hit rectangle that overlapped the tab and search rows, and `isChrome = y < gy` let it fire. Scrolled hits are now clamped to the grid viewport when registered. Toggling flips the module in place (click sound, config saved, never `setScreen`). The gear or a right click opens an inline 210 px settings drawer (sliders drag live, wheel scrolls it). New Movement and Performance tabs; wheel handling uses the 4-argument `mouseScrolled`. Vanilla blur no longer draws over the panel.
+- **Launcher Capes preview is lit.** Studio light rig raised from 0.4/0.9 to 2.2/1.6, a cobalt studio glow behind the canvas, and a brighter high-contrast default skin (original art drawn in code).
+- **Engine:** `FastMathLUT` (65,536-entry sine table). Existing culling, particle, fog, lightmap and frame-limit mixins are unchanged; no benchmark was run and no speed claim is made.
+- **Tests:** `./gradlew hitTest` renders the real views headlessly and clicks the registered rectangles (tabs, toggles, gear, drawer, sliders, every menu button at 480x270, 640x360, 854x480).
+- **Not verified:** no real Minecraft window and no GPU were available. The Mixin targets compile against the 1.21.11 Mojang-mapped jar but were not launched; the previews are Java2D renders at GUI scale 2, not screenshots of the game. The CI smoke run keeps the vanilla title screen (it waits for it) and so does not exercise the new menu. The cape-card thumbnails in the launcher still use their own, dimmer snapshot lighting.
+
+### Español
+- **Nueva pantalla de inicio independiente.** `LuminosMainMenuScreen` sustituye a la TitleScreen de vanilla desde la raíz (`Minecraft.setScreen`) y `TitleScreen.init` redirige a ella como red de seguridad. Dibuja su propia escena sin widgets de vanilla; cada botón es un rectángulo registrado en una única lista `HitRegion` en el momento de dibujarse.
+- **Right Ctrl / Right Shift funcionan en todas partes.** Dos ganchos (evento de teclado y detector de flanco por fotograma) alimentan un único `QuickPanelToggle` con antirrebote: abre y cierra el panel en el mundo, el menú de pausa y las pantallas de título, nunca sobre el chat o inventarios.
+- **Panel rápido: errores de clic corregidos.** Una tarjeta desplazada bajo la cabecera conservaba un rectángulo que solapaba las pestañas y la búsqueda; ahora los rectángulos desplazables se recortan al área visible. Activar un módulo no abre nunca otra pantalla; el engranaje o el clic derecho abre un panel de ajustes integrado de 210 px. Nuevas pestañas Movement y Performance.
+- **Vista previa de Capes iluminada.** Luz de estudio de 0,4/0,9 a 2,2/1,6, resplandor cobalto y una skin por defecto más brillante.
+- **Motor:** `FastMathLUT`. No se midió el rendimiento y no se afirma ninguna mejora.
+- **Sin verificar:** no hubo ventana real de Minecraft ni GPU; los ganchos Mixin compilan pero no se ejecutaron en el juego, y las imágenes son renders de Java2D.
+
 ## 4.3.0
 
 ### English

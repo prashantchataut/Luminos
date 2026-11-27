@@ -4,7 +4,6 @@ import dev.luminos.client.Feature;
 import dev.luminos.client.Features;
 import dev.luminos.client.Gfx;
 import dev.luminos.client.ModPanelView;
-import dev.luminos.client.TitleScene;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.ItemStack;
@@ -43,25 +42,22 @@ public final class PreviewMain {
 			f.set.accept(n.contains("keystroke") || n.contains("cps") || n.contains("fps") || n.contains("coordinates") || n.contains("fullbright") || n.contains("zoom") || n.contains("armor") || n.contains("toggle") || n.contains("time"));
 		}
 
-		// 1. title screen, "Singleplayer" hovered
+		// 1. the v4.4 startup screen, "SINGLEPLAYER" hovered (two passes: hover easing and hit areas settle)
+		dev.luminos.client.MainMenuView menu = new dev.luminos.client.MainMenuView(id -> {});
 		J2D g = new J2D(w, h);
-		TitleScene.paintBackdrop(g, w, h);
-		TitleScene.paintBrand(g, w, h, "1.21.11");
-		TitleScene.paintChrome(g, w, h, "PlayerOne", 144, "1.21.11");
-		for (TitleScene.Btn b : TitleScene.layout(w, h)) TitleScene.paintButton(g, b, b.id().equals("single") ? 1f : 0f);
-		g.save(new File(out, "ingame-titlescreen-3.png"));
+		for (int i = 0; i < 6; i++) { g = new J2D(w, h); menu.render(g, w / 2, h / 2 + 20, 0, "PlayerOne", 144, "1.21.11", "Sodium + Native Engine Active"); }
+		g.save(new File(out, "ingame-mainmenu-4.4.png"));
 
-		// 2. Right Ctrl panel over the title scene, mouse over a card
+		// 2. Right Ctrl panel over the menu: grid only, then grid + inline settings drawer
 		for (int variant = 0; variant < 2; variant++) {
 			J2D p = new J2D(w, h);
-			TitleScene.paintBackdrop(p, w, h);
-			TitleScene.paintBrand(p, w, h, "1.21.11");
-			for (TitleScene.Btn b : TitleScene.layout(w, h)) TitleScene.paintButton(p, b, 0f);
+			menu.render(p, -1, -1, 0, "PlayerOne", 144, "1.21.11", "Sodium + Native Engine Active");
 			ModPanelView v = new ModPanelView(() -> {}, () -> {}, () -> {});
 			if (variant == 1) v.openSettings("keystrokes");
-			v.render(p, variant == 0 ? w / 2 - 40 : -1, variant == 0 ? h / 2 - 20 : -1);
-			v.render(p, variant == 0 ? w / 2 - 40 : -1, variant == 0 ? h / 2 - 20 : -1);   // second pass: hit areas and hover are settled
-			p.save(new File(out, variant == 0 ? "ingame-quickpanel-3.png" : "ingame-quickpanel-settings-3.png"));
+			int mx = variant == 0 ? w / 2 - 40 : -1, my = variant == 0 ? h / 2 - 20 : -1;
+			v.render(p, mx, my);
+			v.render(p, mx, my);   // second pass: hit areas and hover are settled
+			p.save(new File(out, variant == 0 ? "ingame-quickpanel-grid-4.4.png" : "ingame-quickpanel-4.4.png"));
 		}
 		System.out.println("rendered into " + out.getAbsolutePath());
 	}
@@ -69,7 +65,7 @@ public final class PreviewMain {
 
 
 	// ------------------------------------------------------------------ the Gfx
-	static final class J2D implements Gfx {
+	public static final class J2D implements Gfx {
 		final int w, h;
 		final BufferedImage img;
 		final Graphics2D g;
@@ -78,7 +74,7 @@ public final class PreviewMain {
 		static final Map<String, BufferedImage> glyphs = new HashMap<>();
 		static final Map<String, BufferedImage> tex = new HashMap<>();
 
-		J2D(int w, int h) throws Exception {
+		public J2D(int w, int h) throws Exception {
 			this.w = w; this.h = h;
 			img = new BufferedImage(w * SCALE, h * SCALE, BufferedImage.TYPE_INT_ARGB);
 			g = img.createGraphics();
@@ -175,6 +171,6 @@ public final class PreviewMain {
 			return true;
 		}
 
-		void save(File f) throws Exception { g.dispose(); ImageIO.write(img, "png", f); }
+		public void save(File f) throws Exception { g.dispose(); ImageIO.write(img, "png", f); }
 	}
 }

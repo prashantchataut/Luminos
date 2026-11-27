@@ -1,0 +1,84 @@
+PASS  [panel 640x360] all regions lie inside the screen
+PASS  [panel 640x360] 7 category tabs registered
+PASS  [panel 640x360] tab ALL selects its category
+PASS  [panel 640x360] tab HUD selects its category
+PASS  [panel 640x360] tab VISUALS selects its category
+PASS  [panel 640x360] tab WORLD selects its category
+PASS  [panel 640x360] tab PVP selects its category
+PASS  [panel 640x360] tab MOVEMENT selects its category
+PASS  [panel 640x360] tab PERFORMANCE selects its category
+PASS  [panel 640x360] clicking a card toggles the module in place
+PASS  [panel 640x360] toggle plays the UI click once
+PASS  [panel 640x360] toggle opens no screen (no close/editor/keybinds callback)
+PASS  [panel 640x360] scrolled regions are clamped to [gridTop, gridBottom] (45 regions)
+PASS  [panel 640x360] clicks in the header area never toggle a scrolled-away card
+PASS  [panel 640x360] a gear region exists
+PASS  [panel 640x360] gear opens the inline settings drawer
+PASS  [panel 640x360] drawer close button collapses it
+PASS  [panel 640x360] right click on a card opens the drawer
+PASS  [panel 640x360] drawer used no screen callbacks
+PASS  [panel 640x360] slider click sets the left end and dragging moves it to the right end (0.0 -> 100.0)
+PASS  [panel 640x360] Edit HUD calls the editor callback
+PASS  [panel 640x360] close button calls close
+PASS  [panel 480x270] all regions lie inside the screen
+PASS  [panel 480x270] 7 category tabs registered
+PASS  [panel 480x270] tab ALL selects its category
+PASS  [panel 480x270] tab HUD selects its category
+PASS  [panel 480x270] tab VISUALS selects its category
+PASS  [panel 480x270] tab WORLD selects its category
+PASS  [panel 480x270] tab PVP selects its category
+PASS  [panel 480x270] tab MOVEMENT selects its category
+PASS  [panel 480x270] tab PERFORMANCE selects its category
+PASS  [panel 480x270] clicking a card toggles the module in place
+PASS  [panel 480x270] toggle plays the UI click once
+PASS  [panel 480x270] toggle opens no screen (no close/editor/keybinds callback)
+PASS  [panel 480x270] scrolled regions are clamped to [gridTop, gridBottom] (22 regions)
+PASS  [panel 480x270] clicks in the header area never toggle a scrolled-away card
+PASS  [panel 480x270] a gear region exists
+PASS  [panel 480x270] gear opens the inline settings drawer
+PASS  [panel 480x270] drawer close button collapses it
+PASS  [panel 480x270] right click on a card opens the drawer
+PASS  [panel 480x270] drawer used no screen callbacks
+PASS  [panel 480x270] slider click sets the left end and dragging moves it to the right end (0.0 -> 100.0)
+PASS  [panel 480x270] Edit HUD calls the editor callback
+PASS  [panel 480x270] close button calls close
+PASS  [menu 640x360] 9 controls registered (3 stack + 3 split + 3 top chips)
+PASS  [menu 640x360] every region is on screen
+PASS  [menu 640x360] no two regions overlap
+PASS  [menu 640x360] 'capes' fires on its centre and both corners
+PASS  [menu 640x360] 'hud' fires on its centre and both corners
+PASS  [menu 640x360] 'panel' fires on its centre and both corners
+PASS  [menu 640x360] 'single' fires on its centre and both corners
+PASS  [menu 640x360] 'multi' fires on its centre and both corners
+PASS  [menu 640x360] 'panel' fires on its centre and both corners
+PASS  [menu 640x360] 'hud' fires on its centre and both corners
+PASS  [menu 640x360] 'options' fires on its centre and both corners
+PASS  [menu 640x360] 'quit' fires on its centre and both corners
+PASS  [menu 640x360] empty space and right-click do nothing
+PASS  [menu 480x270] 9 controls registered (3 stack + 3 split + 3 top chips)
+PASS  [menu 480x270] every region is on screen
+PASS  [menu 480x270] no two regions overlap
+PASS  [menu 480x270] 'capes' fires on its centre and both corners
+PASS  [menu 480x270] 'hud' fires on its centre and both corners
+PASS  [menu 480x270] 'panel' fires on its centre and both corners
+PASS  [menu 480x270] 'single' fires on its centre and both corners
+PASS  [menu 480x270] 'multi' fires on its centre and both corners
+PASS  [menu 480x270] 'panel' fires on its centre and both corners
+PASS  [menu 480x270] 'hud' fires on its centre and both corners
+PASS  [menu 480x270] 'options' fires on its centre and both corners
+PASS  [menu 480x270] 'quit' fires on its centre and both corners
+PASS  [menu 480x270] empty space and right-click do nothing
+PASS  [menu 854x480] 9 controls registered (3 stack + 3 split + 3 top chips)
+PASS  [menu 854x480] every region is on screen
+PASS  [menu 854x480] no two regions overlap
+PASS  [menu 854x480] 'capes' fires on its centre and both corners
+PASS  [menu 854x480] 'hud' fires on its centre and both corners
+PASS  [menu 854x480] 'panel' fires on its centre and both corners
+PASS  [menu 854x480] 'single' fires on its centre and both corners
+PASS  [menu 854x480] 'multi' fires on its centre and both corners
+PASS  [menu 854x480] 'panel' fires on its centre and both corners
+PASS  [menu 854x480] 'hud' fires on its centre and both corners
+PASS  [menu 854x480] 'options' fires on its centre and both corners
+PASS  [menu 854x480] 'quit' fires on its centre and both corners
+PASS  [menu 854x480] empty space and right-click do nothing
+83/83 checks passed

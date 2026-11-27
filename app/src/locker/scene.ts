@@ -6,10 +6,11 @@ export type Pose = "idle" | "sprint" | "block" | "sneak" | "turntable";
 
 /** Light rigs for the character preview. `css` is the backdrop behind the transparent canvas. */
 export const ENVS: Record<Env, { label: string; global: number; camera: number; globalColor: number; cameraColor: number; css: string }> = {
-  moonlit: { label: "Moonlit Arena", global: 0.55, camera: 0.5, globalColor: 0x7f9bff, cameraColor: 0xb7c9ff, css: "linear-gradient(180deg,#070c24 0%,#0e1b4a 70%,#16296a 100%)" },
-  nether: { label: "Nether Glow", global: 0.5, camera: 0.75, globalColor: 0xff7a3d, cameraColor: 0xff4d2e, css: "linear-gradient(180deg,#1a0605 0%,#4a0f08 65%,#8a2a0c 100%)" },
-  daylight: { label: "Daylight Shader", global: 0.95, camera: 0.45, globalColor: 0xfff2d6, cameraColor: 0xffffff, css: "linear-gradient(180deg,#8fc3ee 0%,#cfe6f5 70%,#dfe9d0 100%)" },
-  studio: { label: "Studio Rim Light", global: 0.4, camera: 0.9, globalColor: 0xffffff, cameraColor: 0xe2ecff, css: "radial-gradient(ellipse at 50% 30%,#232a3d 0%,#10131c 70%)" },
+  moonlit: { label: "Moonlit Arena", global: 1.7, camera: 1.2, globalColor: 0xc9d6ff, cameraColor: 0xe3ebff, css: "linear-gradient(180deg,#070c24 0%,#0e1b4a 70%,#16296a 100%)" },
+  nether: { label: "Nether Glow", global: 1.6, camera: 1.3, globalColor: 0xffb48a, cameraColor: 0xff9a70, css: "linear-gradient(180deg,#1a0605 0%,#4a0f08 65%,#8a2a0c 100%)" },
+  daylight: { label: "Daylight Shader", global: 1.8, camera: 1.0, globalColor: 0xfff2d6, cameraColor: 0xffffff, css: "linear-gradient(180deg,#8fc3ee 0%,#cfe6f5 70%,#dfe9d0 100%)" },
+  /** The default rig. v4.3 used 0.4 / 0.9, which left the character an almost black silhouette. */
+  studio: { label: "Studio Rim Light", global: 2.2, camera: 1.6, globalColor: 0xffffff, cameraColor: 0xffffff, css: "radial-gradient(circle at 50% 45%, rgba(59,130,246,0.22), rgba(15,18,26,0.95) 75%)" },
 };
 
 const lum = (r: number, g: number, b: number) => 0.2126 * r + 0.7152 * g + 0.0722 * b;

@@ -116,7 +116,7 @@ export default function Cosmetics() {
             <h1 className="m-0 text-[16px] font-bold text-white">Your Character</h1>
             <p className="m-0 text-[12px] text-[#8A94A6] truncate" title={skin.name}>{skin.name} · {skin.model === "slim" ? "Slim arms" : "Classic arms"}{cape ? ` · ${cape.name}` : ""}</p>
           </header>
-          <div ref={wrap} className="relative flex-1 min-h-[260px] rounded-[12px] overflow-hidden" style={{ background: "radial-gradient(ellipse at 50% 28%, #1B2236 0%, #0B0D12 74%)" }}>
+          <div ref={wrap} className="relative flex-1 min-h-[260px] rounded-[12px] overflow-hidden" style={{ background: "radial-gradient(circle at 50% 45%, rgba(59,130,246,0.22), rgba(15,18,26,0.95) 75%)" }}>
             <canvas ref={canvas} className="absolute inset-0 w-full h-full" aria-label={`3D preview: ${skin.name}${cape ? " wearing " + cape.name : ""}`} />
             <div className="absolute bottom-3 inset-x-0 flex justify-center"><div className="w-[140px]"><Segmented label="View" value={back ? "back" : "front"} onChange={(v) => setBack(v === "back")} items={[{ id: "front", label: "Front" }, { id: "back", label: "Back" }]} /></div></div>
           </div>

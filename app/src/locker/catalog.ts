@@ -24,17 +24,20 @@ function makeDefaultSkin(): string {
   const c = document.createElement("canvas"); c.width = 64; c.height = 64;
   const g = c.getContext("2d"); if (!g) return "";
   const box = (col: string, x: number, y: number, w: number, h: number) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-  box("#B98A67", 0, 0, 32, 16);            // head (all faces) in a skin tone
-  box("#3A2A22", 8, 0, 8, 2);              // hair on top
-  box("#3A2A22", 8, 8, 8, 2); box("#3A2A22", 0, 8, 8, 3); box("#3A2A22", 16, 8, 8, 3); box("#3A2A22", 24, 8, 8, 8);
-  box("#F4F1EA", 9, 12, 2, 1); box("#F4F1EA", 13, 12, 2, 1); box("#2B3B6B", 10, 12, 1, 1); box("#2B3B6B", 14, 12, 1, 1); // eyes
-  box("#8F5E48", 11, 14, 2, 1);            // mouth
-  box("#334155", 16, 16, 24, 16);          // torso
-  box("#475569", 40, 16, 16, 16);          // right arm
-  box("#475569", 32, 48, 16, 16);          // left arm
-  box("#1E293B", 0, 16, 16, 16);           // right leg
-  box("#1E293B", 16, 48, 16, 16);          // left leg
-  box("#B98A67", 44, 28, 8, 4); box("#B98A67", 36, 60, 8, 4);  // hands
+  // A bright, high-contrast classic character, drawn in code (original art, no Mojang assets): light skin, dark hair, white eyes with blue
+  // irises, a cobalt shirt with a pale collar, mid-grey trousers. Every face of every part is filled so no side of the preview is black.
+  box("#E8B48C", 0, 0, 32, 16);            // head (all faces) in a light skin tone
+  box("#4A2F1E", 8, 0, 8, 2);              // hair on top
+  box("#4A2F1E", 8, 8, 8, 2); box("#4A2F1E", 0, 8, 8, 3); box("#4A2F1E", 16, 8, 8, 3); box("#4A2F1E", 24, 8, 8, 8);
+  box("#FFFFFF", 9, 12, 2, 1); box("#FFFFFF", 13, 12, 2, 1); box("#1D4ED8", 10, 12, 1, 1); box("#1D4ED8", 14, 12, 1, 1); // eyes
+  box("#B4694E", 11, 14, 2, 1);            // mouth
+  box("#3B82F6", 16, 16, 24, 16);          // torso
+  box("#DBEAFE", 20, 20, 8, 1);            // collar line on the front
+  box("#3B82F6", 40, 16, 16, 16);          // right arm sleeve
+  box("#3B82F6", 32, 48, 16, 16);          // left arm sleeve
+  box("#94A3B8", 0, 16, 16, 16);           // right leg
+  box("#94A3B8", 16, 48, 16, 16);          // left leg
+  box("#E8B48C", 44, 28, 8, 4); box("#E8B48C", 36, 60, 8, 4);  // hands
   return c.toDataURL("image/png");
 }
 let defaultData = "";

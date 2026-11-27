@@ -68,3 +68,12 @@ tasks.register('renderPreview', JavaExec) {
 	systemProperty 'java.awt.headless', 'true'
 	args(project.findProperty('previewOut') ?: "${buildDir}/preview")
 }
+
+// Headless hit-test of the v4.4 screens: renders the real views, clicks the rectangles they registered, exits 1 on any failure.
+tasks.register('hitTest', JavaExec) {
+	dependsOn classes, 'previewClasses'
+	classpath = sourceSets.preview.output + sourceSets.preview.runtimeClasspath
+	mainClass = 'dev.luminos.client.HitTestMain'
+	systemProperty 'java.awt.headless', 'true'
+	args(project.findProperty('hitOut') ?: "${buildDir}/hit-test.txt")
+}

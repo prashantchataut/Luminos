@@ -78,7 +78,11 @@ public final class Config {
 	/** The Fabric config folder; without a running Fabric Loader (the offscreen preview renderer) the {@code luminos.config.dir} property is used. */
 	private static Path configDir() {
 		var loader = FabricLoader.getInstance();
-		return loader != null ? loader.getConfigDir() : Path.of(System.getProperty("luminos.config.dir", "config"));
+		Path dir = null;
+		if (loader != null) {
+			try { dir = loader.getConfigDir(); } catch (RuntimeException notInitialised) { /* headless preview / tests */ }
+		}
+		return dir != null ? dir : Path.of(System.getProperty("luminos.config.dir", "config"));
 	}
 
 	public static Gson gson() { return GSON; }
