@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.5.0
+- Launcher window: no longer always-on-top and no longer taller than 88% of the monitor, so it cannot cover the Windows taskbar (default 1200x720, minimum 960x580). Own title bar with minimize, maximize/restore and close, drag region and double-click to maximize. Always-on-top is an opt-in switch in Preferences.
+- Launcher: Minecraft version (1.21.4 to 1.19.4), engine preset and window mode selectors on Home and in Preferences, saved at once. Launch uses (or creates) the Fabric instance for exactly the selected version.
+- In-game client: startup screen redesigned as one left column of seven actions with keyboard navigation and a live engine badge; quick panel tabs renamed (Render, FPS); the open/close rule for Right Ctrl is now a tested pure function.
+- Client tests: 9 headless JUnit tests (clicks, tabs, in-place toggles, inline drawer, slider drag, key routing, Mixin registration) plus 2560x1600 renders of the three in-game screens. Composed renders, not captures of a running game.
+- Not verified: nothing was launched in a real Minecraft or on a real Windows desktop in this release; the Luminos Client loads on Minecraft 1.21.11 only.
+
 ## 4.4.0
 
 ### English
